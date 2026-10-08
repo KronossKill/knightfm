@@ -1,0 +1,583 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  /* Task 55: every number in the app (stats, money, dates, clocks) renders in
+     JetBrains Mono so columns align perfectly across the whole UI. */
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SF Mono", monospace;
+  --color-gold: var(--gold);
+  --color-info: var(--info);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* ─── Knight FM themes (spec §32) — six selectable themes, all WCAG AA ─── */
+
+/* Theme 1: Knight Emerald — premium dark / emerald / restrained metallic */
+:root,
+[data-theme="knight-emerald"] {
+  --background: oklch(0.15 0.022 230);
+  --foreground: oklch(0.96 0.006 230);
+  --card: oklch(0.19 0.025 230);
+  --card-foreground: oklch(0.96 0.006 230);
+  --popover: oklch(0.19 0.025 230);
+  --popover-foreground: oklch(0.96 0.006 230);
+  --primary: oklch(0.74 0.15 163);
+  --primary-foreground: oklch(0.16 0.04 165);
+  --secondary: oklch(0.25 0.022 230);
+  --secondary-foreground: oklch(0.94 0.008 230);
+  --muted: oklch(0.23 0.02 230);
+  --muted-foreground: oklch(0.72 0.018 230);
+  --accent: oklch(0.27 0.025 230);
+  --accent-foreground: oklch(0.96 0.006 230);
+  --destructive: oklch(0.62 0.2 25);
+  --border: oklch(0.3 0.022 230);
+  --input: oklch(0.3 0.022 230);
+  --ring: oklch(0.74 0.15 163);
+  --chart-1: oklch(0.74 0.15 163);
+  --chart-2: oklch(0.79 0.13 85);
+  --chart-3: oklch(0.68 0.14 250);
+  --chart-4: oklch(0.65 0.16 25);
+  --chart-5: oklch(0.72 0.13 300);
+  --sidebar: oklch(0.17 0.022 230);
+  --sidebar-foreground: oklch(0.96 0.006 230);
+  --sidebar-primary: oklch(0.74 0.15 163);
+  --sidebar-primary-foreground: oklch(0.16 0.04 165);
+  --sidebar-accent: oklch(0.25 0.022 230);
+  --sidebar-accent-foreground: oklch(0.96 0.006 230);
+  --sidebar-border: oklch(0.3 0.022 230);
+  --sidebar-ring: oklch(0.74 0.15 163);
+}
+
+/* Theme 2: Obsidian — near-black monochrome with high-contrast highlights */
+[data-theme="obsidian"] {
+  --background: oklch(0.1 0 0);
+  --foreground: oklch(0.97 0 0);
+  --card: oklch(0.14 0 0);
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.14 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+  --primary: oklch(0.93 0 0);
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.72 0 0);
+  --accent: oklch(0.22 0 0);
+  --accent-foreground: oklch(0.97 0 0);
+  --destructive: oklch(0.65 0.2 25);
+  --border: oklch(0.27 0 0);
+  --input: oklch(0.27 0 0);
+  --ring: oklch(0.85 0 0);
+  --chart-1: oklch(0.85 0 0);
+  --chart-2: oklch(0.65 0 0);
+  --chart-3: oklch(0.45 0 0);
+  --chart-4: oklch(0.75 0 0);
+  --chart-5: oklch(0.55 0 0);
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.97 0 0);
+  --sidebar-primary: oklch(0.93 0 0);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.2 0 0);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(0.27 0 0);
+  --sidebar-ring: oklch(0.85 0 0);
+}
+
+/* Theme 3: Royal — deep navy with refined gold accents */
+[data-theme="royal"] {
+  --background: oklch(0.16 0.035 268);
+  --foreground: oklch(0.95 0.012 268);
+  --card: oklch(0.2 0.04 268);
+  --card-foreground: oklch(0.95 0.012 268);
+  --popover: oklch(0.2 0.04 268);
+  --popover-foreground: oklch(0.95 0.012 268);
+  --primary: oklch(0.8 0.13 87);
+  --primary-foreground: oklch(0.19 0.05 268);
+  --secondary: oklch(0.26 0.04 268);
+  --secondary-foreground: oklch(0.93 0.014 268);
+  --muted: oklch(0.24 0.035 268);
+  --muted-foreground: oklch(0.73 0.025 268);
+  --accent: oklch(0.28 0.04 268);
+  --accent-foreground: oklch(0.95 0.012 268);
+  --destructive: oklch(0.62 0.2 25);
+  --border: oklch(0.31 0.04 268);
+  --input: oklch(0.31 0.04 268);
+  --ring: oklch(0.8 0.13 87);
+  --chart-1: oklch(0.8 0.13 87);
+  --chart-2: oklch(0.7 0.1 268);
+  --chart-3: oklch(0.65 0.14 160);
+  --chart-4: oklch(0.66 0.16 25);
+  --chart-5: oklch(0.72 0.12 310);
+  --sidebar: oklch(0.18 0.04 268);
+  --sidebar-foreground: oklch(0.95 0.012 268);
+  --sidebar-primary: oklch(0.8 0.13 87);
+  --sidebar-primary-foreground: oklch(0.19 0.05 268);
+  --sidebar-accent: oklch(0.26 0.04 268);
+  --sidebar-accent-foreground: oklch(0.95 0.012 268);
+  --sidebar-border: oklch(0.31 0.04 268);
+  --sidebar-ring: oklch(0.8 0.13 87);
+}
+
+/* Theme 4: Aurora — dark graphite with cool luminous gradients */
+[data-theme="aurora"] {
+  --background: oklch(0.17 0.015 255);
+  --foreground: oklch(0.96 0.008 255);
+  --card: oklch(0.21 0.018 255);
+  --card-foreground: oklch(0.96 0.008 255);
+  --popover: oklch(0.21 0.018 255);
+  --popover-foreground: oklch(0.96 0.008 255);
+  --primary: oklch(0.82 0.13 178);
+  --primary-foreground: oklch(0.18 0.04 178);
+  --secondary: oklch(0.27 0.02 255);
+  --secondary-foreground: oklch(0.94 0.01 255);
+  --muted: oklch(0.25 0.018 255);
+  --muted-foreground: oklch(0.73 0.015 255);
+  --accent: oklch(0.29 0.025 300);
+  --accent-foreground: oklch(0.96 0.008 255);
+  --destructive: oklch(0.62 0.2 25);
+  --border: oklch(0.32 0.02 255);
+  --input: oklch(0.32 0.02 255);
+  --ring: oklch(0.82 0.13 178);
+  --chart-1: oklch(0.82 0.13 178);
+  --chart-2: oklch(0.75 0.12 300);
+  --chart-3: oklch(0.7 0.14 255);
+  --chart-4: oklch(0.8 0.13 87);
+  --chart-5: oklch(0.66 0.16 25);
+  --sidebar: oklch(0.19 0.018 255);
+  --sidebar-foreground: oklch(0.96 0.008 255);
+  --sidebar-primary: oklch(0.82 0.13 178);
+  --sidebar-primary-foreground: oklch(0.18 0.04 178);
+  --sidebar-accent: oklch(0.27 0.02 255);
+  --sidebar-accent-foreground: oklch(0.96 0.008 255);
+  --sidebar-border: oklch(0.32 0.02 255);
+  --sidebar-ring: oklch(0.82 0.13 178);
+}
+
+/* Theme 5: Classic — elegant deep green with traditional football-club cues */
+[data-theme="classic"] {
+  --background: oklch(0.16 0.028 152);
+  --foreground: oklch(0.95 0.01 152);
+  --card: oklch(0.2 0.032 152);
+  --card-foreground: oklch(0.95 0.01 152);
+  --popover: oklch(0.2 0.032 152);
+  --popover-foreground: oklch(0.95 0.01 152);
+  --primary: oklch(0.63 0.14 150);
+  --primary-foreground: oklch(0.98 0.01 152);
+  --secondary: oklch(0.26 0.03 152);
+  --secondary-foreground: oklch(0.93 0.012 152);
+  --muted: oklch(0.24 0.028 152);
+  --muted-foreground: oklch(0.73 0.022 152);
+  --accent: oklch(0.28 0.032 152);
+  --accent-foreground: oklch(0.95 0.01 152);
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.31 0.03 152);
+  --input: oklch(0.31 0.03 152);
+  --ring: oklch(0.63 0.14 150);
+  --chart-1: oklch(0.63 0.14 150);
+  --chart-2: oklch(0.78 0.12 90);
+  --chart-3: oklch(0.68 0.1 152);
+  --chart-4: oklch(0.64 0.15 28);
+  --chart-5: oklch(0.7 0.12 300);
+  --sidebar: oklch(0.18 0.03 152);
+  --sidebar-foreground: oklch(0.95 0.01 152);
+  --sidebar-primary: oklch(0.63 0.14 150);
+  --sidebar-primary-foreground: oklch(0.98 0.01 152);
+  --sidebar-accent: oklch(0.26 0.03 152);
+  --sidebar-accent-foreground: oklch(0.95 0.01 152);
+  --sidebar-border: oklch(0.31 0.03 152);
+  --sidebar-ring: oklch(0.63 0.14 150);
+}
+
+/* ─── Task 55 — Élite design tokens (shared across every theme) ───
+     --gold: achievements, trophies and star players ONLY.
+     --info: electric cyan reserved for live/interactive signals.        */
+:root {
+  --gold: oklch(0.8 0.13 87);
+  --info: oklch(0.72 0.12 220);
+  --bento-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 48px -24px rgb(0 0 0 / 0.55);
+}
+
+/* Theme 6 (Task 55): Onyx — the élite deep-dark system.
+   Background #0A0A0A, surfaces #18181B, hairline borders #27272A,
+   emerald #10B981 primary, cyan #06B6D4 for live signals, gold #F59E0B
+   strictly for achievements. 12px card radius. Linear/Vercel grade.
+   Declared LAST so it wins the cascade over :root/knight-emerald. */
+[data-theme="onyx"] {
+  --radius: 0.75rem;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --popover: #141416;
+  --popover-foreground: #fafafa;
+  --primary: #10b981;
+  --primary-foreground: #052e21;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #e4e4e7;
+  --muted: #1f1f23;
+  --muted-foreground: #a1a1aa;
+  --accent: #202024;
+  --accent-foreground: #fafafa;
+  --destructive: #ef4444;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #10b981;
+  --chart-1: #10b981;
+  --chart-2: #06b6d4;
+  --chart-3: #f59e0b;
+  --chart-4: #84cc16;
+  --chart-5: #f43f5e;
+  --sidebar: #0d0d0e;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #052e21;
+  --sidebar-accent: #18181b;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #232326;
+  --sidebar-ring: #10b981;
+  --gold: #f59e0b;
+  --info: #06b6d4;
+}
+
+/* Theme accent utility — restrained metallic gold used by premium details */
+.gold-accent {
+  color: var(--gold);
+}
+
+/* Task 55 — Glassmorphism surface for floating menus / overlay chrome.
+   Theme-aware: mixes the popover color instead of hard-coding black so it
+   stays correct in every theme. */
+.glass {
+  background: color-mix(in oklab, var(--popover) 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.35);
+  backdrop-filter: blur(20px) saturate(1.35);
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+}
+
+/* Task 55 — Card micro-interaction: spring-like lift with a soft spotlight.
+   Never bounces: one smooth ease-out curve, 2px translate, accent border. */
+.card-hover {
+  transition:
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+  box-shadow: var(--bento-shadow);
+}
+@media (hover: hover) {
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--primary) 38%, var(--border));
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.35),
+      0 24px 56px -24px color-mix(in oklab, var(--primary) 24%, rgb(0 0 0 / 0.6));
+  }
+}
+
+/* Task 55 — Elite gradient headline (dashboard hero). Restrained: same hue,
+   just brighter at the top so it reads as light falling on the letters. */
+.text-luminous {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--foreground) 92%, white) 0%,
+    var(--foreground) 55%,
+    color-mix(in oklab, var(--foreground) 72%, var(--muted-foreground)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Task 55 — Pulsing live dot (presence / countdown chip). */
+.live-dot {
+  position: relative;
+  display: inline-flex;
+  width: 0.5rem;
+  height: 0.5rem;
+}
+.live-dot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--info);
+  opacity: 0.55;
+  animation: live-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.live-dot::after {
+  content: "";
+  position: relative;
+  border-radius: 9999px;
+  width: 100%;
+  height: 100%;
+  background: var(--info);
+}
+@keyframes live-ping {
+  0% { transform: scale(1); opacity: 0.55; }
+  75%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   Task 56 — "Cinematic Realm" (real-game realism layer).
+   Purely additive utilities: photoreal backdrop masks, film grain, keyboard
+   hint chips and the player-card hover micro-interaction. Everything respects
+   prefers-reduced-motion and reuses the Onyx tokens — no new colors introduced.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Cinematic view header: the photo sits under a top-down gradient that always
+   resolves into the page background, so text keeps AA contrast in any theme. */
+.cinema-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius, 0.75rem);
+  border: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  isolation: isolate;
+}
+.cinema-header__img {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Desaturate slightly + darken so it never competes with UI content. */
+  filter: saturate(0.82) brightness(0.66);
+  transform: scale(1.02);
+  transition: transform 6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .cinema-header:hover .cinema-header__img {
+    transform: scale(1.06);
+  }
+}
+.cinema-header__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(90deg, color-mix(in oklab, var(--background) 88%, transparent) 0%, color-mix(in oklab, var(--background) 42%, transparent) 55%, transparent 100%),
+    linear-gradient(0deg, var(--background) 4%, color-mix(in oklab, var(--background) 12%, transparent) 45%, transparent 100%);
+}
+
+/* Ultra-subtle film grain (SVG turbulence tile) for cinematic surfaces. */
+.cinema-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* Keyboard hint chip (⌘K) used in the top-bar search trigger. */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  background: color-mix(in oklab, var(--muted) 70%, transparent);
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Player card micro-interaction (Task 56): spring-like lift, emerald glow ring
+   and a brighter OVR chip. CSS-only — zero JS, zero re-renders, keyboard-safe. */
+.player-card {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .player-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--border));
+    box-shadow:
+      0 1px 2px rgb(0 0 0 / 0.4),
+      0 18px 44px -18px color-mix(in oklab, var(--primary) 30%, rgb(0 0 0 / 0.65)),
+      0 0 0 1px color-mix(in oklab, var(--primary) 22%, transparent);
+  }
+  .player-card:hover .player-card__ovr {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--primary) 45%, transparent),
+      0 4px 14px -4px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+}
+.player-card__ovr {
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms ease;
+}
+
+/* ⌘K palette entrance — a 1.5% scale + fade, critically damped (no bounce). */
+.palette-pop[data-state="open"] {
+  animation: palette-in 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes palette-in {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.985); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Themed scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+    background-clip: content-box;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* Visible focus for keyboard users (WCAG AA) */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

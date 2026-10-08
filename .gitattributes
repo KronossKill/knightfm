@@ -1,0 +1,16 @@
+# Normaliza saltos de línea para que el repo funcione igual en Windows, macOS y Linux.
+* text=auto
+
+# Los scripts bash DEBEN conservar LF o se rompen en Linux/CI (CRLF los rompe).
+*.sh text eol=lf
+
+# Binarios: git no debe tocarlos ni hacer diff de texto.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
+*.docx binary
+*.db binary

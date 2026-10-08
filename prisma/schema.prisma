@@ -1,0 +1,866 @@
+// Knight FM — Master data model (spec §40)
+// SQLite + Prisma. No enums (SQLite): all enums are String with validated union types in src/lib/types.ts
+// All money is integer $Knight (no floats). JSON payloads are stored in String fields.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────────── Identity ─────────────────────────────
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  username       String    @unique
+  passwordHash   String
+  role           String    @default("USER") // USER | ADMIN
+  emailVerified  Boolean   @default(false)
+  path           String? // MANAGER | OWNER (chosen during onboarding)
+  referredById   String?
+  referralCredited Boolean @default(false) // received the one-time referral bonus
+  walletAddress  String?
+  status         String    @default("ACTIVE") // ACTIVE | INACTIVE (40d no access) | BLOCKED (multi-account IP / admin — unblock is admin-only; DELETED users are hard-deleted)
+  lastActiveAt   DateTime  @default(now())
+  // Anti-multicuenta (Task 39): the platform allows EXACTLY ONE account per IP.
+  // registrationIp is stamped at signup and protected by a UNIQUE index — SQLite
+  // allows any number of NULLs (legacy users registered before this rule), but
+  // at most ONE real account per IP can ever exist, even under concurrent
+  // registration races (the DB is the final arbiter; the app-level check only
+  // exists to return a friendly message). Task 42 (USER MANDATE): ADMIN
+  // accounts are the ONLY ones allowed to share an IP — they are never stamped
+  // here and a promoted admin's stamp is cleared, so the index never reserves
+  // an IP for an administrative account. lastLoginIp is audit-only telemetry
+  // (people travel / switch networks) and NEVER blocks a sign-in.
+  registrationIp String?   @unique
+  lastLoginIp    String?
+  // Anti-multicuenta (Task 41, USER MANDATE): when two or more accounts are
+  // detected on the SAME IP within the configured window (security.ipWindowDays,
+  // default 30 days), every involved account is auto-BLOCKED. Only an ADMIN can
+  // lift the block (/api/admin/moderation POST action=UNBLOCK) — there is no
+  // self-service path back. blockedReason is a stable machine code so clients
+  // can map it to an honest i18n message (MULTI_ACCOUNT_IP | ADMIN_MANUAL).
+  blockedReason  String?
+  blockedAt      DateTime?
+  locale         String    @default("es")
+  theme          String    @default("knight-emerald")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  referrer      User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals     User[]     @relation("Referrals")
+  sessions      Session[]
+  wallet        PersonalWallet?
+  clubsOwned    Club[]     @relation("ClubOwner")
+  clubsManaged  Club[]     @relation("ClubManager")
+  contracts     ManagerContract[]
+  messagesSent  Message[]  @relation("MessageFrom")
+  messagesRecv  Message[]  @relation("MessageTo")
+  notifications Notification[]
+  assistantLog  AssistantEntry[]
+  presence      Presence?
+  ipLinks       IpLink[]
+}
+
+// Task 41 (anti-multicuenta evidence table): one row per (account, IP) pair.
+// Every sign-in / registration upserts the pair, refreshing lastSeenAt. The
+// 30-day multi-account rule queries this table (ip + lastSeenAt window) to
+// decide whether two ACTIVE accounts have shared an IP inside the window.
+// Rows are kept after an admin unblock as audit evidence; detection only ever
+// counts ACTIVE non-ADMIN accounts, so a selective admin unblock sticks.
+model IpLink {
+  id          String   @id @default(cuid())
+  userId      String
+  ip          String
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, ip])
+  @@index([ip, lastSeenAt])
+  @@index([userId])
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  refreshTokenHash String    @unique
+  ip               String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String
+  purpose    String // EMAIL_VERIFY | PASSWORD_RESET
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([email, purpose])
+}
+
+model AuditEvent {
+  id        String   @id @default(cuid())
+  type      String
+  actorId   String?
+  payload   String   @default("{}") // JSON
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}
+
+model Presence {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ───────────────────────────── World / Clubs ─────────────────────────────
+
+model Region {
+  id        String    @id @default(cuid())
+  index     Int       @unique
+  nameKey   String // i18n key e.g. region.central
+  createdAt DateTime  @default(now())
+
+  divisions Division[]
+  clubs     Club[]
+}
+
+model Division {
+  id        String   @id @default(cuid())
+  regionId  String
+  index     Int // 1..10 (1st Division..10th)
+  createdAt DateTime @default(now())
+
+  region Region @relation(fields: [regionId], references: [id])
+  clubs  Club[]
+
+  @@unique([regionId, index])
+}
+
+model Club {
+  id            String   @id @default(cuid())
+  regionId      String
+  divisionId    String
+  name          String   @unique
+  originalName  String   @default("") // immutable founding name — restored when the club returns to the system
+  systemOwned   Boolean  @default(true)
+  ownerId       String?
+  managerId     String?
+  operatingFund Int      @default(1000) // club treasury, integer $Knight
+  debt          Int      @default(0)
+  finState      String   @default("HEALTHY") // HEALTHY | INSOLVENT | POSSIBLE_BANKRUPTCY | BANKRUPT
+  unpaidDays    Int      @default(0)
+  baseCapacity  Int      @default(25)
+  nameChangeDay Int? // season-day of last name change (once per season)
+  salePrice     Int? // secondary market: asking price when the OWNER lists the club for sale (null = not listed; system clubs use economy.systemClubPrice)
+  saleListedDay Int? // game day when the current resale listing was published
+
+  // ⚠ Durable history (survives the 2-season detail purge): titles won and the
+  // all-time W/D/L tally aggregated at every season transition. Match details
+  // older than 2 seasons are deleted to keep the database lean — these counters
+  // are the permanent record.
+  titlesLeague Int @default(0) // division championships won
+  titlesCup    Int @default(0) // regional cup titles won
+  titlesWorld  Int @default(0) // club world championship titles won
+  histWon      Int @default(0) // all-time competitive matches won
+  histDrawn    Int @default(0) // all-time competitive matches drawn
+  histLost     Int @default(0) // all-time competitive matches lost
+  createdAt    DateTime @default(now())
+
+  region   Region @relation(fields: [regionId], references: [id])
+  division Division @relation(fields: [divisionId], references: [id])
+  owner    User?  @relation("ClubOwner", fields: [ownerId], references: [id])
+  manager  User?  @relation("ClubManager", fields: [managerId], references: [id])
+
+  brand        ClubBrand?
+  facilities   Facility[]
+  players      Player[]
+  staff        StaffMember[]
+  contracts    ManagerContract[]
+  offers       ManagerOffer[]
+  listings     Listing[]
+  ledger       LedgerEntry[]
+  homeFixtures Fixture[] @relation("HomeClub")
+  awayFixtures Fixture[] @relation("AwayClub")
+  standings    Standing[]
+  lineups      Lineup?
+  trainingPlan TrainingPlan?
+  trainingSessions TrainingSession[]
+  prospects    YouthProspect[]
+  scoutSessions YouthScoutSession[]
+
+  @@index([divisionId])
+  @@index([ownerId])
+  @@index([managerId])
+  @@index([salePrice])
+}
+
+model ClubBrand {
+  id             String @id @default(cuid())
+  clubId         String @unique
+  primaryColor   String @default("#10b981")
+  secondaryColor String @default("#0f172a")
+  badgeShape     String @default("shield") // shield | circle | square
+  crestPattern   String @default("solid")  // solid | stripes-v | stripes-h | halves | quarters | sash | checker
+  initials       String
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model OwnershipRecord {
+  id        String   @id @default(cuid())
+  clubId    String
+  fromOwner String?
+  toOwner   String?
+  amount    Int      @default(0)
+  day       Int
+  createdAt DateTime @default(now())
+}
+
+// ───────────────────────────── Facilities ─────────────────────────────
+
+model Facility {
+  id                  String    @id @default(cuid())
+  clubId              String
+  type                String // STADIUM | TRAINING_CENTER | YOUTH_ACADEMY | MEDICAL_CENTER | SPORTS_SCIENCE | REST_ROOMS
+  level               Int       @default(1)
+  upgradeStartedAt    DateTime?
+  upgradeCompletesAt  DateTime?
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, type])
+}
+
+model FacilityUpgrade {
+  id        String   @id @default(cuid())
+  clubId    String
+  type      String
+  fromLevel Int
+  toLevel   Int
+  cost      Int
+  startedAt DateTime
+  completesAt DateTime
+  completedAt DateTime?
+  idemKey   String   @unique
+
+  @@index([clubId])
+}
+
+// ───────────────────────────── Players ─────────────────────────────
+
+model Player {
+  id            String    @id @default(cuid())
+  clubId        String?
+  firstName     String
+  lastName      String
+  age           Int
+  position      String // GK | DF | MF | FW
+  detailedPos   String // e.g. GK, CB, LB, RB, DM, CM, AM, LM, RM, LW, RW, ST
+  stars         Int       @default(1) // 1..3
+  ovr           Int       @default(50) // derived cached RawOVR for position
+  potential     Int
+  marketValue   Int       @default(100)
+  salary        Int       @default(1) // 1% of market value per day (integer)
+  releaseClause Int       @default(500) // 5x market value
+  attributes    String    @default("{}") // JSON: technical/physical/mental families
+  form          Int       @default(50) // 0..100
+  fatigue       Int       @default(10) // 0..100
+  sharpness     Int       @default(60) // 0..100
+  morale        Int       @default(60) // 0..100
+  confidence    Int       @default(60) // 0..100
+  injuredUntil  DateTime?
+  suspension    Int       @default(0) // remaining matches
+  yellowCards   Int       @default(0) // season accumulator (Task 28: 5 yellows in distinct matches → 1-match ban)
+  isFreeAgent   Boolean   @default(false)
+  isYouth       Boolean   @default(false)
+  retired       Boolean   @default(false)
+  // Active loan (loan-out): while loaned the player is REGISTERED at the borrowing
+  // club (clubId) and returns automatically on the configured game day.
+  loanOriginClubId String? // club that owns the player (filled only during a loan)
+  loanedUntilDay   Int?    // absolute game day when the loan ends
+  // Birthday (Task 23-d): birthDay = absolute game day the player FIRST appeared
+  // in the game (creation, market arrival, academy promotion…). The player turns
+  // one year older every exactly 30 real-time days from that anchor; nextAgeDay
+  // is the absolute game day of the next birthday (daily AGING scheduler job).
+  birthDay      Int?
+  nextAgeDay    Int?
+  createdAt     DateTime  @default(now())
+
+  club      Club?                @relation(fields: [clubId], references: [id])
+  snapshots AttributeSnapshot[]
+  matchEvents MatchEvent[]
+  listings   Listing[]
+
+  @@index([clubId])
+  @@index([isFreeAgent])
+}
+
+model AttributeSnapshot {
+  id          String   @id @default(cuid())
+  playerId    String
+  day         Int
+  attributes  String // JSON
+  ovr         Int
+  contextOvr  Int
+  createdAt   DateTime @default(now())
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@index([playerId, createdAt])
+}
+
+model YouthProspect {
+  id          String   @id @default(cuid())
+  clubId      String
+  firstName   String
+  lastName    String
+  age         Int      @default(14)
+  position    String
+  quality     Int // expected quality 0..100
+  attributes  String   @default("{}") // JSON (scouting-uncertainty masked client-side)
+  scouted     Boolean  @default(false)
+  scoutedBy   String?
+  reportDepth Int      @default(0) // information depth limited by scout quality
+  generatedOn Int
+  // Birthday anchor (Task 23-d): same 30-real-time-day aging cycle as seniors.
+  birthDay    Int?
+  nextAgeDay  Int?
+  createdAt   DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+}
+
+// One row per scouting session: enforces the once-per-game-day scout limit
+// (user mandate Task 21) and exposes the usage chip in the youth view.
+model YouthScoutSession {
+  id        String   @id @default(cuid())
+  clubId    String
+  day       Int // absolute game day of the session
+  createdAt DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, day])
+}
+
+// ───────────────────────────── Staff / Contracts ─────────────────────────────
+
+model StaffMember {
+  id            String   @id @default(cuid())
+  clubId        String
+  role          String // COACH | SCOUT | MEDIC | PHYSIO | ANALYST
+  name          String
+  specialization String? // coach specialization family
+  quality       Int      @default(50)
+  salary        Int      @default(5)
+  createdAt     DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+}
+
+model ManagerContract {
+  id            String    @id @default(cuid())
+  clubId        String
+  managerId     String
+  totalAmount   Int
+  durationDays  Int
+  dailySalary   Int // derived once: totalAmount / durationDays (integer floor, remainder tracked in first day)
+  startDay      Int // season-day index (absolute epoch game day)
+  endDay        Int
+  state         String    @default("ACTIVE") // ACTIVE | TERMINATED | RESIGNED | EXPIRED
+  settledAmount Int       @default(0)
+  createdAt     DateTime  @default(now())
+  endedAt       DateTime?
+
+  club   Club @relation(fields: [clubId], references: [id])
+  manager User @relation(fields: [managerId], references: [id])
+
+  @@index([clubId, state])
+  @@index([managerId, state])
+}
+
+model ManagerOffer {
+  id           String   @id @default(cuid())
+  clubId       String
+  seasons      Int      @default(1) // 1 | 2 | 3
+  totalAmount  Int
+  durationDays Int
+  dailySalary  Int
+  state        String   @default("OPEN") // OPEN | ACCEPTED | EXPIRED | WITHDRAWN
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  club Club @relation(fields: [clubId], references: [id])
+
+  @@index([state])
+}
+
+model PermissionGrant {
+  id          String   @id @default(cuid())
+  clubId      String
+  managerId   String
+  permissions String   @default("{}") // JSON: {training, tactics, youth, transfers...}
+  updatedAt   DateTime @updatedAt
+
+  @@unique([clubId, managerId])
+}
+
+// ───────────────────────────── Competitions ─────────────────────────────
+
+model Season {
+  id           String   @id @default(cuid())
+  number       Int      @unique
+  startEpochDay Int // absolute game day (1-based) of competitive day 1
+  state        String   @default("ACTIVE") // ACTIVE | CLOSING | CLOSED
+  prizeLeague  Int      @default(0)
+  prizeCup     Int      @default(0)
+  prizeWorld   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  fixtures  Fixture[]
+  standings Standing[]
+}
+
+model Fixture {
+  id          String   @id @default(cuid())
+  seasonId    String
+  competition String // LEAGUE | REGIONAL_CUP | WORLD_CHAMPIONSHIP | FRIENDLY
+  round       Int? // league round / cup round index
+  stage       String? // R16 | QF | SF | F for cups
+  regionId    String? // regional cup scope
+  matchDay    Int // season day index (1..37)
+  kickoffAt   DateTime
+  homeId      String
+  awayId      String
+  status      String   @default("SCHEDULED") // SCHEDULED | PLAYED | CANCELLED
+  matchId     String?
+
+  season  Season @relation(fields: [seasonId], references: [id])
+  home    Club   @relation("HomeClub", fields: [homeId], references: [id])
+  away    Club   @relation("AwayClub", fields: [awayId], references: [id])
+  match   Match?
+
+  @@index([seasonId, matchDay])
+  @@index([kickoffAt, status])
+  @@index([homeId])
+  @@index([awayId])
+}
+
+model Match {
+  id            String   @id @default(cuid())
+  fixtureId     String   @unique
+  seed          String
+  homeId        String
+  awayId        String
+  homeGoals     Int
+  awayGoals     Int
+  possessionHome Int // percent
+  shotsHome     Int
+  shotsAway     Int
+  xgHomeX100    Int // xG * 100 integer
+  xgAwayX100    Int
+  eventsJson    String   @default("[]")
+  motmPlayerId  String?
+  playedAt      DateTime @default(now())
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id])
+  events  MatchEvent[]
+}
+
+model MatchEvent {
+  id       String @id @default(cuid())
+  matchId  String
+  minute   Int
+  type     String // GOAL | ASSIST | CARD | INJURY | SAVE | CHANCE
+  clubId   String
+  playerId String?
+  detail   String @default("")
+
+  match Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  player Player?   @relation(fields: [playerId], references: [id])
+
+  @@index([matchId])
+}
+
+model Standing {
+  id        String @id @default(cuid())
+  seasonId  String
+  divisionId String
+  clubId    String
+  played    Int      @default(0)
+  won       Int      @default(0)
+  drawn     Int      @default(0)
+  lost      Int      @default(0)
+  gf        Int      @default(0)
+  ga        Int      @default(0)
+  points    Int      @default(0)
+
+  season   Season @relation(fields: [seasonId], references: [id])
+  club     Club   @relation(fields: [clubId], references: [id])
+
+  @@unique([seasonId, divisionId, clubId])
+  @@index([divisionId])
+}
+
+model CupRun {
+  id        String @id @default(cuid())
+  seasonId  String
+  regionId  String
+  clubId    String
+  eliminatedRound Int? // null = still alive / champion
+  champion  Boolean @default(false)
+
+  @@unique([seasonId, regionId, clubId])
+}
+
+model WorldCupSlot {
+  id       String @id @default(cuid())
+  seasonId String
+  clubId   String
+  source   String // LEAGUE | CUP
+  points   Int    @default(0)
+  played   Int    @default(0)
+  gf       Int    @default(0)
+  ga       Int    @default(0)
+  eliminatedStage String?
+
+  @@unique([seasonId, clubId])
+}
+
+model Lineup {
+  id          String   @id @default(cuid())
+  clubId      String   @unique
+  formation   String   @default("4-4-2") // 4-4-2 | 4-3-3 | 4-5-1 | 5-3-2 | 5-4-1 | 3-4-3 | 3-5-2
+  slots       String   @default("{}") // JSON: { "GK": playerId, "DF-L": playerId, ... }
+  inPossession String  @default("balanced")
+  outOfPossession String @default("balanced")
+  updatedAt   DateTime @updatedAt
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model TrainingPlan {
+  id            String   @id @default(cuid())
+  clubId        String   @unique
+  generalFocus  String   @default("balanced") // balanced | physical | technical | mental | recovery
+  specialFocus  String   @default("none") // goalkeeper | defense | midfield | wide | attack | physical | set_pieces | none
+  specialTarget String   @default("auto") // auto | player id
+  updatedAt     DateTime @updatedAt
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+// User-triggered training sessions. Limits (1 general/day + 1 of each special
+// type/day by default) are configurable via training.* config keys and enforced
+// by counting rows for (clubId, day). kind = "GENERAL" | "SPECIAL:<type>".
+model TrainingSession {
+  id           String   @id @default(cuid())
+  clubId       String
+  day          Int // absolute game day
+  kind         String // GENERAL | SPECIAL:goalkeeper | SPECIAL:defense | ...
+  generalFocus String? // for GENERAL sessions
+  specialType  String? // for SPECIAL sessions
+  playerId     String? // target player (special sessions)
+  effects      String   @default("{}") // JSON summary of applied effects
+  createdAt    DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, day])
+  @@index([clubId, kind, day])
+}
+
+// ───────────────────────────── Economy ─────────────────────────────
+
+model LedgerEntry {
+  id           String   @id @default(cuid())
+  account      String // CLUB | PERSONAL | REGION_FUND | SYSTEM_FUND
+  clubId       String?
+  userId       String?
+  amount       Int // signed; positive = credit
+  balanceAfter Int
+  category     String // SALARY_PLAYER | SALARY_MANAGER | TRANSFER_IN | TRANSFER_OUT | PURCHASE | PRIZE | FACILITY | INVEST | WITHDRAW | LEVY | REFERRAL | FRIENDLY_FEE | DISMISSAL | RELEASE_SETTLEMENT | TRAINING | YOUTH | ALLOCATION_REGIONAL | ALLOCATION_SYSTEM | DEPOSIT | WITHDRAWAL_CRYPTO | OTHER
+  grossAmount  Int?
+  levyAmount   Int?
+  netAmount    Int?
+  idemKey      String   @unique
+  memo         String   @default("")
+  createdAt    DateTime @default(now())
+
+  club Club? @relation(fields: [clubId], references: [id])
+
+  @@index([clubId, createdAt])
+  @@index([userId, createdAt])
+  @@index([category])
+}
+
+model PersonalWallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model FundBalance {
+  id       String @id @default(cuid())
+  scope    String @unique // SYSTEM | REGION:<regionId>
+  balance  Int    @default(0)
+}
+
+model VpnException {
+  id        String   @id @default(cuid())
+  value     String   @unique // exact IPv4/IPv6 or CIDR (a.b.c.d/nn)
+  note      String   @default("")
+  createdBy String
+  createdAt DateTime @default(now())
+
+  @@index([value])
+}
+
+model PrizePool {
+  id        String @id @default(cuid())
+  seasonId  String
+  source    String // WIN_ACCRUAL | LEAGUE_TITLE | CUP | WORLD
+  amount    Int    @default(0)
+
+  @@unique([seasonId, source])
+}
+
+model TransferRecord {
+  id        String   @id @default(cuid())
+  playerId  String?
+  clubFromId String?
+  clubToId  String
+  amount    Int
+  fee       Int      @default(0)
+  levy      Int      @default(0)
+  type      String // DIRECT | AUCTION | FREE_AGENT | RELEASE_CLAUSE | YOUTH_PROMOTION | DISMISSAL | RETIREMENT
+  seasonId  String
+  day       Int
+  createdAt DateTime @default(now())
+
+  @@index([clubToId])
+}
+
+// ───────────────────────────── Markets ─────────────────────────────
+
+model Listing {
+  id        String   @id @default(cuid())
+  type      String // DIRECT | AUCTION | CLUB_SALE | FREE_AGENT | LOAN
+  playerId  String?
+  clubId    String? // for CLUB_SALE (the club being sold)
+  sellerId  String?
+  price     Int // current price / min bid / buy-now (loan fee for LOAN listings)
+  duration  Int? // loan duration in days (LOAN listings only)
+  floor     Int
+  state     String   @default("OPEN") // OPEN | SOLD | CANCELLED | EXPIRED
+  buyerId   String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  player  Player? @relation(fields: [playerId], references: [id])
+  club    Club?   @relation(fields: [clubId], references: [id])
+  bids    Bid[]
+
+  @@index([type, state])
+  @@index([expiresAt, state])
+}
+
+model Bid {
+  id        String   @id @default(cuid())
+  auctionId String
+  clubId    String // bidding club pays from club treasury
+  amount    Int
+  refunded  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  auction Listing @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+
+  @@index([auctionId, amount])
+}
+
+// ───────────────────────────── On-chain boundary ─────────────────────────────
+
+model DepositRequest {
+  id          String   @id @default(cuid())
+  userId      String
+  signature   String
+  state       String   @default("PENDING") // PENDING | VERIFIED | FAILED
+  checksJson  String   @default("{}")
+  creditedGross Int    @default(0)
+  creditedLevy  Int    @default(0)
+  creditedNet   Int    @default(0)
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, signature])
+}
+
+model WithdrawalRequest {
+  id         String   @id @default(cuid())
+  userId     String
+  destWallet String
+  amount     Int
+  state      String   @default("RESERVED") // RESERVED | BROADCAST | CONFIRMED | FAILED | RELEASED
+  signature  String?
+  idemKey    String   @unique
+  createdAt  DateTime @default(now())
+}
+
+model BlockchainTransaction {
+  id        String   @id @default(cuid())
+  refType   String // DEPOSIT | WITHDRAWAL
+  refId     String
+  signature String
+  status    String
+  createdAt DateTime @default(now())
+
+  @@index([refType, refId])
+}
+
+model PriceSnapshot {
+  id         String   @id @default(cuid())
+  source     String // JUPITER | PUMP | OTHER
+  priceX1000 Int // price * 1000 integer
+  confidence String   @default("OK") // OK | DEGRADED
+  capturedAt DateTime @default(now())
+}
+
+// ───────────────────────────── Content / AI / Social ─────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  fromUserId String
+  toUserId  String
+  body      String
+  readAt    DateTime?
+  flagged   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  from User @relation("MessageFrom", fields: [fromUserId], references: [id])
+  to   User @relation("MessageTo", fields: [toUserId], references: [id])
+
+  @@index([toUserId, readAt])
+  @@index([fromUserId, toUserId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  typeKey   String
+  payload   String   @default("{}")
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model AssistantEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  role      String // user | assistant
+  content   String
+  screen    String   @default("unknown")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model KnowledgeArticle {
+  id       String @id @default(cuid())
+  slug     String @unique
+  titleKey String
+  bodyKey  String
+  category String // RULES | TRAINING | MARKETS | FINANCE | TACTICS | TUTORIAL
+}
+
+// ───────────────────────────── Governance / Ops ─────────────────────────────
+
+model ConfigKey {
+  key          String   @id
+  group        String
+  valueType    String // int | string | bool | json
+  defaultValue String
+  currentValue String?
+  minValue     Int?
+  maxValue     Int?
+  locked       Boolean  @default(false) // invariants are locked
+  description  String   @default("")
+  updatedAt    DateTime @updatedAt
+  updatedBy    String?
+}
+
+model Approval {
+  id             String   @id @default(cuid())
+  key            String
+  requestedValue String
+  previousValue  String
+  state          String   @default("PENDING") // PENDING | APPLIED | REJECTED | ROLLED_BACK
+  requestedBy    String
+  appliedBy      String?
+  createdAt      DateTime @default(now())
+
+  @@index([state])
+}
+
+model JobRun {
+  id            String    @id @default(cuid())
+  idempotencyKey String   @unique
+  jobType       String
+  scheduledFor  DateTime
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  outcome       String    @default("RUNNING") // RUNNING | OK | FAILED | SKIPPED
+  retryCount    Int       @default(0)
+  payload       String    @default("{}")
+  error         String?
+
+  @@index([jobType, scheduledFor])
+}
+
+model AnalyticsEvent {
+  id         String   @id @default(cuid())
+  name       String
+  userId     String?
+  sessionKey String?
+  props      String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+model SystemState {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
