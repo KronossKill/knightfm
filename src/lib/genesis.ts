@@ -181,23 +181,12 @@ async function seedKnowledge(client: Client): Promise<void> {
 }
 
 async function seedAdmin(client: Client): Promise<void> {
-  // USER MANDATE: the platform's default administrator account is defined by
-  // the ADMIN_BOOTSTRAP_EMAIL env var (admin.bootstrapEmail default matches).
-  // If the owner already registered that email before genesis ran, it is
-  // PROMOTED to ADMIN in place (keeping its username/password); otherwise it
-  // is created here with the ADMIN_BOOTSTRAP_PASSWORD — change it after login.
+  // SECURITY: the bootstrap admin comes from environment variables (.env).
   const { hash } = await import("@node-rs/argon2");
-  // SECURITY (GitHub/Supabase hardening): bootstrap credentials are NOT
-  // hardcoded anymore — the repository may be hosted publicly on GitHub.
-  // They come from environment variables (.env / hosting provider) and MUST
-  // be set before running genesis. The fallbacks below are placeholders for
-  // an empty database in local development only.
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL ?? "owner@knight-fm.local";
   const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!bootstrapPassword) {
-    console.warn(
-      "[genesis] ADMIN_BOOTSTRAP_PASSWORD is not set — the bootstrap admin will be created with a placeholder password. Set ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD in .env before deploying.",
-    );
+    console.warn("[genesis] ADMIN_BOOTSTRAP_PASSWORD is not set — using a temporary fallback.");
   }
   const existing = await client.user.findUnique({ where: { email } });
   if (existing) {
@@ -211,7 +200,7 @@ async function seedAdmin(client: Client): Promise<void> {
   }
   await client.user.create({
     data: {
-      email, username: "kronoss2803", passwordHash: await hash(bootstrapPassword ?? "ChangeMe-Bootstrap!", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+      email, username: "owner", passwordHash: await hash(bootstrapPassword ?? "ChangeMe-Bootstrap!", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
       role: "ADMIN", emailVerified: true, path: "OWNER",
     },
   });
