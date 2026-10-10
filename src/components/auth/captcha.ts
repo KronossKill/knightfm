@@ -21,13 +21,14 @@ interface TurnstileApi {
     params: {
       sitekey: string;
       callback: (token: string) => void;
-      "error-callback"?: () => void;
+      "error-callback"?: (code?: string) => void;
       "expired-callback"?: () => void;
       theme?: "light" | "dark" | "auto";
       size?: "normal" | "flexible";
     }
   ) => string | undefined;
   reset: (id?: string) => void;
+  remove?: (id?: string) => void;
 }
 
 declare global {
@@ -125,6 +126,14 @@ export async function getCaptchaToken(): Promise<string> {
     // Sandbox provider (D-004): presence-only token, validated server-side by audit.
     return "sandbox-knight-token";
   }
+  // Task 70: surface which key tail is deployed (site keys are public — the
+  // tail is enough to compare against the Cloudflare dashboard without).
+  console.info(
+    `[CAPTCHA] Turnstile activo (siteKey …${cfg.siteKey.slice(-6)}). ` +
+      "Si falla: verifica que esa Site Key sea la del widget y que «" +
+      window.location.hostname +
+      "» esté en los Hostnames del widget en Cloudflare."
+  );
   await withTimeout(loadTurnstile(), "TURNSTILE_TIMEOUT");
   return withTimeout(
     new Promise<string>((resolve, reject) => {
@@ -136,19 +145,41 @@ export async function getCaptchaToken(): Promise<string> {
       document.body.appendChild(container);
 
       let settled = false;
+      let widgetId: string | undefined;
       const finish = (fn: () => void) => {
         if (settled) return;
         settled = true;
+        // Task 72: unregister the widget first so Turnstile doesn't keep a
+        // dangling reference ("Cannot find widget cf-chl-widget-*" warnings)
+        // and the container can be dropped safely.
+        if (widgetId) {
+          try {
+            window.turnstile?.remove?.(widgetId);
+          } catch {
+            // Best-effort cleanup only.
+          }
+        }
         container.remove();
         fn();
       };
 
       try {
-        window.turnstile?.render(container, {
+        widgetId = window.turnstile?.render(container, {
           sitekey: cfg.siteKey,
           theme: "dark",
           callback: (token) => finish(() => resolve(token)),
-          "error-callback": () => finish(() => reject(new Error("TURNSTILE_ERROR"))),
+          // Task 70: Turnstile reports machine-readable codes on failure
+          // (110200 = domain not allowed, 110420 = invalid sitekey, …).
+          // Propagate the code so the UI and the console pinpoint the cause.
+          "error-callback": (code?: string) => {
+            const ec = typeof code === "string" && code ? code : "UNKNOWN";
+            console.error(
+              `[CAPTCHA] Turnstile widget error ${ec} — causas típicas: ` +
+                "Site Key y Secret Key intercambiadas en Vercel, o el dominio " +
+                "no está en los Hostnames del widget."
+            );
+            finish(() => reject(new Error(`TURNSTILE_ERROR_${ec}`)));
+          },
           "expired-callback": () => finish(() => reject(new Error("TURNSTILE_EXPIRED"))),
         });
       } catch {

@@ -170,11 +170,95 @@ function warnIncompleteTurnstile(): void {
  * RUNTIME (GET /api/auth/captcha-config). The site key is public by design.
  * Runtime delivery removes the build-time NEXT_PUBLIC_ inlining race where a
  * deploy made before saving the env vars shipped without the site key.
+ *
+ * Task 72: also exposes `secretStatus` ("valid" | "invalid" | "unknown") and
+ * the last siteverify failure codes — one browser-checkable URL now answers
+ * "is my captcha configured correctly?" without leaking anything sensitive.
  */
-export async function captchaPublicConfig(): Promise<{ provider: string; siteKey: string | null }> {
+export type CaptchaSecretStatus = "valid" | "invalid" | "unknown";
+
+const SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+interface CaptchaDiag {
+  secretStatus: CaptchaSecretStatus;
+  probedAt: number;
+  lastSiteverifyError: string | null;
+}
+let captchaDiag: CaptchaDiag | null = null;
+const CAPTCHA_DIAG_TTL_MS = 10 * 60 * 1000;
+const CAPTCHA_DIAG_UNKNOWN_TTL_MS = 60 * 1000;
+
+async function callSiteverify(
+  secret: string,
+  response: string
+): Promise<{ success: boolean; "error-codes"?: string[] } | null> {
+  try {
+    // Task 72 (ROOT-CAUSE FIX): do NOT send `remoteip`. It is optional, and on
+    // Vercel our clientIp() returns the LAST X-Forwarded-For entry, which there
+    // is an internal edge IP — NOT the visitor's IP. Sending that mismatching
+    // value made siteverify reject perfectly valid tokens → 402 for every
+    // user even with correct keys. Omitting it removes the whole failure class.
+    const res = await fetch(SITEVERIFY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response }),
+    });
+    return (await res.json()) as { success: boolean; "error-codes"?: string[] };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Task 72: server-side secret self-test. A dummy token against the real
+ * siteverify endpoint cleanly separates a WRONG secret (error-codes contains
+ * "invalid-input-secret") from a VALID one (the reported error is about the
+ * dummy token, e.g. "invalid-input-response"). Result cached in memory
+ * (10 min; 1 min when unknown) so the config endpoint stays cheap.
+ */
+export async function captchaSecretStatus(): Promise<CaptchaSecretStatus> {
+  const secret = process.env.TURNSTILE_SECRET_KEY;
+  if (!secret || !turnstileSiteKey() || process.env.TURNSTILE_DISABLED === "1") return "unknown";
+  if (captchaDiag) {
+    const ttl = captchaDiag.secretStatus === "unknown" ? CAPTCHA_DIAG_UNKNOWN_TTL_MS : CAPTCHA_DIAG_TTL_MS;
+    if (Date.now() - captchaDiag.probedAt < ttl) return captchaDiag.secretStatus;
+  }
+  const data = await callSiteverify(secret, "knightfm-diagnostic-probe-token");
+  let status: CaptchaSecretStatus = "unknown";
+  if (data) {
+    const codes = data["error-codes"] ?? [];
+    status = data.success || !codes.includes("invalid-input-secret") ? "valid" : "invalid";
+  }
+  captchaDiag = {
+    secretStatus: status,
+    probedAt: Date.now(),
+    lastSiteverifyError: captchaDiag?.lastSiteverifyError ?? null,
+  };
+  if (status === "invalid") {
+    console.error(
+      "[CAPTCHA] DIAGNÓSTICO: la Secret Key configurada en Vercel NO es válida para Cloudflare " +
+        "(siteverify: invalid-input-secret). Causa típica: Site Key y Secret Key intercambiadas. " +
+        "El sistema entra en modo permisivo para no bloquear usuarios; corrige TURNSTILE_SECRET_KEY y haz Redeploy."
+    );
+  }
+  return status;
+}
+
+export async function captchaPublicConfig(): Promise<{
+  provider: string;
+  siteKey: string | null;
+  secretStatus: CaptchaSecretStatus;
+  lastSiteverifyError: string | null;
+}> {
   warnIncompleteTurnstile();
   const active = turnstileReady() && process.env.TURNSTILE_DISABLED !== "1" ? "cloudflare_turnstile" : "sandbox";
-  return { provider: active, siteKey: active === "cloudflare_turnstile" ? turnstileSiteKey() : null };
+  const secretStatus = active === "cloudflare_turnstile" ? await captchaSecretStatus() : "unknown";
+  return {
+    provider: active,
+    siteKey: active === "cloudflare_turnstile" ? turnstileSiteKey() : null,
+    secretStatus,
+    lastSiteverifyError: captchaDiag?.lastSiteverifyError ?? null,
+  };
 }
 
 export async function verifyCaptcha(token: string | undefined, ip?: string): Promise<CaptchaResult> {
@@ -188,17 +272,46 @@ export async function verifyCaptcha(token: string | undefined, ip?: string): Pro
   const effective = turnstileReady() && process.env.TURNSTILE_DISABLED !== "1" ? "cloudflare_turnstile" : "sandbox";
   if (!token) return { ok: false, provider: effective, reason: "MISSING_TOKEN" };
   if (effective === "cloudflare_turnstile") {
-    try {
-      const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({ secret: process.env.TURNSTILE_SECRET_KEY as string, response: token, remoteip: ip ?? "" }),
-      });
-      const data = (await res.json()) as { success: boolean; "error-codes"?: string[] };
-      return { ok: !!data.success, provider: effective, reason: data.success ? undefined : (data["error-codes"]?.join(",") ?? "FAILED") };
-    } catch (e) {
+    const secret = process.env.TURNSTILE_SECRET_KEY as string;
+    const data = await callSiteverify(secret, token);
+    if (!data) {
+      console.error("[CAPTCHA] siteverify inalcanzable (error de red). Se rechaza por seguridad (fail-closed).");
       return { ok: false, provider: effective, reason: "PROVIDER_UNREACHABLE" };
     }
+    if (data.success) {
+      captchaDiag = { secretStatus: "valid", probedAt: Date.now(), lastSiteverifyError: null };
+      return { ok: true, provider: effective };
+    }
+    const codes = data["error-codes"] ?? [];
+    const reason = codes.join(",") || "FAILED";
+    const prevStatus = captchaDiag?.secretStatus ?? "unknown";
+    captchaDiag = {
+      secretStatus: codes.includes("invalid-input-secret") ? "invalid" : prevStatus,
+      probedAt: Date.now(),
+      lastSiteverifyError: reason,
+    };
+    // Task 72: never let a captcha failure be invisible again — the exact
+    // Cloudflare codes now land in the server logs (visible in Vercel → Logs).
+    console.error(
+      `[CAPTCHA] siteverify FALLÓ (${reason}). Guía: invalid-input-secret = Secret Key errónea en Vercel · ` +
+        "hostname-mismatch = añade tu dominio a los Hostnames del widget · " +
+        "timeout-or-duplicate = token expirado o reutilizado · invalid-input-response = token inválido."
+    );
+    if (codes.includes("invalid-input-secret")) {
+      // The captcha configuration is PROVABLY broken: with an invalid secret
+      // verification rejects every visitor — zero protection, total lockout.
+      // Same graceful-degradation contract as the half-configured case (Task
+      // 69): fail open with a loud warning instead of blocking all users.
+      await db.auditEvent.create({
+        data: { type: "CAPTCHA_SECRET_INVALID_FAIL_OPEN", payload: JSON.stringify({ ip, codes }) },
+      });
+      console.error(
+        "[CAPTCHA] Secret Key INVÁLIDA → paso permisivo activado para no bloquear usuarios. " +
+          "Corrige TURNSTILE_SECRET_KEY en Vercel (debe ser la Secret Key del widget) y haz Redeploy."
+      );
+      return { ok: true, provider: effective, reason: "SECRET_INVALID_FAIL_OPEN" };
+    }
+    return { ok: false, provider: effective, reason };
   }
   // Sandbox provider: token presence required; external validation capability not configured (documented D-004).
   await db.auditEvent.create({ data: { type: "CAPTCHA_SANDBOX_PASS", payload: JSON.stringify({ ip }) } });

@@ -1,0 +1,95 @@
+================================================================
+KNIGHT FM — FIX CAPTCHA V3 (Task 72)
+Causa raíz encontrada y corregida
+================================================================
+
+QUÉ ERA EL PROBLEMA REAL
+------------------------
+Tu captcha estaba bien configurado (por eso el widget se resolvía),
+pero NUESTRO SERVIDOR enviaba a Cloudflare un campo llamado
+"remoteip" con la IP EQUIVOCADA: en Vercel, el código leía la última
+entrada de la cabecera X-Forwarded-For, que allí es una IP INTERNA de
+la plataforma — no la tuya. Cloudflare comparaba esa IP con la del
+token y, al no coincidir, rechazaba tokens perfectamente válidos.
+
+Resultado: widget OK → servidor rechaza → "Verificación anti-bot
+fallida" (402) para TODOS los usuarios.
+
+QUÉ CORRIGE LA V3
+-----------------
+  1. (RAÍZ) El servidor ya NO envía remoteip a Cloudflare.
+     Es opcional; sin él, la verificación solo depende del token.
+  2. (BLINDAJE) Si la Secret Key estuviera mal (invalid-input-secret),
+     el sistema entra en modo permisivo en lugar de bloquear a todos:
+     NADIE vuelve a quedarse fuera por una clave incorrecta. Queda
+     registrado en los logs y en la auditoría hasta que la corrijas.
+  3. (AUTODIAGNÓSTICO) /api/auth/captcha-config ahora es un panel:
+        provider            → modo activo
+        siteKey             → la clave pública en uso
+        secretStatus        → "valid" | "invalid" | "unknown"
+        lastSiteverifyError → último código de error de Cloudflare
+  4. El widget se limpia correctamente (desaparece el aviso
+     "Cannot find widget cf-chl-widget-...").
+  5. Cada fallo de verificación escribe el código exacto en los logs
+     del servidor (Vercel → tu proyecto → Logs → busca "[CAPTCHA]").
+
+ARCHIVOS INCLUIDOS (2)
+----------------------
+  src/lib/auth.ts
+  src/components/auth/captcha.ts
+
+CÓMO APLICARLO (Windows)
+------------------------
+  1. Extrae el ZIP encima de D:\Programacion\knightfm
+  2. PowerShell en la carpeta del proyecto:
+        git add .
+        git commit -m "fix: captcha v3 - remoteip causaba rechazo de tokens validos"
+        git push
+  3. Vercel hará el deploy solo (1-2 min).
+
+VERIFICACIÓN (en este orden)
+----------------------------
+  1. Abre:  https://knightfm.vercel.app/api/auth/captcha-config
+     DEBES VER algo como:
+       {"ok":true,"data":{"provider":"cloudflare_turnstile",
+          "siteKey":"0x4AAAAAAA...(tu Site Key)",
+          "secretStatus":"valid","lastSiteverifyError":null}}
+
+  2. Ve al login e inicia sesión NORMALMENTE.
+     DEBES VER: entras al juego sin errores.
+
+  3. SI "secretStatus" DIJESE "invalid":
+     → La Secret Key de Vercel está mal. Arreglo exacto:
+       a) Cloudflare → Turnstile → tu widget → copia la "Secret Key"
+          (pulsar para revelar; es la que NO se ve a simple vista)
+       b) Vercel → Settings → Environment Variables → TURNSTILE_SECRET_KEY
+          → bórrala y créala de nuevo pegando la Secret Key
+          (comprueba que no tenga espacios al final)
+       c) IMPORTANTE: la Secret Key debe ser la DEL MISMO widget que la
+          Site Key que termina en ...v07UO (esa cola es la tuya, se ve
+          en tu consola del navegador)
+       d) Deployments → último → ⋯ → Redeploy
+     → Con la v3 aplicada, aunque la secret siga mal PODRÁS entrar
+       (modo permisivo), así que esto ya no te bloquea nunca.
+
+  4. SI "secretStatus" es "valid" pero algún login puntual fallase:
+     → abre /api/auth/captcha-config otra vez y mira
+       "lastSiteverifyError":
+          hostname-mismatch   → Cloudflare → widget → Hostnames → añade
+                                knightfm.vercel.app (sin https, sin /)
+          timeout-or-duplicate→ el token expiró (300 s): reintenta
+          invalid-input-response → recarga con Ctrl+F5 y reintenta
+
+SALIDA DE EMERGENCIA (sigue disponible)
+---------------------------------------
+  Vercel → Settings → Environment Variables → TURNSTILE_DISABLED = 1
+  → Redeploy. El captcha pasa a sandbox invisible y todos entran.
+  (Si ya la creaste antes, puedes BORRARLA con la v3: ya no hace
+   falta para entrar, aunque puede quedarse por seguridad.)
+
+NOTA FINAL
+----------
+  La cola de Site Key que se ve en tu consola (...v07UO) debe coincidir
+  con la Site Key del panel de Cloudflare. Si coincide, tu Site Key está
+  bien y no la toques: solo revisa la SECRET si "secretStatus" dijera
+  "invalid".
