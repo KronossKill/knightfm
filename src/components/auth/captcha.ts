@@ -1,10 +1,16 @@
 "use client";
-// Knight FM — CAPTCHA client helper (Task 2-a, D-004).
-// Sandbox: when NEXT_PUBLIC_TURNSTILE_SITE_KEY is not configured the Turnstile
-// widget is not loaded at all and a fixed sandbox token is returned (the server
-// sandbox provider only requires token presence — no external call, audited).
-// Production: renders an invisible Cloudflare Turnstile widget and resolves
-// with its token. Minimal, dependency-free.
+// Knight FM — CAPTCHA client helper (Task 2-a, D-004; runtime-config hardening).
+//
+// The client asks the SERVER which captcha mode is active (GET /api/auth/
+// captcha-config) instead of relying on a build-time NEXT_PUBLIC_ variable.
+// This removes the deploy race where env vars were saved after the build:
+// a bundle without the inlined site key used to send sandbox tokens while the
+// server demanded real Turnstile verification — locking every user out.
+//
+// Sandbox mode (nothing configured): a fixed presence-only token is returned;
+// the server sandbox provider only requires token presence (audited, D-004).
+// Turnstile mode: renders an invisible Cloudflare widget and resolves with its
+// token. Minimal, dependency-free.
 
 interface TurnstileApi {
   render: (
@@ -27,10 +33,29 @@ declare global {
   }
 }
 
-const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+interface CaptchaConfig {
+  provider: string;
+  siteKey: string | null;
+}
+
 const SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
+let configPromise: Promise<CaptchaConfig> | null = null;
 let scriptPromise: Promise<void> | null = null;
+
+/** Fetches the effective captcha config once per page load (server truth). */
+function loadConfig(): Promise<CaptchaConfig> {
+  if (!configPromise) {
+    configPromise = fetch("/api/auth/captcha-config", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        const data = (j && typeof j === "object" && "data" in j ? (j as { data: CaptchaConfig }).data : (j as CaptchaConfig)) ?? {};
+        return { provider: String(data.provider ?? "sandbox"), siteKey: data.siteKey ?? null };
+      })
+      .catch(() => ({ provider: "sandbox", siteKey: null }) as CaptchaConfig);
+  }
+  return configPromise;
+}
 
 function loadTurnstile(): Promise<void> {
   if (typeof window === "undefined") return Promise.reject(new Error("NO_WINDOW"));
@@ -57,9 +82,10 @@ function loadTurnstile(): Promise<void> {
   return scriptPromise;
 }
 
-/** Returns a captcha token: sandbox constant when Turnstile is not configured. */
+/** Returns a captcha token: sandbox constant when Turnstile is not active. */
 export async function getCaptchaToken(): Promise<string> {
-  if (!SITE_KEY) {
+  const cfg = await loadConfig();
+  if (cfg.provider !== "cloudflare_turnstile" || !cfg.siteKey) {
     // Sandbox provider (D-004): presence-only token, validated server-side by audit.
     return "sandbox-knight-token";
   }
@@ -82,7 +108,7 @@ export async function getCaptchaToken(): Promise<string> {
 
     try {
       window.turnstile?.render(container, {
-        sitekey: SITE_KEY,
+        sitekey: cfg.siteKey,
         theme: "dark",
         callback: (token) => finish(() => resolve(token)),
         "error-callback": () => finish(() => reject(new Error("TURNSTILE_ERROR"))),

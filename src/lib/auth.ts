@@ -136,15 +136,56 @@ export async function revokeAllSessions(userId: string): Promise<void> {
 
 export interface CaptchaResult { ok: boolean; provider: string; reason?: string }
 
+/**
+ * Effective Turnstile readiness: BOTH the secret key and the site key must be
+ * present. This is the single source of truth shared by the server verifier and
+ * the public config endpoint the client reads at runtime.
+ *
+ * Why both: a half-configured deployment (e.g. only TURNSTILE_SECRET_KEY set,
+ * or env vars saved after the build so the site key was never inlined) used to
+ * make the client send sandbox tokens while the server demanded real Turnstile
+ * verification — locking EVERY legitimate user out with 402 CAPTCHA_INVALID.
+ * Now a partial configuration degrades gracefully to the sandbox provider
+ * (presence-only) with a loud server warning instead of a lockout.
+ */
+function turnstileSiteKey(): string | null {
+  return process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null;
+}
+
+function turnstileReady(): boolean {
+  return Boolean(process.env.TURNSTILE_SECRET_KEY && turnstileSiteKey());
+}
+
+function warnIncompleteTurnstile(): void {
+  if (process.env.TURNSTILE_SECRET_KEY && !turnstileSiteKey()) {
+    console.warn("[CAPTCHA] Turnstile INCOMPLETO: falta el Site Key (NEXT_PUBLIC_TURNSTILE_SITE_KEY). Captcha en modo sandbox hasta que se configure.");
+  }
+  if (!process.env.TURNSTILE_SECRET_KEY && turnstileSiteKey()) {
+    console.warn("[CAPTCHA] Turnstile INCOMPLETO: falta el Secret Key (TURNSTILE_SECRET_KEY). Captcha en modo sandbox hasta que se configure.");
+  }
+}
+
+/**
+ * Public, non-sensitive captcha configuration consumed by the client at
+ * RUNTIME (GET /api/auth/captcha-config). The site key is public by design.
+ * Runtime delivery removes the build-time NEXT_PUBLIC_ inlining race where a
+ * deploy made before saving the env vars shipped without the site key.
+ */
+export async function captchaPublicConfig(): Promise<{ provider: string; siteKey: string | null }> {
+  warnIncompleteTurnstile();
+  const active = turnstileReady() && process.env.TURNSTILE_DISABLED !== "1" ? "cloudflare_turnstile" : "sandbox";
+  return { provider: active, siteKey: active === "cloudflare_turnstile" ? turnstileSiteKey() : null };
+}
+
 export async function verifyCaptcha(token: string | undefined, ip?: string): Promise<CaptchaResult> {
-  const provider = await getConfig("security.captchaProvider");
   // SECURITY (pentest fix): the environment must win over the config default.
   // The old precedence made the config default "sandbox" shadow a properly
   // configured TURNSTILE_SECRET_KEY, silently disabling bot protection.
-  const effective =
-    process.env.TURNSTILE_SECRET_KEY && (provider === "sandbox" || !provider)
-      ? "cloudflare_turnstile"
-      : provider || (process.env.TURNSTILE_SECRET_KEY ? "cloudflare_turnstile" : "sandbox");
+  // Coherence fix: Turnstile activates only when BOTH keys exist. The DB
+  // config default ("sandbox") no longer shadows real keys — the kill switch
+  // is now the explicit TURNSTILE_DISABLED=1 env var.
+  warnIncompleteTurnstile();
+  const effective = turnstileReady() && process.env.TURNSTILE_DISABLED !== "1" ? "cloudflare_turnstile" : "sandbox";
   if (!token) return { ok: false, provider: effective, reason: "MISSING_TOKEN" };
   if (effective === "cloudflare_turnstile") {
     try {
