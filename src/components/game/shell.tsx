@@ -63,6 +63,9 @@ import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { AssistantPanelSlot, ModuleSlot } from "@/components/game/lazy-modules";
 import { BrandBadge, formatUtcClock, useNow } from "@/components/game/ui/bits";
 import { CountryFlag } from "@/components/game/ui/country-flag";
+// Task 73: restore the connection-country flag next to the username (the
+// Task 53 component existed but nothing rendered it after the UX redesign).
+import { CountryFlag as ConnectionCountryFlag } from "@/components/game/country-flag";
 import DashboardView from "@/components/game/dashboard/dashboard-view";
 import SquadView from "@/components/game/squad/squad-view";
 import CompetitionsView from "@/components/game/competitions/competitions-view";
@@ -267,6 +270,8 @@ function UserMenu({ user }: { user: { username: string; role: string; path: stri
             {user.username.slice(0, 2).toUpperCase()}
           </span>
           <span className="hidden max-w-28 truncate text-sm sm:inline">{user.username}</span>
+          {/* Task 73: flag of the caller's own connection country. */}
+          <ConnectionCountryFlag />
           {user.role === "ADMIN" && <BadgeCheck aria-hidden="true" className="size-4 text-amber-400" />}
           <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" />
         </Button>

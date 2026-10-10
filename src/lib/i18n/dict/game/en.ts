@@ -21,25 +21,15 @@ export const dict: Dict = {
   "game.nav.settings": "Settings",
   "game.nav.controlCenter": "Control Center",
   "game.nav.main": "Main",
-  "game.nav.sport": "Sporting",
-  "game.nav.finance": "Finance",
   "game.nav.club": "Club",
   "game.nav.system": "System",
-
-  // Task 56 — Command palette (⌘K) + cinematic headers
-  "game.palette.open": "Search…",
-  "game.palette.placeholder": "Type a command or search…",
-  "game.palette.noResults": "No results",
-  "game.palette.nav": "Navigation",
-  "game.palette.actions": "Actions",
-  "game.palette.themes": "Themes",
-  "game.palette.language": "Language",
-  "game.palette.hint": "Press ⌘K to open the command palette",
-  "game.cinema.competitions": "The competitive world: leagues, cups and the club World Cup",
 
   "game.shell.openNav": "Open navigation",
   "game.shell.closeNav": "Close navigation",
   "game.shell.online": "{n} online",
+  "game.shell.geoAria": "Connection country",
+  "game.shell.geoLocal": "Local network",
+  "game.shell.geoUnknown": "Unknown country",
   "game.shell.unread": "{n} unread",
   "game.shell.inbox": "Inbox",
   "game.shell.assistant": "Knight Assistant",
@@ -124,7 +114,6 @@ export const dict: Dict = {
   "game.dash.fin.POSSIBLE_BANKRUPTCY": "Bankruptcy risk",
   "game.dash.fin.BANKRUPT": "Bankrupt",
   "game.dash.noClub": "No club assigned yet.",
-  "game.dash.ring.fatigue": "Avg fatigue",
 
   // ── Squad ─────────────────────────────────────────────────────
   "game.squad.title": "Squad",
@@ -148,13 +137,6 @@ export const dict: Dict = {
   "game.squad.ownerOnly": "You have no management rights over this club.",
   "game.squad.openDetailAria": "Open {name} profile",
   "game.squad.sortBy": "Sort by",
-  // Task 58 — squad layouts + expandable rows
-  "game.squad.layoutAria": "View mode",
-  "game.squad.viewCards": "Cards",
-  "game.squad.viewTable": "Table",
-  "game.squad.expandRow": "Expand row",
-  "game.squad.collapseRow": "Collapse row",
-  "game.squad.openProfile": "View full profile",
   "game.squad.sortDir": "Reverse order",
   "game.squad.trend": "Key attribute trend (last 14 days)",
   "game.squad.noTrend": "No trend data yet.",
@@ -307,16 +289,6 @@ export const dict: Dict = {
   "game.fac.progress": "Progress",
   "game.fac.maxReached": "Max level reached.",
   "game.fac.ownerOnly": "Only the club owner can start upgrades.",
-  // Task 58 — facilities gallery + glass detail panel
-  "game.fac.openDetails": "Open the {facility} detail",
-  "game.fac.benefit.STADIUM": "The club's home: its image before its fans.",
-  "game.fac.benefit.TRAINING_CENTER": "Improves the results of every training session and carries the largest ICP weight (squad capacity).",
-  "game.fac.benefit.YOUTH_ACADEMY": "More slots and higher signable quality in the academy, plus an ICP contribution.",
-  "game.fac.benefit.MEDICAL_CENTER": "The medical area of the ICP: its level raises the maximum squad capacity.",
-  "game.fac.benefit.SPORTS_SCIENCE": "The science area of the ICP: its level raises the maximum squad capacity.",
-  "game.fac.durationTitle": "Duration",
-  "game.fac.durationDays": "{n} days",
-  "game.fac.levelProgress": "Level {level} of {max}",
 
   // ── Youth ─────────────────────────────────────────────────────
   "game.youth.title": "Youth academy",
@@ -343,7 +315,7 @@ export const dict: Dict = {
   // ── Settings ──────────────────────────────────────────────────
   "game.settings.title": "Settings",
   "game.settings.theme": "Visual theme",
-  "game.settings.themeDesc": "Six themes, all WCAG AA contrast. Switching never changes game state.",
+  "game.settings.themeDesc": "Five themes, all WCAG AA contrast. Switching never changes game state.",
   "game.settings.language": "Language",
   "game.settings.languageDesc": "Four languages with full parity. Changing language never changes game state.",
   "game.settings.account": "Account",

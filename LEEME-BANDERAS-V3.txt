@@ -1,0 +1,115 @@
+================================================================
+KNIGHT FM — BANDERAS DE PAÍS V3 (Task 73)
+Paquete definitivo: incluye supabase-banderas.sql DENTRO del ZIP
+================================================================
+
+POR QUÉ NO SALÍA LA BANDERA (2 causas reales, ya corregidas)
+-----------------------------------------------------------
+  1. EL ZIP V2 NO TRAÍA EL SQL. El archivo supabase-banderas.sql
+     se prometió en la lista pero nunca se empaquetó dentro del
+     ZIP (error mío, perdón). En esta V3 ESTÁ dentro, y además
+     puedes descargarlo solo desde:
+     /downloads/supabase-banderas.sql
+
+  2. EL NAVEGADOR BLOQUEABA LA IMAGEN DE LA BANDERA (el fallo
+     principal). La política de seguridad (CSP) del middleware
+     perdió el permiso del CDN de banderas flagcdn.com en una
+     reescritura anterior. Resultado: tu servidor SÍ detectaba
+     el país, pero el navegador bloqueaba la imagen y Windows
+     no dibuja emojis de bandera → no veías nada.
+     → Añadí src/middleware.ts corregido al paquete.
+
+QUÉ HACE ESTA FUNCIONALIDAD
+---------------------------
+  · Bandera de tu país de conexión junto a tu nombre de usuario
+    (arriba a la derecha).
+  · Banderas de los países conectados junto al contador
+    "N en línea".
+  · El país se detecta del borde de Vercel (header
+    x-vercel-ip-country): gratis, instantáneo y no falsificable.
+  · Auditoría de IP del admin muestra el país de cada IP.
+
+ARCHIVOS INCLUIDOS (28)
+-----------------------
+  supabase-banderas.sql            ← EL SQL, DENTRO DEL ZIP
+  prisma/schema.prisma
+  src/middleware.ts                ← NUEVO: arreglo CSP banderas
+  src/app/layout.tsx
+  src/app/api/admin/ip-audit/route.ts
+  src/app/api/auth/login/route.ts
+  src/app/api/auth/register/route.ts
+  src/app/api/presence/heartbeat/route.ts
+  src/app/api/presence/summary/route.ts
+  src/app/api/user/geo/route.ts
+  src/components/game/api.ts
+  src/components/game/country-flag.tsx
+  src/components/game/shell.tsx
+  src/components/game/control-center/ip-audit-card.tsx
+  src/components/game/ui/country-flag.tsx
+  src/lib/geo.ts
+  src/lib/ip-geo.ts
+  src/lib/security/ip-guard.ts
+  src/lib/i18n/dict/admincfg/es.ts  (+ en, fr, pt)
+  src/lib/i18n/dict/game/es.ts      (+ en, fr, pt)
+  src/lib/auth.ts                   ← fix captcha v3 (si ya lo
+  src/components/auth/captcha.ts      aplicaste, es idéntico)
+
+  (login/register/auth/captcha incluidos son las versiones
+   actuales: NO deshacen el arreglo del captcha.)
+
+PASOS DE INSTALACIÓN (en este orden, Windows)
+---------------------------------------------
+  PASO 1 — Instalar la librería de banderas (OBLIGATORIO):
+    Abre PowerShell en D:\Programacion\knightfm y ejecuta:
+        npm install flag-icons
+    (Si te saltas este paso, la web NO compilará.)
+
+  PASO 2 — Extraer el ZIP:
+    Extrae TODO el contenido del ZIP encima de
+    D:\Programacion\knightfm
+    (sobrescribe archivos: es lo esperado)
+    COMPRUEBA QUE VEAS supabase-banderas.sql en la raíz del ZIP.
+
+  PASO 3 — Ejecutar el SQL en Supabase (OBLIGATORIO):
+    a) Entra a supabase.com → tu proyecto
+    b) Menú lateral: SQL Editor → New query
+    c) Abre el archivo supabase-banderas.sql (del ZIP),
+       copia TODO su contenido y pégalo
+    d) Pulsa RUN (o Ctrl+Enter)
+       DEBES VER: una tabla con 2 filas mostrando
+       "IpLink country" y "Presence country"
+    (Es idempotente: si ya lo habías ejecutado, no pasa nada.)
+
+  PASO 4 — Subir a producción:
+        git add .
+        git commit -m "fix: banderas pais v3 (SQL + CSP flagcdn)"
+        git push
+    Espera el deploy de Vercel (1-2 min).
+
+  PASO 5 — Entrar y verificar:
+    a) Entra a https://knightfm.vercel.app con tu cuenta
+       y pulsa Ctrl+F5 (recarga forzada).
+       DEBES VER: tu bandera (Cuba) justo a la derecha de
+       tu nombre "kronoss2803".
+    b) Junto al contador "N en línea": la(s) bandera(s) de los
+       países conectados en ese momento.
+    c) (Opcional, comprobación técnica) Pulsa F12 → pestaña
+       Console → si escribes:
+         document.querySelector("img[src*='flagcdn']")?.src
+       DEBES VER una URL de flagcdn (no un error CSP).
+
+PREGUNTAS FRECUENTES
+--------------------
+  · ¿Por qué ahora sí va a salir? Porque las 2 causas estaban
+    fuera de tu alcance: el SQL no venía en el ZIP y el CSP de
+    tu app bloqueaba el CDN de banderas. Ninguna era culpa de
+    tu instalación.
+  · ¿Funciona con el arreglo del captcha? SÍ: los archivos
+    login/register/auth/captcha son los mismos que ya tienes.
+  · ¿Y si un usuario usa VPN? Verá el país de la VPN (así es la
+    geo-detección por IP). La auditoría de admin marca IPs VPN.
+  · ¿Afecta al rendimiento? No: el país viene en la cabecera de
+    Vercel, sin llamadas externas en producción.
+  · ¿Los usuarios antiguos sin bandera? La bandera es de la
+    CONEXIÓN, no del perfil: aparece para todos desde el primer
+    login tras el deploy.

@@ -1,0 +1,97 @@
+================================================================
+KNIGHT FM — BANDERAS DE PAÍS V2 (Task 73)
+Paquete completo y actualizado (incluye compatibilidad captcha v3)
+================================================================
+
+POR QUÉ NO SALÍA LA BANDERA
+---------------------------
+El paquete anterior de banderas nunca llegó a aplicarse en tu
+proyecto. Además, al revisarlo encontré 2 defectos que corregí:
+  1. La bandera junto a tu nombre de usuario EXISTÍA como
+     componente, pero NADIE la dibujaba en la barra superior
+     (se perdió en el rediseño visual). → Ya está conectada.
+  2. Faltaban 3 textos (tooltips) en los 4 idiomas. → Añadidos.
+
+QUÉ HACE ESTA FUNCIONALIDAD
+---------------------------
+  · Bandera de tu país de conexión junto a tu nombre de usuario
+    (arriba a la derecha).
+  · Banderas de los países conectados junto al contador
+    "N en línea" (máximo 5 + agregadas).
+  · El país se detecta del borde de Vercel (header
+    x-vercel-ip-country): gratis, instantáneo y no falsificable.
+  · Auditoría de IP del admin ahora muestra el país de cada IP.
+
+ARCHIVOS INCLUIDOS (24)
+-----------------------
+  prisma/schema.prisma
+  supabase-banderas.sql
+  src/app/layout.tsx
+  src/app/api/admin/ip-audit/route.ts
+  src/app/api/auth/login/route.ts
+  src/app/api/auth/register/route.ts
+  src/app/api/presence/heartbeat/route.ts
+  src/app/api/presence/summary/route.ts
+  src/app/api/user/geo/route.ts
+  src/components/game/api.ts
+  src/components/game/country-flag.tsx
+  src/components/game/shell.tsx
+  src/components/game/control-center/ip-audit-card.tsx
+  src/components/game/ui/country-flag.tsx
+  src/lib/geo.ts
+  src/lib/ip-geo.ts
+  src/lib/security/ip-guard.ts
+  src/lib/i18n/dict/admincfg/es.ts  (+ en, fr, pt)
+  src/lib/i18n/dict/game/es.ts      (+ en, fr, pt)
+
+  (login/register incluidos son los actuales: NO deshacen el
+   arreglo del captcha; integran ambas funciones.)
+
+PASOS DE INSTALACIÓN (en este orden, Windows)
+---------------------------------------------
+  PASO 1 — Instalar la librería de banderas (OBLIGATORIO):
+    Abre PowerShell en D:\Programacion\knightfm y ejecuta:
+        npm install flag-icons
+    (Si te saltas este paso, la web NO compilará.)
+
+  PASO 2 — Extraer el ZIP:
+    Extrae TODO el contenido del ZIP encima de
+    D:\Programacion\knightfm
+    (sobrescribe archivos: es lo esperado)
+
+  PASO 3 — Ejecutar el SQL en Supabase (OBLIGATORIO):
+    a) Entra a supabase.com → tu proyecto
+    b) Menú lateral: SQL Editor → New query
+    c) Abre el archivo supabase-banderas.sql (del ZIP),
+       copia TODO su contenido y pégalo
+    d) Pulsa RUN (o Ctrl+Enter)
+       DEBES VER: una tabla con 2 filas mostrando
+       "IpLink country" y "Presence country"
+    (Es idempotente: si ya lo habías ejecutado, no pasa nada.)
+
+  PASO 4 — Subir a producción:
+        git add .
+        git commit -m "feat: banderas de pais de conexion (v2)"
+        git push
+    Espera el deploy de Vercel (1-2 min).
+
+  PASO 5 — Entrar y verificar:
+    a) Entra a https://knightfm.vercel.app con tu cuenta
+       DEBES VER: tu bandera (Cuba 🇨🇺) justo a la derecha de
+       tu nombre "kronoss2803", antes del icono dorado.
+    b) Junto al contador "N en línea": la(s) bandera(s) de los
+       países conectados en ese momento.
+    c) (Opcional) Refresca con Ctrl+F5 si no aparece al instante.
+
+PREGUNTAS FRECUENTES
+--------------------
+  · ¿Funciona con el arreglo del captcha? SÍ: los archivos
+    login/register son los mismos que ya tienes; no tocan nada
+    del captcha.
+  · ¿Y si un usuario usa VPN? Verá el país de la VPN (así es la
+    geo-detección por IP). La auditoría de admin marca IPs VPN.
+  · ¿Afecta al rendimiento? No: el país viene en la cabecera de
+    Vercel, sin llamadas externas en producción.
+  · ¿Los usuarios antiguos sin bandera? La bandera es de la
+    CONEXIÓN, no del perfil: aparece para todos desde el primer
+    login tras el deploy.

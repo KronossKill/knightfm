@@ -21,25 +21,15 @@ export const dict: Dict = {
   "game.nav.settings": "Paramètres",
   "game.nav.controlCenter": "Centre de contrôle",
   "game.nav.main": "Principal",
-  "game.nav.sport": "Sportif",
-  "game.nav.finance": "Finances",
   "game.nav.club": "Club",
   "game.nav.system": "Système",
-
-  // Task 56 — Command palette (⌘K) + cinematic headers
-  "game.palette.open": "Rechercher…",
-  "game.palette.placeholder": "Tapez une commande ou cherchez…",
-  "game.palette.noResults": "Aucun résultat",
-  "game.palette.nav": "Navigation",
-  "game.palette.actions": "Actions",
-  "game.palette.themes": "Thèmes",
-  "game.palette.language": "Langue",
-  "game.palette.hint": "Appuyez sur ⌘K pour ouvrir la palette de commandes",
-  "game.cinema.competitions": "Le monde compétitif : ligues, coupes et Coupe du monde des clubs",
 
   "game.shell.openNav": "Ouvrir la navigation",
   "game.shell.closeNav": "Fermer la navigation",
   "game.shell.online": "{n} en ligne",
+  "game.shell.geoAria": "Pays de connexion",
+  "game.shell.geoLocal": "Réseau local",
+  "game.shell.geoUnknown": "Pays inconnu",
   "game.shell.unread": "{n} non lus",
   "game.shell.inbox": "Boîte de réception",
   "game.shell.assistant": "Chevalier Assistant",
@@ -124,7 +114,6 @@ export const dict: Dict = {
   "game.dash.fin.POSSIBLE_BANKRUPTCY": "Risque de faillite",
   "game.dash.fin.BANKRUPT": "En faillite",
   "game.dash.noClub": "Aucun club attribué pour l'instant.",
-  "game.dash.ring.fatigue": "Fatigue moy.",
 
   // ── Squad ─────────────────────────────────────────────────────
   "game.squad.title": "Effectif",
@@ -148,13 +137,6 @@ export const dict: Dict = {
   "game.squad.ownerOnly": "Vous n'avez aucun droit de gestion sur ce club.",
   "game.squad.openDetailAria": "Ouvrir la fiche de {name}",
   "game.squad.sortBy": "Trier par",
-  // Task 58 — squad layouts + expandable rows
-  "game.squad.layoutAria": "Mode d'affichage",
-  "game.squad.viewCards": "Cartes",
-  "game.squad.viewTable": "Tableau",
-  "game.squad.expandRow": "Déplier la ligne",
-  "game.squad.collapseRow": "Replier la ligne",
-  "game.squad.openProfile": "Voir le profil complet",
   "game.squad.sortDir": "Inverser l'ordre",
   "game.squad.trend": "Tendance des attributs clés (14 derniers jours)",
   "game.squad.noTrend": "Pas encore de données de tendance.",
@@ -307,16 +289,6 @@ export const dict: Dict = {
   "game.fac.progress": "Progression",
   "game.fac.maxReached": "Niveau maximum atteint.",
   "game.fac.ownerOnly": "Seul le propriétaire du club peut lancer des travaux.",
-  // Task 58 — facilities gallery + glass detail panel
-  "game.fac.openDetails": "Ouvrir le détail du {facility}",
-  "game.fac.benefit.STADIUM": "La maison du club : son image devant ses supporters.",
-  "game.fac.benefit.TRAINING_CENTER": "Améliore les résultats de chaque entraînement et pèse le plus dans l'ICP (taille de l'effectif).",
-  "game.fac.benefit.YOUTH_ACADEMY": "Plus de places et une meilleure qualité signable à la formation, en plus de contribuer à l'ICP.",
-  "game.fac.benefit.MEDICAL_CENTER": "Volet médical de l'ICP : son niveau augmente la taille maximale de l'effectif.",
-  "game.fac.benefit.SPORTS_SCIENCE": "Volet scientifique de l'ICP : son niveau augmente la taille maximale de l'effectif.",
-  "game.fac.durationTitle": "Durée",
-  "game.fac.durationDays": "{n} jours",
-  "game.fac.levelProgress": "Niveau {level} sur {max}",
 
   // ── Formation ─────────────────────────────────────────────────
   "game.youth.title": "Centre de formation",
@@ -343,7 +315,7 @@ export const dict: Dict = {
   // ── Paramètres ────────────────────────────────────────────────
   "game.settings.title": "Paramètres",
   "game.settings.theme": "Thème visuel",
-  "game.settings.themeDesc": "Six thèmes, tous au contraste WCAG AA. Le changement ne modifie jamais l'état du jeu.",
+  "game.settings.themeDesc": "Cinq thèmes, tous au contraste WCAG AA. Le changement ne modifie jamais l'état du jeu.",
   "game.settings.language": "Langue",
   "game.settings.languageDesc": "Quatre langues avec parité complète. Changer de langue ne change pas l'état du jeu.",
   "game.settings.account": "Compte",

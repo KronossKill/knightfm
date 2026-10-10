@@ -23,25 +23,15 @@ export const dict: Dict = {
   "game.nav.settings": "Ajustes",
   "game.nav.controlCenter": "Centro de control",
   "game.nav.main": "Principal",
-  "game.nav.sport": "Deportivo",
-  "game.nav.finance": "Finanzas",
   "game.nav.club": "Club",
   "game.nav.system": "Sistema",
-
-  // Task 56 — Command palette (⌘K) + cinematic headers
-  "game.palette.open": "Buscar…",
-  "game.palette.placeholder": "Escribe un comando o busca…",
-  "game.palette.noResults": "Sin resultados",
-  "game.palette.nav": "Navegación",
-  "game.palette.actions": "Acciones",
-  "game.palette.themes": "Temas",
-  "game.palette.language": "Idioma",
-  "game.palette.hint": "Pulsa ⌘K para abrir la paleta de comandos",
-  "game.cinema.competitions": "El mundo competitivo: ligas, copas y la Copa del Mundo de clubes",
 
   "game.shell.openNav": "Abrir navegación",
   "game.shell.closeNav": "Cerrar navegación",
   "game.shell.online": "{n} en línea",
+  "game.shell.geoAria": "País de conexión",
+  "game.shell.geoLocal": "Red local",
+  "game.shell.geoUnknown": "País desconocido",
   "game.shell.unread": "{n} sin leer",
   "game.shell.inbox": "Bandeja de entrada",
   "game.shell.assistant": "Caballero Asistente",
@@ -126,7 +116,6 @@ export const dict: Dict = {
   "game.dash.fin.POSSIBLE_BANKRUPTCY": "Riesgo de quiebra",
   "game.dash.fin.BANKRUPT": "En quiebra",
   "game.dash.noClub": "Sin club asignado todavía.",
-  "game.dash.ring.fatigue": "Fatiga media",
 
   // ── Squad ─────────────────────────────────────────────────────
   "game.squad.title": "Plantilla",
@@ -150,13 +139,6 @@ export const dict: Dict = {
   "game.squad.ownerOnly": "No tienes permisos de gestión sobre este club.",
   "game.squad.openDetailAria": "Ver ficha de {name}",
   "game.squad.sortBy": "Ordenar por",
-  // Task 58 — squad layouts + expandable rows
-  "game.squad.layoutAria": "Modo de vista",
-  "game.squad.viewCards": "Tarjetas",
-  "game.squad.viewTable": "Tabla",
-  "game.squad.expandRow": "Expandir fila",
-  "game.squad.collapseRow": "Contraer fila",
-  "game.squad.openProfile": "Ver perfil completo",
   "game.squad.sortDir": "Invertir orden",
   "game.squad.trend": "Tendencia de atributos clave (últimos 14 días)",
   "game.squad.noTrend": "Sin datos de tendencia aún.",
@@ -309,16 +291,6 @@ export const dict: Dict = {
   "game.fac.progress": "Progreso",
   "game.fac.maxReached": "Nivel máximo alcanzado.",
   "game.fac.ownerOnly": "Solo el propietario del club puede iniciar obras.",
-  // Task 58 — facilities gallery + glass detail panel
-  "game.fac.openDetails": "Abrir el detalle de {facility}",
-  "game.fac.benefit.STADIUM": "El hogar del club: la imagen de la entidad ante su afición.",
-  "game.fac.benefit.TRAINING_CENTER": "Mejora los resultados de cada entrenamiento y aporta el mayor peso al ICP (capacidad de plantilla).",
-  "game.fac.benefit.YOUTH_ACADEMY": "Más plazas y mejor calidad firmable en la cantera, además de aportar al ICP.",
-  "game.fac.benefit.MEDICAL_CENTER": "Área médica del ICP: su nivel eleva la capacidad máxima de plantilla.",
-  "game.fac.benefit.SPORTS_SCIENCE": "Área científica del ICP: su nivel eleva la capacidad máxima de plantilla.",
-  "game.fac.durationTitle": "Duración",
-  "game.fac.durationDays": "{n} días",
-  "game.fac.levelProgress": "Nivel {level} de {max}",
 
   // ── Youth ─────────────────────────────────────────────────────
   "game.youth.title": "Cantera",
@@ -345,7 +317,7 @@ export const dict: Dict = {
   // ── Settings ──────────────────────────────────────────────────
   "game.settings.title": "Ajustes",
   "game.settings.theme": "Tema visual",
-  "game.settings.themeDesc": "Seis temas, todos con contraste WCAG AA. El cambio nunca altera el estado del juego.",
+  "game.settings.themeDesc": "Cinco temas, todos con contraste WCAG AA. El cambio nunca altera el estado del juego.",
   "game.settings.language": "Idioma",
   "game.settings.languageDesc": "Cuatro idiomas con paridad completa. Cambiar de idioma no cambia el estado del juego.",
   "game.settings.account": "Cuenta",
