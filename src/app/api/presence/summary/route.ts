@@ -4,6 +4,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { ok, rateLimit, clientIp, fail } from "@/lib/api";
+import { onlineFlags } from "@/lib/geo";
 
 async function distinctUsersSince(since: Date): Promise<number> {
   const [presences, events] = await Promise.all([
@@ -25,7 +26,10 @@ export async function GET(req: NextRequest) {
   if (!rl.allowed) return fail("RATE_LIMITED", "Too many requests", 429, { retryAfterSec: rl.retryAfterSec });
 
   const now = Date.now();
-  const online = await db.presence.count({ where: { lastSeenAt: { gte: new Date(now - 5 * 60_000) } } });
+  const [online, flags] = await Promise.all([
+    db.presence.count({ where: { lastSeenAt: { gte: new Date(now - 5 * 60_000) } } }),
+    onlineFlags(),
+  ]);
 
   const [weekly, monthly, yearly] = await Promise.all([
     distinctUsersSince(new Date(now - 7 * 86400_000)),
@@ -33,5 +37,5 @@ export async function GET(req: NextRequest) {
     distinctUsersSince(new Date(now - 365 * 86400_000)),
   ]);
 
-  return ok({ online, weekly, monthly, yearly, at: new Date(now).toISOString() });
+  return ok({ online, weekly, monthly, yearly, flags, at: new Date(now).toISOString() });
 }

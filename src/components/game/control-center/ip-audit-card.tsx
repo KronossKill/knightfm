@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowLeft, Search, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n/index";
+import { CountryFlag } from "@/components/game/ui/country-flag";
 import { apiFetch } from "@/components/auth/store";
 import { EnsureQueryProvider } from "@/components/game/markets/club-context";
 
@@ -39,7 +40,7 @@ interface IpAuditAccount {
 
 interface IpAuditSummary {
   mode: "summary";
-  sharedLoginIps: { ip: string; accounts: number }[];
+  sharedLoginIps: { ip: string; accounts: number; country: string | null }[];
   legacyUsersWithoutIp: number;
   totalUsers: number;
 }
@@ -47,6 +48,8 @@ interface IpAuditSummary {
 interface IpAuditLookup {
   mode: "ip";
   ip: string;
+  /** Task 67: resolved country for the searched IP (null = unknown). */
+  ipCountry: string | null;
   accounts: IpAuditAccount[];
 }
 
@@ -171,6 +174,7 @@ function IpAuditCardInner({ className }: { className?: string }) {
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t("admin.ipAudit.colIp")}</TableHead>
+                        <TableHead className="hidden sm:table-cell">{t("admin.ipAudit.colCountry")}</TableHead>
                         <TableHead className="text-right">{t("admin.ipAudit.colAccounts")}</TableHead>
                         <TableHead className="w-10" aria-label="" />
                       </TableRow>
@@ -179,6 +183,9 @@ function IpAuditCardInner({ className }: { className?: string }) {
                       {query.data.sharedLoginIps.map((row) => (
                         <TableRow key={row.ip}>
                           <TableCell className="font-mono text-xs">{row.ip}</TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {row.country ? <CountryFlag code={row.country} /> : <span className="text-muted-foreground">—</span>}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Badge variant="destructive">{row.accounts}</Badge>
                           </TableCell>
@@ -211,6 +218,10 @@ function IpAuditCardInner({ className }: { className?: string }) {
           if (!lookup) return null;
           return (
             <div className="space-y-2">
+              <p className="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+                <span className="font-mono text-xs text-foreground">{lookup.ip}</span>
+                {lookup.ipCountry && <CountryFlag code={lookup.ipCountry} />}
+              </p>
               {lookup.accounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("admin.ipAudit.noAccounts")}</p>
               ) : (

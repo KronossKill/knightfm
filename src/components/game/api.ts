@@ -57,6 +57,8 @@ export interface PresenceSummary {
   weekly: number;
   monthly: number;
   yearly: number;
+  /** Task 67: countries currently online, most connections first (max 8). */
+  flags?: { c: string; n: number }[];
   at: string;
 }
 

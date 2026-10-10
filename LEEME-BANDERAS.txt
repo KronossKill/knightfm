@@ -1,0 +1,143 @@
+=====================================================================
+ KNIGHT FM — BANDERAS DE PAÍS DE LOS MANAGERS CONECTADOS
+ Paquete: knightfm-banderas-pais.zip
+=====================================================================
+
+QUÉ HACE ESTA ACTUALIZACIÓN
+---------------------------------------------------------------------
+1. Cada manager conectado ahora tiene un PAÍS detectado automáticamente.
+2. La barra superior muestra "N en línea" con las BANDERAS de los países
+   conectados y cuántos managers hay de cada uno (máximo 5 banderas).
+3. El Centro de Control → Usuarios y fondos → "Auditoría de IP" ahora
+   muestra la bandera del país junto a cada IP (resumen y búsqueda).
+4. Se usan banderas SVG de verdad (paquete flag-icons), porque Windows
+   NO sabe dibujar emojis de banderas — esto se ve perfecto en tu PC.
+
+CÓMO SE DETECTA EL PAÍS (por orden, automático)
+---------------------------------------------------------------------
+a) En Vercel (tu web en producción): el propio Vercel dice el país de
+   cada visitante en un encabezado seguro (x-vercel-ip-country).
+   Instantáneo, gratis, sin servicios externos y NO se puede falsificar.
+b) En otros entornos (local): se consulta una API pública gratuita
+   (country.is → ipwho.is → ip-api.com) UNA vez por IP y se guarda en
+   caché 7 días.
+c) IPs privadas/locales: sin país, sin bandera (correcto).
+
+PRIVACIDAD
+---------------------------------------------------------------------
+Solo se guarda el CÓDIGO DE PAÍS (2 letras, p. ej. "ES"). Nunca se
+guardan coordenadas, ciudad ni dirección exacta. Es la misma información
+que ya ve cualquier foro al mostrar tu bandera.
+
+ARCHIVOS DEL PAQUETE (misma estructura de carpetas del proyecto)
+---------------------------------------------------------------------
+  package.json                                        (añade flag-icons)
+  supabase-banderas.sql                               (SQL para Supabase)
+  prisma/schema.prisma                                (2 campos country)
+  src/lib/geo.ts                                      (NUEVO)
+  src/components/game/ui/country-flag.tsx             (NUEVO)
+  src/app/api/presence/heartbeat/route.ts
+  src/app/api/presence/summary/route.ts
+  src/app/api/admin/ip-audit/route.ts
+  src/lib/security/ip-guard.ts
+  src/app/api/auth/login/route.ts
+  src/app/api/auth/register/route.ts
+  src/app/layout.tsx
+  src/components/game/api.ts
+  src/components/game/shell.tsx
+  src/components/game/control-center/ip-audit-card.tsx
+  src/lib/i18n/dict/admincfg/es.ts, en.ts, pt.ts, fr.ts
+
+PASO 1 — APLICAR EL SQL EN SUPABASE (30 segundos)
+---------------------------------------------------------------------
+1. Entra a supabase.com → tu proyecto.
+2. Menú izquierdo → SQL Editor (icono >_) → New query.
+3. Abre el archivo supabase-banderas.sql de este paquete, copia TODO
+   su contenido y pégalo en el editor.
+4. Pulsa Run (Ctrl+Enter).
+
+   DEBES VER: "Success" y debajo una tabla con 2 filas
+   (IpLink/country y Presence/country).
+
+   NOTA: aunque te saltes este paso, el juego NO se rompe (el código
+   detecta la falta de la columna y sigue contando "en línea" sin
+   banderas hasta que lo apliques). Pero hazlo para ver las banderas.
+
+PASO 2 — EXTRAER EL PAQUETE (PowerShell)
+---------------------------------------------------------------------
+1. Mueve el ZIP a tu carpeta de Descargas si no está ahí.
+2. Abre PowerShell (botón Inicio → escribe "powershell" → Enter).
+3. Pega este comando y pulsa Enter:
+
+   Expand-Archive -Path "$env:USERPROFILE\Downloads\knightfm-banderas-pais.zip" -DestinationPath "D:\Programacion\knightfm" -Force
+
+   DEBES VER: vuelve el prompt sin mensajes de error.
+
+PASO 3 — INSTALAR LA NUEVA DEPENDENCIA
+---------------------------------------------------------------------
+El paquete añade la librería de banderas SVG (flag-icons). En la misma
+ventana de PowerShell:
+
+   cd D:\Programacion\knightfm
+   npm install
+
+   DEBES VER: "added X packages" (o "up to date" si ya estaba).
+
+PASO 4 — COMMIT Y PUSH A GITHUB
+---------------------------------------------------------------------
+En la misma ventana de PowerShell, comando por comando:
+
+   git status
+
+   COMPRUEBA: en la lista NO debe aparecer .env
+   (si aparece .env, PARA y avísame antes de continuar).
+
+   git add .
+   git commit -m "Banderas de pais de los managers conectados (presencia + auditoria IP)"
+   git push
+
+   DEBES VER: el push termina con algo como
+   "main -> main" sin errores en rojo.
+
+PASO 5 — ESPERAR EL DEPLOY EN VERCEL
+---------------------------------------------------------------------
+1. Ve a vercel.com → tu proyecto Knight FM.
+2. Espera a que el nuevo deploy (por el commit que acabas de hacer)
+   marque "Ready" (1-3 minutos normalmente).
+
+PASO 6 — PROBARLO EN TU WEB
+---------------------------------------------------------------------
+1. Entra a tu web con tu cuenta (la del administrador o cualquier otra).
+2. MIRA LA BARRA SUPERIOR: junto a "N en línea" aparecen las banderas
+   de los países conectados con su número (p. ej. una bandera ES y "1").
+   Tu propia bandera aparece cuando tu navegador manda el siguiente
+   latido (máximo 60 segundos después de entrar).
+3. CENTRO DE CONTROL → Usuarios y fondos → baja hasta
+   "Auditoría de IP (anti-multicuentas)" → busca cualquier IP
+   (p. ej. tu última IP de inicio de sesión): verás la bandera del país
+   junto a la IP buscada y en la tabla de IPs compartidas.
+
+PREGUNTAS FRECUENTES
+---------------------------------------------------------------------
+¿Por qué no veo mi bandera todavía?
+  Aparece con el primer latido tras entrar (hasta 60 s) o al iniciar
+  sesión de nuevo. Las cuentas antiguas solo tienen IP guardada, no
+  país: el país se estampa en cuanto esa cuenta se conecta otra vez.
+
+¿Un jugador puede fingir otra bandera?
+  En Vercel, no: el país lo inyecta la plataforma en el servidor.
+  El código del navegador no puede tocarlo.
+
+¿Esto ralentiza el juego?
+  No. En producción el país llega gratis en cada petición (header de
+  Vercel) y las banderas que ves son una consulta que agrupa solo a
+  los usuarios conectados en los últimos 5 minutos.
+
+¿Y si en el futuro añadimos tablas nuevas?
+  Este cambio no afecta a tablas nuevas. No hace falta re-ejecutar nada
+  del SQL salvo que borres columnas (no lo hagas).
+
+¿Puedo quitar las banderas si algún día no me gustan?
+  Sí: es solo UI. Dímelo y las oculto sin tocar la detección de país
+  (que además alimenta la auditoría anti-multicuentas).
+=====================================================================

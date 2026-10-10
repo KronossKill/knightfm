@@ -1,0 +1,28 @@
+KNIGHT FM — PAQUETE DE CORRECCIONES DE SEGURIDAD (SQLite/Postgres)
+====================================================================
+
+QUE CONTIENE (rutas identicas a las de tu proyecto):
+  src\instrumentation.ts            -> arranque seguro en Supabase/Postgres
+  src\lib\vpn.ts                    -> elimina SQL crudo incompatible con Postgres
+  src\app\api\admin\reset\route.ts  -> el reset del mundo solo en modo local
+  .gitignore                        -> ignora la carpeta artifacts/
+
+INSTALACION (PowerShell, una sola linea):
+  Expand-Archive -Path "$env:USERPROFILE\Downloads\knightfm-fixes-seguridad.zip" -DestinationPath "D:\Programacion\knightfm" -Force
+
+  (si guardaste el ZIP en otra carpeta, ajusta la ruta del -Path)
+
+VERIFICACION (debe mostrar varias lineas, antes no mostraba nada):
+  Select-String -Path D:\Programacion\knightfm\src\instrumentation.ts -Pattern "isSqlite"
+
+SUBIR A GITHUB (una linea a la vez):
+  cd D:\Programacion\knightfm
+  git rm --cached --ignore-unmatch public/downloads/knight-fm-project.zip public/downloads/knight-fm-world-sql.zip
+  Remove-Item D:\Programacion\knightfm\public\downloads\knight-fm-*.zip -ErrorAction SilentlyContinue
+  git add src/instrumentation.ts src/lib/vpn.ts src/app/api/admin/reset/route.ts .gitignore
+  git add -u public/downloads
+  git commit -m "fix: arranque y seguridad multi-plataforma (Supabase)"
+  git push
+
+Despues del push: Vercel despliega solo (2-4 min) y pruebas el login.
+Este LEEME.txt puedes borrarlo cuando quieras (no afecta al proyecto).

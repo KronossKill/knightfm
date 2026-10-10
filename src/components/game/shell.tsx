@@ -6,7 +6,6 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   Activity,
   BadgeCheck,
@@ -25,7 +24,6 @@ import {
   Mail,
   Menu,
   MonitorCog,
-  Search,
   Settings as SettingsIcon,
   Shield,
   Shirt,
@@ -63,8 +61,8 @@ import { useViewStore, type GameView } from "@/components/game/view-store";
 import { fetchMyClubs, fetchPresence, fetchWorldState, fetchNotifications, qk, type ClubMine } from "@/components/game/api";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { AssistantPanelSlot, ModuleSlot } from "@/components/game/lazy-modules";
-import CommandPalette from "@/components/game/command-palette";
 import { BrandBadge, formatUtcClock, useNow } from "@/components/game/ui/bits";
+import { CountryFlag } from "@/components/game/ui/country-flag";
 import DashboardView from "@/components/game/dashboard/dashboard-view";
 import SquadView from "@/components/game/squad/squad-view";
 import CompetitionsView from "@/components/game/competitions/competitions-view";
@@ -75,10 +73,6 @@ import YouthView from "@/components/game/youth/youth-view";
 import SettingsView from "@/components/game/settings/settings-view";
 
 // ── Navigation model ────────────────────────────────────────────
-// Task 58 — Information Architecture: the flat 13-item menu is reorganized
-// into 4 logical groups (Deportivo / Club / Finanzas / Sistema) so frequent
-// actions sit one click away and deep sections keep a stable home.
-// Same views, same labels — only the grouping changed.
 
 interface NavItem {
   view: GameView;
@@ -87,27 +81,21 @@ interface NavItem {
   adminOnly?: boolean;
 }
 
-const NAV_SPORT: NavItem[] = [
+const NAV_MAIN: NavItem[] = [
   { view: "dashboard", labelKey: "game.nav.dashboard", icon: LayoutDashboard },
   { view: "squad", labelKey: "game.nav.squad", icon: Users },
   { view: "tactics", labelKey: "game.nav.tactics", icon: Shirt },
   { view: "training", labelKey: "game.nav.training", icon: Dumbbell },
-  { view: "competitions", labelKey: "game.nav.competitions", icon: Trophy },
-];
-
-const NAV_CLUB: NavItem[] = [
   { view: "facilities", labelKey: "game.nav.facilities", icon: Building2 },
   { view: "staff", labelKey: "game.nav.staff", icon: UsersRound },
   { view: "youth", labelKey: "game.nav.youth", icon: FlaskConical },
-];
-
-const NAV_FINANCE: NavItem[] = [
-  { view: "markets", labelKey: "game.nav.markets", icon: Landmark },
-  { view: "treasury", labelKey: "game.nav.treasury", icon: Gem },
-  { view: "wallet", labelKey: "game.nav.wallet", icon: WalletIcon },
+  { view: "competitions", labelKey: "game.nav.competitions", icon: Trophy },
 ];
 
 const NAV_SYSTEM: NavItem[] = [
+  { view: "markets", labelKey: "game.nav.markets", icon: Landmark },
+  { view: "treasury", labelKey: "game.nav.treasury", icon: Gem },
+  { view: "wallet", labelKey: "game.nav.wallet", icon: WalletIcon },
   { view: "inbox", labelKey: "game.nav.inbox", icon: Mail },
   { view: "settings", labelKey: "game.nav.settings", icon: SettingsIcon },
 ];
@@ -160,6 +148,9 @@ function PresenceGadget({ fallbackOnline = 0 }: { fallbackOnline?: number }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: qk.presence, queryFn: fetchPresence, refetchInterval: 60_000 });
   const online = data?.online ?? fallbackOnline;
+  // Task 67 (USER MANDATE): flags of the countries currently connected.
+  const flags = data?.flags ?? [];
+  const hidden = flags.length > 5 ? flags.length - 5 : 0;
   return (
     <div
       className="hidden items-center gap-1.5 rounded-lg border bg-card/60 px-2.5 py-2 text-xs text-muted-foreground sm:flex"
@@ -170,6 +161,14 @@ function PresenceGadget({ fallbackOnline = 0 }: { fallbackOnline?: number }) {
         <span className={cn("relative inline-flex size-2 rounded-full", isLoading ? "bg-muted-foreground" : "bg-primary")} />
       </span>
       {t("game.shell.online", { n: isLoading ? "…" : online })}
+      {flags.length > 0 && (
+        <span className="ml-1 flex items-center gap-1 border-l pl-2" aria-hidden="true">
+          {flags.slice(0, 5).map((f) => (
+            <CountryFlag key={f.c} code={f.c} count={f.n} />
+          ))}
+          {hidden > 0 && <span className="text-[10px] font-medium tabular-nums">+{hidden}</span>}
+        </span>
+      )}
     </div>
   );
 }
@@ -224,7 +223,7 @@ function ClubIdentity({ clubs, isLoading }: { clubs: ClubMine[]; isLoading: bool
           <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="glass w-72">
+      <DropdownMenuContent align="start" className="w-72">
         <DropdownMenuLabel>{t("game.nav.club")}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {clubs.map((c) => (
@@ -272,7 +271,7 @@ function UserMenu({ user }: { user: { username: string; role: string; path: stri
           <ChevronDown aria-hidden="true" className="size-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="glass w-60">
+      <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel>
           <div className="flex flex-col">
             <span>{user.username}</span>
@@ -359,28 +358,13 @@ function AssistantDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 }
 
 // ── Sidebar (desktop + mobile sheet share the item list) ────────
-// Task 55 (elite design system): the active item is a floating "pill" that
-// slides between entries with a subtle spring (layoutId), plus a 2px accent
-// bar on the left edge. Reduced-motion users get the instant classic switch.
 
-function NavList({
-  onNavigate,
-  ccOnly = false,
-  walletOnly = false,
-  layoutId = "nav",
-}: {
-  onNavigate?: () => void;
-  ccOnly?: boolean;
-  walletOnly?: boolean;
-  layoutId?: string;
-}) {
+function NavList({ onNavigate, ccOnly = false, walletOnly = false }: { onNavigate?: () => void; ccOnly?: boolean; walletOnly?: boolean }) {
   const { t } = useI18n();
   const { user } = useAuth();
   const view = useViewStore((s) => s.view);
   const setView = useViewStore((s) => s.setView);
   const setDepositEscape = useViewStore((s) => s.setDepositEscape);
-  const reducedMotion = useReducedMotion();
-  const spring = reducedMotion ? { duration: 0 } : { type: "spring" as const, stiffness: 420, damping: 34 };
 
   const renderItems = (items: NavItem[]) =>
     items.map((item) => {
@@ -396,37 +380,15 @@ function NavList({
           }}
           aria-current={active ? "page" : undefined}
           className={cn(
-            "group relative flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors duration-200",
+            "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             active
-              ? "font-medium text-primary"
-              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+              ? "bg-primary/15 font-medium text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
           )}
         >
-          {active && (
-            <motion.span
-              layoutId={`${layoutId}-pill`}
-              transition={spring}
-              aria-hidden="true"
-              className="absolute inset-0 rounded-lg bg-primary/10 ring-1 ring-inset ring-primary/25"
-            />
-          )}
-          {active && (
-            <motion.span
-              layoutId={`${layoutId}-bar`}
-              transition={spring}
-              aria-hidden="true"
-              className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary"
-            />
-          )}
-          <Icon
-            aria-hidden="true"
-            className={cn(
-              "relative size-4 shrink-0 transition-colors",
-              active ? "text-primary" : "text-muted-foreground/80 group-hover:text-foreground"
-            )}
-          />
-          <span className="relative truncate">{t(item.labelKey)}</span>
+          <Icon aria-hidden="true" className={cn("size-4 shrink-0", active && "text-primary")} />
+          <span className="truncate">{t(item.labelKey)}</span>
         </button>
       );
     });
@@ -437,16 +399,11 @@ function NavList({
   const groups: { labelKey: string; items: NavItem[] }[] = ccOnly
     ? [{ labelKey: "game.nav.system", items: NAV_ADMIN }]
     : walletOnly
-      ? [{ labelKey: "game.nav.finance", items: [{ view: "wallet", labelKey: "game.nav.wallet", icon: WalletIcon }] }]
+      ? [{ labelKey: "game.nav.system", items: NAV_SYSTEM.filter((i) => i.view === "wallet") }]
       : [
-          { labelKey: "game.nav.sport", items: NAV_SPORT },
-          { labelKey: "game.nav.club", items: NAV_CLUB },
-          { labelKey: "game.nav.finance", items: NAV_FINANCE },
-          // Task 56/58: one single "Sistema" group; admins see Control Center here.
-          {
-            labelKey: "game.nav.system",
-            items: user?.role === "ADMIN" ? [...NAV_SYSTEM, ...NAV_ADMIN] : NAV_SYSTEM,
-          },
+          { labelKey: "game.nav.main", items: NAV_MAIN },
+          { labelKey: "game.nav.system", items: NAV_SYSTEM },
+          ...(user?.role === "ADMIN" ? [{ labelKey: "game.nav.system", items: NAV_ADMIN }] : []),
         ];
 
   return (
@@ -480,37 +437,10 @@ function NavList({
   );
 }
 
-function Sidebar({
-  ccOnly = false,
-  walletOnly = false,
-  onOpenPalette,
-}: {
-  ccOnly?: boolean;
-  walletOnly?: boolean;
-  onOpenPalette?: () => void;
-}) {
-  const { t } = useI18n();
+function Sidebar({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; walletOnly?: boolean }) {
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-border/70 bg-sidebar/60 p-3 lg:block">
-      <div className="flex min-h-full flex-col">
-        <div className="flex-1">
-          <NavList ccOnly={ccOnly} walletOnly={walletOnly} layoutId="nav-desktop" />
-        </div>
-        {/* Task 56 — Linear-style palette trigger pinned to the sidebar footer. */}
-        {!ccOnly && !walletOnly && onOpenPalette && (
-          <div className="mt-3 border-t border-border/70 pt-3">
-            <button
-              type="button"
-              onClick={onOpenPalette}
-              className="group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <Search aria-hidden="true" className="size-4" />
-              <span className="flex-1 truncate text-left">{t("game.palette.open")}</span>
-              <span className="kbd" aria-hidden="true">⌘K</span>
-            </button>
-          </div>
-        )}
-      </div>
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r bg-card/30 p-3 lg:block">
+      <NavList ccOnly={ccOnly} walletOnly={walletOnly} />
     </aside>
   );
 }
@@ -530,7 +460,7 @@ function MobileNav({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; w
           <Menu aria-hidden="true" className="size-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="glass w-72 p-4">
+      <SheetContent side="left" className="w-72 p-4">
         <SheetHeader className="sr-only">
           <SheetTitle>{t("game.shell.openNav")}</SheetTitle>
         </SheetHeader>
@@ -545,7 +475,7 @@ function MobileNav({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; w
         </div>
         <Separator className="my-3" />
         <div className="max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
-          <NavList onNavigate={() => setOpen(false)} ccOnly={ccOnly} walletOnly={walletOnly} layoutId="nav-mobile" />
+          <NavList onNavigate={() => setOpen(false)} ccOnly={ccOnly} walletOnly={walletOnly} />
         </div>
       </SheetContent>
     </Sheet>
@@ -562,11 +492,9 @@ function useClubLite(): { id: string; name: string; role: "OWNER" | "MANAGER" } 
   return c ? { id: c.id, name: c.name, role: c.role } : undefined;
 }
 
-function renderView(
-  view: GameView,
-  clubs: ClubMine[],
-  clubLite: { id: string; name: string; role: "OWNER" | "MANAGER" } | undefined,
-): React.ReactNode {
+function ActiveView({ clubs }: { clubs: ClubMine[] }) {
+  const view = useViewStore((s) => s.view);
+  const clubLite = useClubLite();
   switch (view) {
     case "dashboard":
       return <DashboardView clubs={clubs} />;
@@ -611,25 +539,6 @@ function renderView(
   }
 }
 
-/** Task 56 — cinematic view transition: one critically-damped fade/slide on
- * every view swap (keyed remount, no exit wait — data fetching starts at
- * once). Reduced-motion users skip the animation entirely. */
-function ActiveView({ clubs }: { clubs: ClubMine[] }) {
-  const view = useViewStore((s) => s.view);
-  const clubLite = useClubLite();
-  const reducedMotion = useReducedMotion();
-  return (
-    <motion.div
-      key={view}
-      initial={reducedMotion ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={reducedMotion ? { duration: 0 } : { duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {renderView(view, clubs, clubLite)}
-    </motion.div>
-  );
-}
-
 function AssistantTitle() {
   const { t } = useI18n();
   return <>{t("game.shell.assistant")}</>;
@@ -642,22 +551,8 @@ export default function GameShell() {
   const { user } = useAuth();
   const nowMs = useNow(1000);
   const [assistantOpen, setAssistantOpen] = React.useState(false);
-  const [paletteOpen, setPaletteOpen] = React.useState(false);
   const setView = useViewStore((s) => s.setView);
   const setActiveClub = useViewStore((s) => s.setActiveClub);
-
-  // Task 56 — ⌘K / Ctrl+K toggles the command palette from anywhere in the
-  // shell. The listener is global; the palette itself traps focus while open.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setPaletteOpen((v) => !v);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const clubsQuery = useQuery({ queryKey: qk.myClubs, queryFn: fetchMyClubs, refetchInterval: 120_000 });
   const clubs = clubsQuery.data?.clubs ?? [];
@@ -744,8 +639,8 @@ export default function GameShell() {
         {t("game.nav.main")}
       </a>
 
-      {/* ── Top bar — glassmorphism chrome (Task 55) ── */}
-      <header className="sticky top-0 z-40 border-b border-border/70 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/55">
+      {/* ── Top bar ── */}
+      <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
         <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <MobileNav ccOnly={ccOnly} walletOnly={walletOnly} />
           <KnightLogo size={30} priority className="shrink-0" />
@@ -759,20 +654,6 @@ export default function GameShell() {
           <div className="ml-auto flex items-center gap-2">
             <div className="hidden md:block"><WorldClock compact /></div>
             <PresenceGadget fallbackOnline={worldQuery.data?.presenceOnline ?? 0} />
-
-            {/* Task 56 — top-bar palette trigger (desktop, Linear-style). */}
-            {!ccOnly && !walletOnly && (
-              <Button
-                variant="outline"
-                className="hidden h-9 gap-2 pr-2 text-muted-foreground md:inline-flex"
-                onClick={() => setPaletteOpen(true)}
-                aria-label={t("game.palette.open")}
-              >
-                <Search aria-hidden="true" className="size-4" />
-                <span className="hidden text-xs lg:inline">{t("game.palette.placeholder")}</span>
-                <span className="kbd ml-1" aria-hidden="true">⌘K</span>
-              </Button>
-            )}
 
             {!ccOnly && !walletOnly && (
               <Button
@@ -807,7 +688,7 @@ export default function GameShell() {
 
       {/* ── Body ── */}
       <div className="flex flex-1">
-        <Sidebar ccOnly={ccOnly} walletOnly={walletOnly} onOpenPalette={() => setPaletteOpen(true)} />
+        <Sidebar ccOnly={ccOnly} walletOnly={walletOnly} />
         <main id="game-main" className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">
           {ccOnly ? (
             <div className="space-y-4">
@@ -860,7 +741,7 @@ export default function GameShell() {
       </div>
 
       {/* ── Sticky footer (mt-auto keeps it down on short views) ── */}
-      <footer className="mt-auto border-t border-border/70 bg-card/30 px-4 py-3 backdrop-blur-xl">
+      <footer className="mt-auto border-t bg-card/40 px-4 py-3">
         <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
           <CalendarDays aria-hidden="true" className="size-3.5 text-primary/80" />
           {t("game.shell.footer", { clock: footerClock, day: gameDay ?? "—" })}
@@ -884,14 +765,6 @@ export default function GameShell() {
       </Button>
 
       <AssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} />
-
-      {/* Task 56 — ⌘K command palette (navigation, themes, language). */}
-      <CommandPalette
-        open={paletteOpen}
-        onOpenChange={setPaletteOpen}
-        ccOnly={ccOnly}
-        walletOnly={walletOnly}
-      />
     </div>
   );
 }

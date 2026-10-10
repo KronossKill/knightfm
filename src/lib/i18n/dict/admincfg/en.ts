@@ -169,6 +169,7 @@ export const dict: Record<string, string> = {
   "admin.ipAudit.colRole": "Role",
   "admin.ipAudit.colRegIp": "Registration IP",
   "admin.ipAudit.colLastIp": "Last IP",
+  "admin.ipAudit.colCountry": "Country (geolocation)",
   "admin.ipAudit.noAccounts": "No accounts for this IP.",
   "admin.ipAudit.flagMulti": "multi-account",
 

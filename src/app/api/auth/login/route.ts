@@ -7,6 +7,7 @@ import { NextRequest } from "next/server";
 import { ok, fail, audit, rateLimit, clientIp, readJson } from "@/lib/api";
 import { verifyCaptcha, verifyPassword, checkLockout, checkLockoutEmail, recordFailedLogin, clearLockout, clearLockoutEmail, fakePasswordVerify, signAccessToken, createSession } from "@/lib/auth";
 import { enforceMultiAccountIp } from "@/lib/security/ip-guard";
+import { resolveCountry } from "@/lib/geo";
 import { evaluateVpn } from "@/lib/vpn";
 import { getBool, getConfig } from "@/lib/config";
 import { db } from "@/lib/db";
@@ -117,7 +118,10 @@ export async function POST(req: NextRequest) {
   // involved account and refuse this sign-in. Runs BEFORE any session exists,
   // so a blocked user never holds a token. It also stamps lastLoginIp + the
   // IpLink evidence row synchronously (replaces the old fire-and-forget update).
-  const ipGuard = await enforceMultiAccountIp({ userId: user.id, ip, role: user.role });
+  // Task 67: the resolved country travels with the evidence (edge header or
+  // cached geo lookup — observability only, never a gate).
+  const country = await resolveCountry(req, ip);
+  const ipGuard = await enforceMultiAccountIp({ userId: user.id, ip, role: user.role, country });
   if (ipGuard.blocked) {
     await audit("AUTH_LOGIN_MULTIACCOUNT_IP", user.id, { ip, accounts: ipGuard.accounts });
     return fail(

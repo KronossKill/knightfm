@@ -11,6 +11,7 @@ import { Prisma } from "@prisma/client";
 import { ok, fail, audit, rateLimit, clientIp, readJson } from "@/lib/api";
 import { hashPassword, passwordPolicyError, verifyCaptcha } from "@/lib/auth";
 import { enforceMultiAccountIp } from "@/lib/security/ip-guard";
+import { resolveCountry } from "@/lib/geo";
 import { getBool, getConfig } from "@/lib/config";
 import { evaluateVpn } from "@/lib/vpn";
 import { db } from "@/lib/db";
@@ -219,8 +220,9 @@ export async function POST(req: NextRequest) {
     // the new account AND that counterpart are auto-blocked (only an admin can
     // unblock). The sign-up ends with an honest 403 and no verification mail is
     // ever issued for a blocked account. This call also records the IpLink
-    // evidence row for the new account.
-    const ipGuard = await enforceMultiAccountIp({ userId: user.id, ip, role: user.role });
+    // evidence row for the new account (with the resolved country — Task 67).
+    const country = await resolveCountry(req, ip);
+    const ipGuard = await enforceMultiAccountIp({ userId: user.id, ip, role: user.role, country });
     if (ipGuard.blocked) {
       await audit("AUTH_REGISTER_MULTIACCOUNT_IP", user.id, { ip, accounts: ipGuard.accounts });
       return fail(

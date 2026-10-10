@@ -8,6 +8,8 @@
 //   no params    → summary: IPs where 2+ accounts last signed in (the practical
 //                  multi-account signal after the registration rule), the count
 //                  of legacy users created before the rule existed, and totals.
+// Task 67 (USER MANDATE): every IP answer now carries its resolved country
+// (from the IpLink evidence rows) so the admin sees WHERE connections come from.
 
 import { NextRequest } from "next/server";
 import { fail, isResponse, ok, requireAuth } from "@/lib/api";
@@ -28,6 +30,28 @@ const USER_SELECT = {
   lastActiveAt: true,
 } as const;
 
+/**
+ * ip → most recently seen non-null country from the IpLink evidence rows.
+ * Degrades to an empty map on pre-migration databases (country column absent).
+ */
+async function countriesForIps(ips: string[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+  if (ips.length === 0) return map;
+  try {
+    const rows = await db.ipLink.findMany({
+      where: { ip: { in: ips }, country: { not: null } },
+      orderBy: { lastSeenAt: "desc" },
+      select: { ip: true, country: true },
+    });
+    for (const r of rows) {
+      if (r.country && !map.has(r.ip)) map.set(r.ip, r.country);
+    }
+  } catch {
+    // country column missing yet — flags stay empty, audit still works.
+  }
+  return map;
+}
+
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (isResponse(auth)) return auth;
@@ -36,13 +60,16 @@ export async function GET(req: NextRequest) {
   const ip = (req.nextUrl.searchParams.get("ip") ?? "").trim().slice(0, 60);
 
   if (ip.length > 0) {
-    const accounts = await db.user.findMany({
-      where: { OR: [{ registrationIp: ip }, { lastLoginIp: ip }] },
-      orderBy: { createdAt: "asc" },
-      take: 100,
-      select: USER_SELECT,
-    });
-    return ok({ mode: "ip" as const, ip, accounts });
+    const [accounts, countries] = await Promise.all([
+      db.user.findMany({
+        where: { OR: [{ registrationIp: ip }, { lastLoginIp: ip }] },
+        orderBy: { createdAt: "asc" },
+        take: 100,
+        select: USER_SELECT,
+      }),
+      countriesForIps([ip]),
+    ]);
+    return ok({ mode: "ip" as const, ip, ipCountry: countries.get(ip) ?? null, accounts });
   }
 
   const [sharedRaw, legacy, total] = await Promise.all([
@@ -62,7 +89,12 @@ export async function GET(req: NextRequest) {
   ]);
 
   // COUNT(*) arrives as BigInt from SQLite — JSON cannot serialize it.
-  const sharedLoginIps = sharedRaw.map((r) => ({ ip: r.ip, accounts: Number(r.accounts) }));
+  const countries = await countriesForIps(sharedRaw.map((r) => r.ip));
+  const sharedLoginIps = sharedRaw.map((r) => ({
+    ip: r.ip,
+    accounts: Number(r.accounts),
+    country: countries.get(r.ip) ?? null,
+  }));
 
   return ok({ mode: "summary" as const, sharedLoginIps, legacyUsersWithoutIp: legacy, totalUsers: total });
 }

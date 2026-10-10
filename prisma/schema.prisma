@@ -7,9 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ───────────────────────────── Identity ─────────────────────────────
@@ -77,6 +76,11 @@ model IpLink {
   id          String   @id @default(cuid())
   userId      String
   ip          String
+  // Country feature (Task 67): resolved ISO 3166-1 alpha-2 for this IP
+  // (x-vercel-ip-country edge header in production; public geo API fallback
+  // with in-memory cache elsewhere). Nullable: legacy rows and IPs that cannot
+  // be resolved (private/local networks) stay NULL — the UI simply hides flags.
+  country     String?
   firstSeenAt DateTime @default(now())
   lastSeenAt  DateTime @default(now())
 
@@ -128,6 +132,10 @@ model AuditEvent {
 model Presence {
   id         String   @id @default(cuid())
   userId     String   @unique
+  // Country feature (Task 67): last-known country snapshot (denormalized from
+  // the request geo headers / IpLink evidence) so the online-flag aggregation
+  // is a single cheap groupBy over the 5-minute online window.
+  country    String?
   lastSeenAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

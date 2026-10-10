@@ -1,0 +1,39 @@
+KNIGHT FM — MOTOR DE PROGRESION SOSTENIBLE (entrenamiento v2)
+==============================================================
+
+QUE CONTIENE (rutas identicas a tu proyecto):
+  src\lib\engine\training.ts  -> nuevo modelo de crecimiento
+  src\lib\config.ts           -> 2 nuevas palancas de ritmo
+
+QUE CAMBIA:
+  1) TECHO POR POTENCIAL: cada atributo tiene un techo propio derivado del
+     potencial del jugador (+-4..5 puntos, determinista). El "Potencial" de la
+     ficha ahora SI limita el crecimiento real.
+  2) RENDIMIENTOS DECRECIENTES: en los ultimos 18 puntos antes del techo el
+     crecimiento se frena linealmente hasta 0 (estilo Football Manager).
+  3) RITMO ABSOLUTO: se elimina el piso "+1 por atributo" (el que hacia llegar
+     al maximo en semanas). Ahora se gana una fraccion de punto por sesion.
+  4) Resultado medido (300 carreras simuladas por escenario):
+      - 5 estrellas optimo (pot.97, centro nv.10, entrenador 92, 7 especiales/dia):
+        OVR ~93 a los 31 anos y roza su techo al final de la carrera.
+      - 5 estrellas con centro nv.5 y entrenador 60: platea en ~88.
+      - Solo sesion general (sin especiales): ~81.
+      - 3 estrellas (pot.75): llega a su techo ~25 anos y se mantiene.
+  5) La fatiga sigue encareciendo el entrenamiento (condicion = factor).
+
+PALANCAS ADMIN (valores por defecto en codigo, funcionan sin tocar la base de datos):
+  training.paceGeneral = 30   (puntos x0.001 por atributo en cada sesion general)
+  training.paceSpecial = 42   (puntos x0.001 por atributo entrenado en cada especial)
+  training.growthFactor sigue multiplicando el ritmo global (100 = normal).
+  Subir ambos x1.5 (~45/60) acorta la curva; bajarlos la alarga.
+
+INSTALACION (PowerShell, una linea):
+  Expand-Archive -Path "$env:USERPROFILE\Downloads\knightfm-entrenamiento-v2.zip" -DestinationPath "D:\Programacion\knightfm" -Force
+
+SUBIR A GITHUB (una linea a la vez):
+  cd D:\Programacion\knightfm
+  git add src/lib/engine/training.ts src/lib/config.ts
+  git commit -m "feat: progresion sostenible (techo por potencial + ritmo absoluto)"
+  git push
+
+Este LEEME puedes borrarlo cuando quieras.

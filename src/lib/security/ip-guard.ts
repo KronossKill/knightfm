@@ -52,17 +52,18 @@ export const BLOCK_REASON_ADMIN_MANUAL = "ADMIN_MANUAL";
 /**
  * Upsert the (account, IP) evidence row and stamp User.lastLoginIp. Always
  * recorded — even when the caller is about to be blocked — so the audit trail
- * shows exactly which IP triggered the rule. Failures are swallowed (logged):
+ * shows exactly which IP triggered the rule. `country` (Task 67) is the
+ * resolved ISO-2 for the IP when known; failures are swallowed (logged):
  * evidence is observability and must never break a sign-in.
  */
-export async function recordIpLink(userId: string, ip: string): Promise<void> {
+export async function recordIpLink(userId: string, ip: string, country?: string | null): Promise<void> {
   if (!userId || !ip) return;
   const now = new Date();
   try {
     await db.ipLink.upsert({
       where: { userId_ip: { userId, ip } },
-      create: { userId, ip },
-      update: { lastSeenAt: now },
+      create: country ? { userId, ip, country } : { userId, ip },
+      update: { lastSeenAt: now, ...(country ? { country } : {}) },
     });
     await db.user.update({ where: { id: userId }, data: { lastLoginIp: ip } });
   } catch (err) {
@@ -102,12 +103,14 @@ export async function enforceMultiAccountIp(opts: {
   userId: string;
   ip: string;
   role: string;
+  /** Task 67: resolved ISO-2 country for this IP (observability only). */
+  country?: string | null;
 }): Promise<IpGuardResult> {
   const { userId, ip, role } = opts;
   if (!userId || !ip) return { blocked: false, accounts: [] };
 
   // Evidence first — ALWAYS recorded, even if the rule ends up blocking.
-  await recordIpLink(userId, ip);
+  await recordIpLink(userId, ip, opts.country);
 
   // ADMIN never triggers the rule and is never auto-blocked (see header).
   if (role === "ADMIN") return { blocked: false, accounts: [] };
