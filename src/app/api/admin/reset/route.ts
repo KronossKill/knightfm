@@ -26,6 +26,11 @@ const RESET_LOCK_TTL_MS = 15 * 60_000;
 
 /** Consistent SQLite snapshot via VACUUM INTO (safe with live connections). */
 async function backupDatabase(): Promise<string> {
+  // VACUUM INTO is SQLite-only — refuse cleanly on hosted providers instead
+  // of crashing mid-reset (the DB would be left locked with no backup).
+  if (!(process.env.DATABASE_URL ?? "").startsWith("file:")) {
+    throw new Error("BACKUP_UNSUPPORTED_PROVIDER");
+  }
   mkdirSync(BACKUP_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const target = join(BACKUP_DIR, `custom-${stamp}.db`);
@@ -119,6 +124,14 @@ export async function POST(req: NextRequest) {
       durationMs: Date.now() - startedAt,
     });
   } catch (e) {
+    if (e instanceof Error && e.message === "BACKUP_UNSUPPORTED_PROVIDER") {
+      await audit("ADMIN_RESET_REFUSED_PROVIDER", auth.userId, { stage: "confirm", executed: false });
+      return fail(
+        "BACKUP_UNSUPPORTED_PROVIDER",
+        "Automatic backup/reset is only available in local SQLite mode. On a hosted database, restore the world with the seed script or the SQL upload.",
+        501,
+      );
+    }
     // SECURITY (pentest hardening): log details server-side only — the raw
     // exception used to reach the client (path/stack fingerprinting).
     const message = e instanceof Error ? e.message : String(e);

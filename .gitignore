@@ -32,8 +32,6 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
-# …pero la PLANTILLA sí viaja al repositorio (no contiene valores reales)
-!.env.example
 
 # vercel
 .vercel
@@ -56,12 +54,5 @@ server.log
 /skills/
 .env
 db/
-
-# ── Knight FM: internal working artifacts (never publish on GitHub) ──
-tool-results/
-agent-ctx/
-download/
-Thumbs.db
-desktop.ini
-*.db-wal
-*.db-shm
+# local build artifacts (never deploy or commit)
+artifacts/

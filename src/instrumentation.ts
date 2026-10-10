@@ -6,6 +6,11 @@
 // clubsPerDivision = 1,600 clubs, 20 players each, full fixtures, free-agent
 // pool, config and knowledge base. Idempotent: a HEALTHY world (complete
 // shape + season + fixtures) is left untouched.
+//
+// PROVIDER SAFETY: PRAGMA tuning and auto-genesis are LOCAL SQLite behaviors.
+// On a hosted database (e.g. Supabase Postgres — DATABASE_URL not starting
+// with "file:") auto-genesis is NEVER executed: a cold start must not be able
+// to wipe or rebuild the production world.
 
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -14,14 +19,20 @@ export async function register(): Promise<void> {
   if (g.__knightWorldBootstrap) return;
   g.__knightWorldBootstrap = true;
 
+  const databaseUrl = process.env.DATABASE_URL ?? "";
+  const isSqlite = databaseUrl.startsWith("file:");
+
   // Dedicated PrismaClient for the bootstrap: NO query logging (genesis emits
   // tens of thousands of statements — dev query logging would slow it down
-  // and flood dev.log) and SQLite WAL pragmas for fast, non-blocking commits.
+  // and flood dev.log). SQLite-only PRAGMA tuning is guarded by isSqlite:
+  // PostgreSQL does not understand PRAGMA and would fail the whole bootstrap.
   const { PrismaClient } = await import("@prisma/client");
   const db = new PrismaClient();
   try {
-    await db.$queryRawUnsafe("PRAGMA journal_mode=WAL;");
-    await db.$queryRawUnsafe("PRAGMA synchronous=NORMAL;");
+    if (isSqlite) {
+      await db.$queryRawUnsafe("PRAGMA journal_mode=WAL;");
+      await db.$queryRawUnsafe("PRAGMA synchronous=NORMAL;");
+    }
 
     const { runWorldGenesis, WORLD_SHAPE } = await import("./lib/genesis");
     const [regions, divisions, clubs, seasons, fixtures] = await Promise.all([
@@ -44,6 +55,15 @@ export async function register(): Promise<void> {
     if (healthy) {
       console.log(
         `[knight-fm] world OK (regions=${regions} divisions=${divisions} clubs=${clubs} seasons=${seasons} fixtures=${fixtures}) — genesis skipped`,
+      );
+      await db.$disconnect();
+      return;
+    }
+
+    if (!isSqlite) {
+      console.error(
+        "[knight-fm] hosted database detected — skipping auto-genesis for safety. " +
+          "Run the seed script or the SQL upload manually if the world is incomplete.",
       );
       await db.$disconnect();
       return;

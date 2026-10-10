@@ -11,7 +11,6 @@
 // - Legacy policy value "block_except_cuba" (and any future "block_*") is
 //   treated as "block": per-IP exceptions are expressed through VpnException.
 
-import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getConfig } from "@/lib/config";
 
@@ -176,12 +175,11 @@ export function isIpInCidr(ip: string, cidr: string): boolean {
   return false; // family mismatch (v4 IP vs v6 range or vice-versa)
 }
 
-// ─── Data access (delegate-first, raw-SQL fallback) ───────────────
-// A long-running `next dev` process can hold a PrismaClient generated BEFORE
-// the VpnException migration (the client is a globalThis singleton, so hot
-// reloads keep the stale instance). In such a process `db.vpnException` does
-// not exist yet. Both access paths below target the SAME migrated SQLite
-// table; the typed delegates take over automatically after a server restart.
+// ─── Data access (typed delegates only) ───────────────────────────
+// Raw-SQL fallbacks were removed: they were SQLite-only ("?" placeholders,
+// unquoted identifiers) and would break on PostgreSQL. If the VpnException
+// model is missing from the Prisma client the code fails loudly instead of
+// silently degrading — restart the server to regenerate the Prisma client.
 
 export interface VpnExceptionRow {
   id: string;
@@ -191,9 +189,12 @@ export interface VpnExceptionRow {
   createdAt: string; // ISO 8601
 }
 
-function vpnDelegate(): any | null {
+function vpnDelegate(): any {
   const delegate = (db as unknown as Record<string, unknown>)["vpnException"];
-  return delegate && typeof (delegate as { findMany?: unknown }).findMany === "function" ? delegate : null;
+  if (!delegate || typeof (delegate as { findMany?: unknown }).findMany !== "function") {
+    throw new Error("VpnException model unavailable — restart the server to regenerate the Prisma client");
+  }
+  return delegate;
 }
 
 function toIso(value: unknown): string {
@@ -213,86 +214,38 @@ function serializeRow(r: Record<string, unknown>): VpnExceptionRow {
 }
 
 export async function vpnListValues(): Promise<string[]> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    const rows = (await delegate.findMany({ select: { value: true } })) as { value: string }[];
-    return rows.map((r) => r.value);
-  }
-  const raw = await db.$queryRawUnsafe<{ value: string }[]>("SELECT value FROM VpnException");
-  return raw.map((r) => r.value);
+  const rows = (await vpnDelegate().findMany({ select: { value: true } })) as { value: string }[];
+  return rows.map((r) => r.value);
 }
 
 export async function vpnListAll(): Promise<VpnExceptionRow[]> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    const rows = (await delegate.findMany({ orderBy: { createdAt: "desc" } })) as Record<string, unknown>[];
-    return rows.map(serializeRow);
-  }
-  const raw = await db.$queryRawUnsafe<Record<string, unknown>[]>(
-    "SELECT id, value, note, createdBy, createdAt FROM VpnException ORDER BY createdAt DESC"
-  );
-  return raw.map(serializeRow);
+  const rows = (await vpnDelegate().findMany({ orderBy: { createdAt: "desc" } })) as Record<string, unknown>[];
+  return rows.map(serializeRow);
 }
 
 export async function vpnFindByValue(value: string): Promise<VpnExceptionRow | null> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    const row = (await delegate.findUnique({ where: { value } })) as Record<string, unknown> | null;
-    return row ? serializeRow(row) : null;
-  }
-  const raw = await db.$queryRawUnsafe<Record<string, unknown>[]>(
-    "SELECT id, value, note, createdBy, createdAt FROM VpnException WHERE value = ? LIMIT 1",
-    value
-  );
-  return raw.length > 0 ? serializeRow(raw[0]) : null;
+  const row = (await vpnDelegate().findUnique({ where: { value } })) as Record<string, unknown> | null;
+  return row ? serializeRow(row) : null;
 }
 
 export async function vpnUpsert(value: string, note: string, createdBy: string): Promise<VpnExceptionRow> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    const row = (await delegate.upsert({
-      where: { value },
-      create: { value, note, createdBy },
-      update: { note },
-    })) as Record<string, unknown>;
-    return serializeRow(row);
-  }
-  await db.$executeRawUnsafe(
-    "INSERT INTO VpnException (id, value, note, createdBy, createdAt) VALUES (?, ?, ?, ?, ?) " +
-      "ON CONFLICT(value) DO UPDATE SET note = excluded.note",
-    randomUUID(),
-    value,
-    note,
-    createdBy,
-    new Date().toISOString()
-  );
-  const row = await vpnFindByValue(value);
-  if (!row) throw new Error("vpnUpsert: row disappeared after upsert");
-  return row;
+  const row = (await vpnDelegate().upsert({
+    where: { value },
+    create: { value, note, createdBy },
+    update: { note },
+  })) as Record<string, unknown>;
+  return serializeRow(row);
 }
 
 export async function vpnFindById(id: string): Promise<VpnExceptionRow | null> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    const row = (await delegate.findUnique({ where: { id } })) as Record<string, unknown> | null;
-    return row ? serializeRow(row) : null;
-  }
-  const raw = await db.$queryRawUnsafe<Record<string, unknown>[]>(
-    "SELECT id, value, note, createdBy, createdAt FROM VpnException WHERE id = ? LIMIT 1",
-    id
-  );
-  return raw.length > 0 ? serializeRow(raw[0]) : null;
+  const row = (await vpnDelegate().findUnique({ where: { id } })) as Record<string, unknown> | null;
+  return row ? serializeRow(row) : null;
 }
 
 /** Returns true when a row was actually deleted. */
 export async function vpnDeleteById(id: string): Promise<boolean> {
-  const delegate = vpnDelegate();
-  if (delegate) {
-    await delegate.delete({ where: { id } });
-    return true;
-  }
-  const affected = await db.$executeRawUnsafe("DELETE FROM VpnException WHERE id = ?", id);
-  return affected > 0;
+  await vpnDelegate().delete({ where: { id } });
+  return true;
 }
 
 // ─── Exception allow-list (60s in-memory cache) ───────────────────
