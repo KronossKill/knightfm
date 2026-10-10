@@ -51,6 +51,12 @@ type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
 /** Maps typed API errors to translated, user-safe messages (never leaks enumeration). */
 function describeError(err: unknown, t: TFn): string {
+  // Captcha widget failures (script blocked by CSP/ad-blocker, timeout, widget
+  // error) surface as plain Errors with a TURNSTILE_ prefix — give them an
+  // actionable message instead of the generic one.
+  if (err instanceof Error && err.message.startsWith("TURNSTILE_")) {
+    return t("auth.err.captchaUnavailable");
+  }
   if (err instanceof ApiError) {
     const secs = typeof err.extra?.retryAfterSec === "number" ? (err.extra.retryAfterSec as number) : 60;
     switch (err.code) {
@@ -724,19 +730,6 @@ export default function AuthFlow() {
 
   return (
     <main className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-[#070c0a] px-4 py-10 text-foreground">
-      {/* Task 56 — photoreal floodlit stadium backdrop (decorative). Sits under
-          the ambient emerald glow so the login reads as a AAA-game title screen. */}
-      <img
-        src="/images/stadium-night.jpg"
-        alt=""
-        aria-hidden="true"
-        draggable={false}
-        className="pointer-events-none absolute inset-0 size-full object-cover opacity-[0.16] saturate-[0.85]"
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070c0a]/70 via-[#070c0a]/40 to-[#070c0a]/90"
-      />
       {/* Ambient emerald glow (knight-emerald accent) */}
       <div
         aria-hidden="true"

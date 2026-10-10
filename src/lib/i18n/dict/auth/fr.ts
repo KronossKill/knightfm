@@ -7,7 +7,6 @@ export const dict: Dict = {
   "auth.panelSubtitle": "Un monde qui ne s'arrête jamais. Choisissez votre voie.",
   "auth.langLabel": "Langue",
   "auth.themeLabel": "Thème",
-  "auth.theme.onyx": "Onyx",
   "auth.theme.knight-emerald": "Émeraude",
   "auth.theme.obsidian": "Obsidienne",
   "auth.theme.royal": "Royal",
@@ -90,6 +89,7 @@ export const dict: Dict = {
 
   // Errors (mapped by error.code from the API)
   "auth.err.captcha": "Échec de la vérification anti-robot. Rechargez et réessayez.",
+  "auth.err.captchaUnavailable": "Le captcha n'a pas pu se charger. Vérifiez votre connexion, désactivez les bloqueurs de publicités pour ce site puis réessayez.",
   "auth.err.conflict": "Identifiants invalides ou compte déjà enregistré.",
   "auth.err.invalidCredentials": "Identifiants invalides.",
   "auth.err.emailNotVerified": "Votre e-mail n'est pas encore vérifié. Consultez votre boîte de réception.",

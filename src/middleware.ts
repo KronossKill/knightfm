@@ -30,8 +30,13 @@ const KEY_CAP = 10_000; // hard cap on tracked keys (resists XFF-spoof floods)
 // turns any future injection sink into full account compromise. 'unsafe-inline'
 // stays (Next injects inline bootstrap scripts; nonce-based CSP is a larger
 // migration) — documented residual risk.
+// CAPTCHA (D-004): challenges.cloudflare.com is whitelisted for script/frame/
+// connect because Cloudflare Turnstile loads its widget as a remote script
+// inside a cross-origin iframe. Allowed unconditionally — nothing loads from
+// that host unless the app itself requests the Turnstile API.
 const isDev = process.env.NODE_ENV !== "production";
-const CSP = `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
+const TURNSTILE_CSP = "https://challenges.cloudflare.com";
+const CSP = `default-src 'self'; script-src 'self' 'unsafe-inline' ${TURNSTILE_CSP}${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss: ${TURNSTILE_CSP}; frame-src ${TURNSTILE_CSP}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
 
 const PERMISSIONS_POLICY =
   "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
