@@ -184,8 +184,55 @@ export async function effectivePct(basePct: number, opts: TrainingOpts): Promise
   return Math.max(0.2, bd.finalPct * (0.75 + Math.random() * 0.5));
 }
 
-function gainFor(value: number, pct: number): number {
-  return Math.max(1, Math.round((value * pct) / 100));
+// ─── Growth pacing (absolute-pace model — sustainable development) ────
+// Percent-based gains ("+1.9% of 55 every session") made high attributes grow
+// as fast as low ones and let a dedicated squad max out in WEEKS. The engine
+// now grows attributes by ABSOLUTE PACE points scaled by the five factors, with:
+//  - a per-attribute EFFECTIVE CEILING derived from the player's potential
+//    (deterministic −4..+5 jitter so squads are not uniform),
+//  - LINEAR DIMINISHING RETURNS across the last TRAINING_SOFT_ZONE points
+//    before that ceiling (classic FM-style late-game slowdown),
+//  - unbiased probabilistic rounding so sub-1.0 expected gains accumulate
+//    statistically instead of being floored to +1 every session.
+// Net effect at default pace (training.paceGeneral=30 / training.paceSpecial=42):
+// a 5-star prospect with optimal coach + training center, dedicating every
+// special session to him, reaches his ceiling around AGE 29 (a lucky few ~27);
+// lower potentials plateau naturally at their own level and never overflow.
+
+/** Attribute points of headroom over the ceiling where gains taper linearly to 0. */
+export const TRAINING_SOFT_ZONE = 18;
+
+/** Deterministic per-(player, attribute) ceiling: potential −4..+5 (clamped 40..99). */
+export function attributeCeiling(playerId: string, attr: string, potential: number): number {
+  let h = 0;
+  const key = `${playerId}|${attr}`;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  const jitter = (h % 10) - 4;
+  return Math.max(40, Math.min(99, potential + jitter));
+}
+
+/** Configured pace in ABSOLUTE attribute points (x0.001) per session per attribute. */
+async function trainingPace(): Promise<{ general: number; special: number }> {
+  const [g, s] = await Promise.all([
+    getInt("training.paceGeneral", 30),
+    getInt("training.paceSpecial", 42),
+  ]);
+  return { general: Math.max(1, g) / 1000, special: Math.max(1, s) / 1000 };
+}
+
+/** Expected absolute gain (fractional attribute points) for one attribute. */
+export function expectedAttrGain(value: number, pace: number, mult: number, ceiling: number): number {
+  if (value >= ceiling) return 0;
+  const headroom = ceiling - value;
+  const taper = Math.min(1, headroom / TRAINING_SOFT_ZONE);
+  return pace * mult * taper;
+}
+
+/** Unbiased integer realisation: whole part + probabilistic remainder. */
+function realiseGain(expected: number): number {
+  if (expected <= 0) return 0;
+  const whole = Math.floor(expected);
+  return whole + (Math.random() < expected - whole ? 1 : 0);
 }
 
 async function facilityLevel(clubId: string, type: FacilityType): Promise<number> {
@@ -258,15 +305,15 @@ export async function runGeneralSession(
   breakdown: TrainingBreakdown;
   finalPct: number;
 }> {
-  const [tc, coachQuality, players, basePct, weights, growth] = await Promise.all([
+  const [tc, coachQuality, players, weights, growth, pace] = await Promise.all([
     facilityLevel(clubId, "TRAINING_CENTER"),
     coachQualityFor(clubId),
     db.player.findMany({
       where: { clubId, retired: false, isFreeAgent: false, isYouth: false },
     }),
-    getInt("training.generalAttrPct", 1),
     getTrainingWeights(),
     growthFactor(),
+    trainingPace(),
   ]);
 
   // SECURITY (pentest fix — concurrent-session race): the daily limit was
@@ -314,13 +361,18 @@ export async function runGeneralSession(
       data.sharpness = Math.max(0, player.sharpness - 1);
       data.morale = Math.min(100, player.morale + 2);
     } else {
-      const bd = breakdownFrom(
-        basePct,
-        { condition: 100 - player.fatigue, age: player.age, ovr: player.ovr, coachQuality, tcLevel: tc },
-        weights,
-        growth
-      );
-      const applied = Math.max(0.2, bd.finalPct * (0.75 + Math.random() * 0.5));
+      const opts = { condition: 100 - player.fatigue, age: player.age, ovr: player.ovr, coachQuality, tcLevel: tc };
+      const f = trainingFactorValues(opts);
+      // Absolute-pace model: session intensity = the five weighted factors × randomness.
+      const sessionMult =
+        effOf(weights.condition, f.fCondition) *
+        effOf(weights.age, f.fAge) *
+        effOf(weights.quality, f.fQuality) *
+        effOf(weights.coach, f.fCoach) *
+        effOf(weights.facility, f.fFacility) *
+        (0.75 + Math.random() * 0.5);
+      const applied = pace.general * growth * sessionMult;
+      const bd = breakdownFrom(1, opts, weights, growth);
       sumApplied += applied;
       sumPreview += bd.finalPct;
       sumF.fCondition += bd.fCondition;
@@ -338,8 +390,10 @@ export async function runGeneralSession(
       for (const fam of Object.keys(ATTRIBUTE_KEYS) as AttributeFamily[]) {
         for (const k of ATTRIBUTE_KEYS[fam]) {
           const v = current[fam][k] ?? 40;
-          if (v < 99) {
-            current[fam][k] = Math.min(99, v + gainFor(v, applied));
+          const ceiling = attributeCeiling(player.id, k, player.potential);
+          const inc = realiseGain(expectedAttrGain(v, pace.general * growth, sessionMult, ceiling));
+          if (inc > 0) {
+            current[fam][k] = Math.min(ceiling, v + inc);
             touched += 1;
           }
         }
@@ -378,7 +432,7 @@ export async function runGeneralSession(
     data: {
       effects: JSON.stringify({
         players: players.length,
-        pct: Math.round(meanApplied * 10) / 10,
+        pct: r3(meanApplied),
         attrsGained: touched,
         breakdown,
       }),
@@ -388,10 +442,10 @@ export async function runGeneralSession(
   return {
     players: players.length,
     focus,
-    pct: Math.round(meanApplied * 10) / 10,
+    pct: r3(meanApplied),
     attrsGained: touched,
     breakdown,
-    finalPct: r2(meanApplied),
+    finalPct: r3(meanApplied),
   };
 }
 
@@ -410,15 +464,15 @@ export async function runSpecialSession(
   breakdown: TrainingBreakdown;
   finalPct: number;
 }> {
-  const [tc, coachQuality, player, basePct, weights, growth] = await Promise.all([
+  const [tc, coachQuality, player, weights, growth, pace] = await Promise.all([
     facilityLevel(clubId, "TRAINING_CENTER"),
     coachQualityFor(clubId),
     db.player.findFirst({
       where: { id: playerId, clubId, retired: false, isFreeAgent: false, isYouth: false },
     }),
-    getInt("training.specialAttrPct", 3),
     getTrainingWeights(),
     growthFactor(),
+    trainingPace(),
   ]);
   if (!player) throw new Error("PLAYER_NOT_IN_SQUAD");
 
@@ -433,16 +487,21 @@ export async function runSpecialSession(
     throw new TrainingLimitError("ALREADY_RUN", `Today's ${type} session limit has been reached`);
   }
 
-  // Special session: the trained attribute family of THIS player grows by a
-  // percent scaled by HIS OWN condition, age and quality (plus club factors).
+  // Special session: the trained attribute family of THIS player grows by
+  // ABSOLUTE PACE points scaled by HIS OWN condition, age and quality (plus
+  // club factors), capped by his per-attribute potential ceiling.
   const keys = COACH_SPECIALIZATIONS[type];
-  const bd = breakdownFrom(
-    basePct,
-    { condition: 100 - player.fatigue, age: player.age, ovr: player.ovr, coachQuality, tcLevel: tc },
-    weights,
-    growth
-  );
-  const appliedPct = Math.max(0.2, bd.finalPct * (0.75 + Math.random() * 0.5));
+  const opts = { condition: 100 - player.fatigue, age: player.age, ovr: player.ovr, coachQuality, tcLevel: tc };
+  const f = trainingFactorValues(opts);
+  const sessionMult =
+    effOf(weights.condition, f.fCondition) *
+    effOf(weights.age, f.fAge) *
+    effOf(weights.quality, f.fQuality) *
+    effOf(weights.coach, f.fCoach) *
+    effOf(weights.facility, f.fFacility) *
+    (0.75 + Math.random() * 0.5);
+  const appliedPct = pace.special * growth * sessionMult;
+  const bd = breakdownFrom(1, opts, weights, growth);
 
   const attrs = JSON.parse(player.attributes || "{}") as Record<string, Record<string, number>>;
   const current: Record<string, Record<string, number>> = {
@@ -454,8 +513,10 @@ export async function runSpecialSession(
   for (const k of keys) {
     const fam = familyOfAttr(k);
     const v = current[fam][k] ?? 40;
-    if (v < 99) {
-      current[fam][k] = Math.min(99, v + gainFor(v, appliedPct));
+    const ceiling = attributeCeiling(player.id, k, player.potential);
+    const inc = realiseGain(expectedAttrGain(v, pace.special * growth, sessionMult, ceiling));
+    if (inc > 0) {
+      current[fam][k] = Math.min(ceiling, v + inc);
       grew += 1;
     }
   }
@@ -475,7 +536,7 @@ export async function runSpecialSession(
     data: {
       effects: JSON.stringify({
         type,
-        pct: Math.round(appliedPct * 10) / 10,
+        pct: r3(appliedPct),
         attrsTouched: keys.length,
         attrsGained: grew,
         breakdown: bd,
@@ -486,10 +547,10 @@ export async function runSpecialSession(
   return {
     playerId: player.id,
     type,
-    pct: Math.round(appliedPct * 10) / 10,
+    pct: r3(appliedPct),
     attrsGained: grew,
     breakdown: bd,
-    finalPct: r2(appliedPct),
+    finalPct: r3(appliedPct),
   };
 }
 

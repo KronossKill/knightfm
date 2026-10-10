@@ -91,7 +91,7 @@ export const CONFIG_DEFAULTS: ConfigEntry[] = [
   { key: "youth.academyQualityCapPerLevel", group: "youth", valueType: "int", defaultValue: "10", minValue: 0, maxValue: 30, description: "Signable quality cap added per youth academy level (cap = base + perLevel * level)." },
 
   // Admin access
-  { key: "admin.bootstrapEmail", group: "operations", valueType: "string", defaultValue: process.env.ADMIN_BOOTSTRAP_EMAIL ?? "owner@knight-fm.local", description: "Comma-separated emails that receive the ADMIN role at registration; the Control Center is visible only to ADMIN users. Default owner account is seeded by genesis from the ADMIN_BOOTSTRAP_EMAIL env var." },
+  { key: "admin.bootstrapEmail", group: "operations", valueType: "string", defaultValue: "kronoss2803@gmail.com", description: "Comma-separated emails that receive the ADMIN role at registration; the Control Center is visible only to ADMIN users. Default owner account: kronoss2803@gmail.com (seeded by genesis)." },
 
   // Facilities
   { key: "facilities.maxLevel", group: "facilities", valueType: "int", defaultValue: "10", locked: true },
@@ -110,6 +110,8 @@ export const CONFIG_DEFAULTS: ConfigEntry[] = [
   { key: "training.growthFactor", group: "training", valueType: "int", defaultValue: "100", minValue: 1, maxValue: 500, description: "Percent growth factor." },
   { key: "training.generalAttrPct", group: "training", valueType: "int", defaultValue: "1", minValue: 1, maxValue: 20, description: "General session: percent applied to EVERY attribute of EVERY squad player." },
   { key: "training.specialAttrPct", group: "training", valueType: "int", defaultValue: "3", minValue: 1, maxValue: 30, description: "Special session: percent applied to the trained attribute family of the trained player." },
+  { key: "training.paceGeneral", group: "training", valueType: "int", defaultValue: "30", minValue: 1, maxValue: 500, description: "General session growth PACE (absolute-pace model): attribute points x0.001 gained per attribute per session (30 = 0.030 pts). Calibrated so a 5-star prospect with optimal coach/facility reaches his ceiling around age 29." },
+  { key: "training.paceSpecial", group: "training", valueType: "int", defaultValue: "42", minValue: 1, maxValue: 500, description: "Special session growth PACE (absolute-pace model): attribute points x0.001 gained per trained attribute per session (42 = 0.042 pts)." },
 
   // Staff
   { key: "staff.maxPerRole", group: "staff", valueType: "int", defaultValue: "3", minValue: 1, maxValue: 8, description: "Max hired staff members per area/role per club." },
@@ -149,8 +151,8 @@ export const CONFIG_DEFAULTS: ConfigEntry[] = [
 
   // Solana
   { key: "solana.rpc.url", group: "solana", valueType: "string", defaultValue: "", description: "JSON-RPC endpoint for deposit/withdrawal verification." },
-  { key: "solana.mint", group: "solana", valueType: "string", defaultValue: "HXkLu99vbRsVt2EgxcVoHGhz2mZa9awbpyFA6MQepump", description: "$Knight SPL mint (mainnet). Public on-chain identifier — shown in the wallet so users can deposit without friction." },
-  { key: "solana.systemWallet", group: "solana", valueType: "string", defaultValue: "hGmwTrDzMnuZ9v1ke8yz6egG1t37Fb8Yj35AvZVEVgk", description: "Platform deposit destination (mainnet, public address). Shown with its QR code in the wallet deposit flow; the private key is NEVER stored in the platform." },
+  { key: "solana.mint", group: "solana", valueType: "string", defaultValue: "", description: "$Knight SPL mint." },
+  { key: "solana.systemWallet", group: "solana", valueType: "string", defaultValue: "", description: "Platform deposit destination." },
   { key: "solana.minWithdraw", group: "solana", valueType: "int", defaultValue: "50", minValue: 1, maxValue: 1000000, description: "Minimum withdrawal amount from the personal wallet to Solana ($Knight). Requests below this amount are rejected with BELOW_MIN_WITHDRAW. Enforced server-side and shown as the hint in the wallet withdrawal form." },
   { key: "solana.price.url", group: "solana", valueType: "string", defaultValue: "", description: "Optional HTTPS JSON price source for AUTOMATIC $Knight/USD detection (accepted shapes: {\"price\":n}, {\"usd\":n}, {\"data\":{\"price\":n}}, {\"pairs\":[{\"price\":n}]}). When reachable it takes priority over economy.knightUsdCents for all USD equivalents (5-minute cache, fail-open to the manual rate)." },
   { key: "solana.finalityMinutes", group: "solana", valueType: "int", defaultValue: "60", minValue: 1 },
