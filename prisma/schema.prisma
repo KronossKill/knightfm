@@ -1,5 +1,7 @@
 // Knight FM — Master data model (spec §40)
-// SQLite + Prisma. No enums (SQLite): all enums are String with validated union types in src/lib/types.ts
+// PRODUCCIÓN (PostgreSQL — Supabase). AUTO-GENERADO por scripts/gen-production-schema.mjs — NO EDITAR A MANO.
+// Editar prisma/schema.prisma (desarrollo) y regenerar este archivo. Sin enums (no soportados en el modelo):
+// todos los enums son String con uniones validadas en src/lib/types.ts
 // All money is integer $Knight (no floats). JSON payloads are stored in String fields.
 
 generator client {
@@ -7,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
