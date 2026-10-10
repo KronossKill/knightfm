@@ -188,12 +188,21 @@ export interface EmailDeliveryResult {
 
 const EMAIL_FROM_DEFAULT = "Knight FM <onboarding@resend.dev>";
 
-function emailHtmlBody(subject: string, body: string): string {
+function emailHtmlBody(subject: string, body: string, highlight?: string): string {
+  const highlightBox = highlight
+    ? [
+        '<div style="margin:20px 0;padding:16px;border:1px solid #d1d5db;border-radius:10px;background:#f9fafb;text-align:center">',
+        '<div style="font-size:11px;letter-spacing:0.14em;color:#6b7280;margin-bottom:6px">TU CÓDIGO</div>',
+        `<div style="font-size:30px;font-weight:800;letter-spacing:0.08em;color:#111827;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all">${highlight}</div>`,
+        "</div>",
+      ].join("")
+    : "";
   return [
     '<div style="font-family:ui-sans-serif,system-ui,sans-serif;max-width:520px;margin:0 auto;padding:24px">',
     '<div style="font-size:13px;letter-spacing:0.18em;font-weight:700;color:#10b981">KNIGHT FM</div>',
     `<h2 style="font-size:20px;margin:12px 0">${subject}</h2>`,
     `<p style="font-size:15px;line-height:1.6;color:#374151">${body}</p>`,
+    highlightBox,
     '<p style="font-size:12px;color:#9ca3af;margin-top:24px">Si no solicitaste este mensaje, ignóralo.</p>',
     "</div>",
   ].join("");
@@ -211,8 +220,14 @@ export function emailProviderConfigured(): boolean {
   return false;
 }
 
-export async function sendEmail(to: string, subject: string, body: string): Promise<EmailDeliveryResult> {
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  opts?: { highlight?: string }
+): Promise<EmailDeliveryResult> {
   const provider = (process.env.EMAIL_PROVIDER || "console").toLowerCase();
+  const html = emailHtmlBody(subject, body, opts?.highlight);
 
   try {
     if (provider === "resend" && process.env.RESEND_API_KEY) {
@@ -227,7 +242,7 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
           to: [to],
           subject,
           text: body,
-          html: emailHtmlBody(subject, body),
+          html,
         }),
       });
       if (res.ok) {
@@ -260,7 +275,7 @@ export async function sendEmail(to: string, subject: string, body: string): Prom
         to,
         subject,
         text: body,
-        html: emailHtmlBody(subject, body),
+        html,
       });
       await db.auditEvent.create({ data: { type: "EMAIL_SENT", payload: JSON.stringify({ to, subject, provider }) } });
       return { delivered: true, provider };

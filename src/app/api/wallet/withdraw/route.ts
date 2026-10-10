@@ -6,16 +6,20 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ok, fail, requireAuth, isResponse, audit, rateLimit, readJson } from "@/lib/api";
+import { ok, fail, requireAuth, isResponse, audit, rateLimit, clientIp, readJson } from "@/lib/api";
+import { verifyCaptcha } from "@/lib/auth";
 import { getConfig, getInt } from "@/lib/config";
 import { currentGameDay } from "@/lib/engine/clock";
 import { debitPersonal, creditPersonal, ownerHasDebt, FinanceError } from "@/lib/engine/finance";
 import { isValidSolanaAddress } from "@/lib/solana/solana-verify";
+import { CaptchaSchema } from "../../auth/_shared";
 import { financeErrorResponse } from "../../_lib/markets-lib";
 
 const Body = z.object({
   address: z.string().min(32).max(44),
   amount: z.number().int().positive(),
+  // Optional so a missing token reaches verifyCaptcha and yields 402 CAPTCHA_INVALID.
+  captchaToken: CaptchaSchema.optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -27,7 +31,15 @@ export async function POST(req: NextRequest) {
 
   const parsed = Body.safeParse((await readJson(req)) ?? {});
   if (!parsed.success) return fail("BAD_REQUEST", "address and integer amount are required", 400);
-  const { address, amount } = parsed.data;
+  const { address, amount, captchaToken } = parsed.data;
+
+  // Anti-bot gate (same provider as auth flows, D-004): verified BEFORE any
+  // ledger mutation so a failed challenge cannot even reserve funds.
+  const captcha = await verifyCaptcha(captchaToken, clientIp(req));
+  if (!captcha.ok) {
+    await audit("WITHDRAWAL_CAPTCHA_FAILED", auth.userId, { reason: captcha.reason, provider: captcha.provider });
+    return fail("CAPTCHA_INVALID", "Captcha verification failed", 402);
+  }
 
   // [1] Minimum withdrawal amount (config-driven with honest fallback).
   const minWithdraw = await getInt("solana.minWithdraw", 50);

@@ -10,7 +10,6 @@ import "@/lib/i18n/dict/markets";
 
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,9 +21,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowDownToLine, ArrowUpFromLine, Check, Copy, Info, Loader2, QrCode, ShieldAlert, TrendingUp, Wallet,
+  ArrowDownToLine, ArrowUpFromLine, Info, Loader2, ShieldAlert, TrendingUp, Wallet,
 } from "lucide-react";
 import { apiFetch } from "@/components/auth/store";
+import { getCaptchaToken } from "@/components/auth/captcha";
 import { useI18n } from "@/lib/i18n/index";
 import { useToast } from "@/hooks/use-toast";
 import { useMarketError, EnsureQueryProvider } from "@/components/game/markets/club-context";
@@ -110,13 +110,7 @@ function WalletInner() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <DepositCard
-          onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })}
-          depositAddress={wallet.data?.depositAddress ?? null}
-          mint={wallet.data?.mint ?? null}
-          solanaPayUri={wallet.data?.solanaPayUri ?? null}
-          addressLoading={wallet.isLoading}
-        />
+        <DepositCard onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })} />
         <WithdrawCard
           onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })}
           minWithdraw={wallet.data?.minWithdraw ?? 50}
@@ -204,60 +198,7 @@ function PersonalLedgerRow({ row }: { row: LedgerRow }) {
 
 // ─── Deposit card ─────────────────────────────────────────────────
 
-/** Task 57 — monospace, chunked deposit-address row with one-click copy. */
-function CopyableAddress({ value, label }: { value: string; label: string }) {
-  const { t } = useI18n();
-  const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      // Clipboard API can be denied (permissions / http): fall back to a hidden
-      // textarea so the copy still works on older or hardened browsers.
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      ta.remove();
-    }
-    setCopied(true);
-    toast({ description: t("markets.wallet.depositCopied", { label }) });
-    window.setTimeout(() => setCopied(false), 2000);
-  };
-  return (
-    <button
-      type="button"
-      onClick={() => void copy()}
-      className="group flex w-full items-center gap-2 rounded-lg border bg-muted/40 px-2.5 py-2 text-left transition-colors duration-200 hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-      aria-label={`${label}: ${value}. ${t("markets.wallet.depositCopyAddress")}`}
-    >
-      <span className="min-w-0 flex-1 break-all font-mono text-[11px] leading-relaxed text-foreground">{value}</span>
-      {copied ? (
-        <Check aria-hidden="true" className="size-4 shrink-0 text-primary" />
-      ) : (
-        <Copy aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
-      )}
-    </button>
-  );
-}
-
-function DepositCard({
-  onWalletChanged,
-  depositAddress,
-  mint,
-  solanaPayUri,
-  addressLoading,
-}: {
-  onWalletChanged: () => void;
-  depositAddress: string | null;
-  mint: string | null;
-  solanaPayUri: string | null;
-  addressLoading: boolean;
-}) {
+function DepositCard({ onWalletChanged }: { onWalletChanged: () => void }) {
   const { t, formatCurrency } = useI18n();
   const { toast } = useToast();
   const describeError = useMarketError();
@@ -321,57 +262,6 @@ function DepositCard({
           <h3 className="text-sm font-bold">{t("markets.wallet.depositTitle")}</h3>
         </div>
         <p className="text-xs text-muted-foreground">{t("markets.wallet.depositDesc")}</p>
-
-        {/* Task 57 — system wallet address + QR: invest without complications.
-            The address is public on-chain data; the QR carries the Solana Pay
-            transfer-request URI so wallets pre-fill recipient + token. */}
-        {addressLoading ? (
-          <div className="flex items-center gap-4 rounded-lg border p-3">
-            <Skeleton className="size-32 shrink-0 rounded-lg" aria-hidden="true" />
-            <div className="flex-1 space-y-2" aria-hidden="true">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-8 w-full" />
-              <Skeleton className="h-8 w-full" />
-            </div>
-          </div>
-        ) : depositAddress && solanaPayUri ? (
-          <div className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3">
-            <div className="flex items-center gap-2">
-              <QrCode className="h-4 w-4 text-primary" aria-hidden="true" />
-              <h4 className="text-xs font-bold uppercase tracking-wide">{t("markets.wallet.depositQrTitle")}</h4>
-              <Badge variant="outline" className="ml-auto border-border bg-muted/40 text-[10px] text-muted-foreground">
-                {t("markets.wallet.depositNetwork")}
-              </Badge>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-              <div
-                className="mx-auto w-fit shrink-0 rounded-lg bg-white p-2 shadow-sm"
-                title={t("markets.wallet.depositQrHint")}
-              >
-                <QRCodeSVG
-                  value={solanaPayUri}
-                  size={124}
-                  marginSize={0}
-                  bgColor="#ffffff"
-                  fgColor="#09090b"
-                  role="img"
-                  aria-label={t("markets.wallet.depositQrAlt")}
-                />
-              </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <p className="text-xs text-muted-foreground">{t("markets.wallet.depositQrHint")}</p>
-                <CopyableAddress value={depositAddress} label={t("markets.wallet.depositAddressTitle")} />
-                {mint && <CopyableAddress value={mint} label={t("markets.wallet.depositMintLabel")} />}
-                <p className="text-[11px] text-muted-foreground">{t("markets.wallet.depositSolanaPayNote")}</p>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Alert className="border-amber-500/40 bg-amber-500/10 py-2">
-            <Info className="h-4 w-4 text-amber-400" aria-hidden="true" />
-            <AlertDescription className="text-xs">{t("markets.wallet.depositNoAddress")}</AlertDescription>
-          </Alert>
-        )}
 
         {/* Levy preview */}
         <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
@@ -486,10 +376,10 @@ function WithdrawCard({ onWalletChanged, minWithdraw }: { onWalletChanged: () =>
   const addrPlausible = addrLen >= 32 && addrLen <= 44 && !/[0OIl]/.test(addr);
 
   const withdraw = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       apiFetch<{ amount: number; status: string }>("/api/wallet/withdraw", {
         method: "POST",
-        body: { address: addr, amount: Math.floor(Number(amount)) },
+        body: { address: addr, amount: Math.floor(Number(amount)), captchaToken: await getCaptchaToken() },
       }),
     onSuccess: (res) => {
       if (res.status === "NEEDS_SIGNING") {

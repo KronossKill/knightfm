@@ -152,6 +152,7 @@ const ERROR_KEY_BY_CODE: Record<string, string> = {
   NOT_OWNER: "markets.err.notOwner",
   DEBT_BLOCK: "markets.err.debtBlock",
   RATE_LIMITED: "markets.err.rateLimited",
+  CAPTCHA_INVALID: "markets.err.captchaInvalid",
   ALREADY_LISTED: "markets.direct.alreadyListed",
   LISTING_NOT_OPEN: "markets.direct.listingClosed",
   AUCTION_CLOSED: "markets.direct.listingClosed",

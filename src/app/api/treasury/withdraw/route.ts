@@ -8,15 +8,19 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { ok, fail, requireAuth, isResponse, audit, readJson } from "@/lib/api";
+import { ok, fail, requireAuth, isResponse, audit, clientIp, readJson } from "@/lib/api";
+import { verifyCaptcha } from "@/lib/auth";
 import { currentGameDay } from "@/lib/engine/clock";
 import { debitClub, creditPersonal, creditFund, ownerHasDebt, FinanceError } from "@/lib/engine/finance";
 import { getInt } from "@/lib/config";
 import { isClubOwner, financeErrorResponse } from "../../_lib/markets-lib";
+import { CaptchaSchema } from "../../auth/_shared";
 
 const Body = z.object({
   clubId: z.string().min(10).max(64),
   amount: z.number().int().positive(),
+  // Optional so a missing token reaches verifyCaptcha and yields 402 CAPTCHA_INVALID.
+  captchaToken: CaptchaSchema.optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,7 +29,14 @@ export async function POST(req: NextRequest) {
 
   const parsed = Body.safeParse((await readJson(req)) ?? {});
   if (!parsed.success) return fail("BAD_REQUEST", "clubId and integer amount > 0 are required", 400);
-  const { clubId, amount } = parsed.data;
+  const { clubId, amount, captchaToken } = parsed.data;
+
+  // Anti-bot gate (same provider as auth flows, D-004), before any ledger mutation.
+  const captcha = await verifyCaptcha(captchaToken, clientIp(req));
+  if (!captcha.ok) {
+    await audit("TREASURY_WITHDRAW_CAPTCHA_FAILED", auth.userId, { reason: captcha.reason, provider: captcha.provider });
+    return fail("CAPTCHA_INVALID", "Captcha verification failed", 402);
+  }
 
   if (!(await isClubOwner(auth.userId, clubId))) {
     return fail("NOT_CLUB_OWNER", "Only the club owner can withdraw club funds", 403);

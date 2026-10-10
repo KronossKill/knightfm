@@ -86,7 +86,8 @@ export async function issueEmailVerification(email: string): Promise<{ devCode?:
   const delivery = await sendEmail(
     email,
     "Knight FM — Código de verificación",
-    `Tu código de verificación Knight FM es: ${code} (válido 30 minutos). Si no solicitaste esta cuenta, ignora este mensaje.`
+    `Tu código de verificación Knight FM es: ${code} (válido 30 minutos). Si no solicitaste esta cuenta, ignora este mensaje.`,
+    { highlight: code }
   );
   return delivery.provider === "console" && exposeDevTokens() ? { devCode: code } : {};
 }
@@ -112,7 +113,8 @@ export async function issuePasswordReset(email: string): Promise<{ devToken?: st
   const delivery = await sendEmail(
     email,
     "Knight FM — Recuperación de contraseña",
-    `Tu token de recuperación Knight FM es: ${token} (válido 30 minutos). Úsalo en "Recuperar contraseña" para definir una nueva. Si no lo solicitaste, ignora este mensaje.`
+    `Tu token de recuperación Knight FM es: ${token} (válido 30 minutos). Úsalo en "Recuperar contraseña" para definir una nueva. Si no lo solicitaste, ignora este mensaje.`,
+    { highlight: token }
   );
   return delivery.provider === "console" && exposeDevTokens() ? { devToken: token } : {};
 }

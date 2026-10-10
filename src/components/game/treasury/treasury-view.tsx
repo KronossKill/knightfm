@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Landmark, Loader2, Scale, Wallet } from "lucide-react";
 import { apiFetch, ApiError } from "@/components/auth/store";
+import { getCaptchaToken } from "@/components/auth/captcha";
 import { useViewStore } from "@/components/game/view-store";
 import { useI18n } from "@/lib/i18n/index";
 import { useToast } from "@/hooks/use-toast";
@@ -292,10 +293,16 @@ function MoveFundsDialog({
   });
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: async () =>
       apiFetch<{ operatingFund: number; gross?: number; tax?: number; net?: number }>(`/api/treasury/${mode}`, {
         method: "POST",
-        body: { clubId: club.id, amount: Math.floor(Number(amount)) },
+        // Withdrawals carry a captcha token (same anti-bot gate as wallet withdrawal);
+        // invest does not (server Body schema keeps captchaToken optional).
+        body: {
+          clubId: club.id,
+          amount: Math.floor(Number(amount)),
+          ...(mode === "withdraw" ? { captchaToken: await getCaptchaToken() } : {}),
+        },
       }),
     onSuccess: (res) => {
       toast({
