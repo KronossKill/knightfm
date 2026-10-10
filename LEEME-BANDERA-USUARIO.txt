@@ -1,0 +1,44 @@
+================================================================
+KNIGHT FM — BANDERA SOLO JUNTO AL NOMBRE (Task 74)
+1 archivo modificado: src/components/game/shell.tsx
+================================================================
+
+QUÉ CAMBIA
+----------
+  · El contador "N en línea" ya NO muestra banderas de países.
+  · La bandera se queda ÚNICAMENTE al lado del nombre de
+    usuario (arriba a la derecha), porque el país detectado es
+    el de LA CONEXIÓN del usuario registrado.
+  · El panel admin (auditoría de IP) sigue mostrando países:
+    ahí sí corresponde ver de dónde conecta cada cuenta.
+  · No toca el captcha, ni la base de datos, ni añade
+    dependencias nuevas.
+
+ARCHIVO INCLUIDO (1)
+--------------------
+  src/components/game/shell.tsx
+
+PASOS (Windows)
+---------------
+  PASO 1 — Extrae el ZIP encima de D:\Programacion\knightfm
+           (sobrescribe shell.tsx: es lo esperado).
+
+  PASO 2 — Sube a producción:
+        git add .
+        git commit -m "ui: bandera solo junto al nombre de usuario"
+        git push
+    Espera el deploy de Vercel (1-2 min).
+
+  PASO 3 — Entra al juego y pulsa Ctrl+F5.
+       DEBES VER:
+         · Tu bandera justo a la derecha de tu nombre
+           "kronoss2803".
+         · El contador "N en línea" SIN banderas al lado.
+
+PREGUNTAS FRECUENTES
+--------------------
+  · ¿Sigue funcionando la detección de país? SÍ: no se tocó
+    ninguna API ni base de datos; solo se quitó el dibujo de
+    banderas del contador.
+  · ¿La bandera de otros usuarios? El admin puede ver el país
+    de cada cuenta en Control Center → Auditoría de IP.

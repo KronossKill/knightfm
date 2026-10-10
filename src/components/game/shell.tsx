@@ -62,9 +62,11 @@ import { fetchMyClubs, fetchPresence, fetchWorldState, fetchNotifications, qk, t
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { AssistantPanelSlot, ModuleSlot } from "@/components/game/lazy-modules";
 import { BrandBadge, formatUtcClock, useNow } from "@/components/game/ui/bits";
-import { CountryFlag } from "@/components/game/ui/country-flag";
-// Task 73: restore the connection-country flag next to the username (the
-// Task 53 component existed but nothing rendered it after the UX redesign).
+// Task 73/74: connection-country flag next to the username (the Task 53
+// component existed but nothing rendered it after the UX redesign). The
+// aggregated flags next to the "online" counter were removed in Task 74
+// (USER: the geolocated IP belongs to the registered user, so the country
+// flag lives with the username only — admin IP audit still shows flags).
 import { CountryFlag as ConnectionCountryFlag } from "@/components/game/country-flag";
 import DashboardView from "@/components/game/dashboard/dashboard-view";
 import SquadView from "@/components/game/squad/squad-view";
@@ -151,9 +153,10 @@ function PresenceGadget({ fallbackOnline = 0 }: { fallbackOnline?: number }) {
   const { t } = useI18n();
   const { data, isLoading } = useQuery({ queryKey: qk.presence, queryFn: fetchPresence, refetchInterval: 60_000 });
   const online = data?.online ?? fallbackOnline;
-  // Task 67 (USER MANDATE): flags of the countries currently connected.
-  const flags = data?.flags ?? [];
-  const hidden = flags.length > 5 ? flags.length - 5 : 0;
+  // Task 74 (USER): the per-country flags were removed from this gadget —
+  // a connection's IP belongs to the registered user, so the country flag
+  // now lives ONLY next to the username. The backend still aggregates
+  // flags for the admin IP audit.
   return (
     <div
       className="hidden items-center gap-1.5 rounded-lg border bg-card/60 px-2.5 py-2 text-xs text-muted-foreground sm:flex"
@@ -164,14 +167,6 @@ function PresenceGadget({ fallbackOnline = 0 }: { fallbackOnline?: number }) {
         <span className={cn("relative inline-flex size-2 rounded-full", isLoading ? "bg-muted-foreground" : "bg-primary")} />
       </span>
       {t("game.shell.online", { n: isLoading ? "…" : online })}
-      {flags.length > 0 && (
-        <span className="ml-1 flex items-center gap-1 border-l pl-2" aria-hidden="true">
-          {flags.slice(0, 5).map((f) => (
-            <CountryFlag key={f.c} code={f.c} count={f.n} />
-          ))}
-          {hidden > 0 && <span className="text-[10px] font-medium tabular-nums">+{hidden}</span>}
-        </span>
-      )}
     </div>
   );
 }
