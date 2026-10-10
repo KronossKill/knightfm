@@ -1,0 +1,83 @@
+================================================================
+KNIGHT FM — FIX LOGIN 500 (Task 75)
+"No se pudo completar la operación" al iniciar sesión
+================================================================
+
+QUÉ PASÓ REALMENTE (no es el error del captcha)
+-----------------------------------------------
+  Mira tu captura: antes el login fallaba con 402 (captcha).
+  Ahora falla con 500 + "TypeError: urlObject.searchParams.
+  entries() is not iterable" = FALLO INTERNO DEL SERVIDOR.
+
+  CAUSA (la más probable, se confirma en el PASO 3): tu
+  package.json declara  "next": "^16.1.1"  (el ^ permite
+  cualquier 16.x). Al ejecutar instalaciones con npm (p.ej.
+     npm install flag-icons     (PASO 1 de las banderas))
+  npm puede re-resolver el árbol y ACTUALIZAR Next.js a una
+  versión más nueva (hoy la última es la 16.4.0). Ese cambio
+  entra a GitHub en package-lock.json y Vercel despliega la
+  web con un Next que ya NO es el verificado (16.1.3).
+
+  La línea roja del 401 de challenges.cloudflare.com en la
+  consola es telemetría normal de Turnstile: NO es el fallo.
+  El fallo es el POST /api/auth/login → 500.
+
+  (El entorno de pruebas donde yo verifico todo tiene Next
+  fijado a 16.1.3, por eso este fallo no se pudo ver allí.
+  Lección aprendida: de ahora en adelante las instalaciones
+  se hacen con --save-exact y el proyecto lleva .npmrc para
+  que no vuelva a pasar.)
+
+ARCHIVOS INCLUIDOS (1)
+----------------------
+  .npmrc     → hace que TODAS las instalaciones futuras fijen
+               versiones exactas (sin ^), evitando que un
+               "npm install" cualquiera actualice el framework.
+
+PASOS (Windows, en este orden)
+------------------------------
+  PASO 1 — Abre PowerShell en D:\Programacion\knightfm y
+           ejecuta:
+        npm install next@16.1.3 --save-exact
+
+  PASO 2 — Copia el .npmrc de este ZIP a la raíz del proyecto
+           (D:\Programacion\knightfm\.npmrc).
+           Si el ZIP lo extrajiste encima del proyecto, ya está.
+
+  PASO 3 — Comprueba qué versión tienes AHORA (esto confirma
+           el diagnóstico) y que quede fija:
+        npm ls next
+    · Si DEBES VER:  next@16.1.3  → perfecto, sigue al PASO 4.
+    · Si sale 16.2.x / 16.3.x / 16.4.x → era exactamente el
+      problema; el PASO 1 ya lo dejó en 16.1.3, sigue al 4.
+
+  PASO 4 — Sube a producción (asegúrate de que
+           package-lock.json NO esté en .gitignore, debe
+           subirse para que Vercel use tus versiones):
+        git add .
+        git commit -m "fix: fijar next 16.1.3 (login 500 por drift de deps)"
+        git push
+    Espera el deploy de Vercel (1-2 min).
+
+  PASO 5 — Entra a https://knightfm.vercel.app e inicia sesión
+           con Ctrl+F5 antes si hace falta.
+           DEBES VER: entras al juego normalmente, sin el
+           mensaje "No se pudo completar la operación".
+
+SI AÚN ASÍ FALLARA (plan B, solo si el PASO 5 falla)
+----------------------------------------------------
+  1) Entra a vercel.com → tu proyecto → pestaña Deployments
+     → clic en el deploy más reciente → busca "Runtime Logs".
+  2) Haz una captura de pantalla de esos logs y envíamela:
+     ahí aparece el error real del servidor con el archivo
+     y la línea exacta, y lo corrijo de raíz.
+
+POR QUÉ ESTA VEZ SÍ ESTÁ VERIFICADO
+-----------------------------------
+  · La versión 16.1.3 es EXACTAMENTE la que usa el entorno
+    donde se probaron captcha, banderas y login (todo E2E
+    verde: registro, verificación, login, juego).
+  · El comando --save-exact SOLO toca "next": no borra
+    ninguna otra dependencia que hayas añadido (Brevo,
+    nodemailer, etc. quedan intactos).
+  · El .npmrc evita que esto se repita en el futuro.
