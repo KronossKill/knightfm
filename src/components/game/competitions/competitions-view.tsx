@@ -237,7 +237,7 @@ function StandingsTab() {
                                 </Badge>
                               )}
                               {rel && (
-                                <Badge aria-label={t("game.comp.zone.rel")} className="bg-destructive px-1 text-[10px] text-white">
+                                <Badge aria-label={t("game.comp.zone.rel")} className="bg-danger px-1 text-[10px] text-white">
                                   REL
                                 </Badge>
                               )}
@@ -290,7 +290,7 @@ function StandingsTab() {
               </span>
             )}
             <span className="flex items-center gap-1.5">
-              <Badge className="bg-destructive px-1 text-[10px] text-white">REL</Badge>
+              <Badge className="bg-danger px-1 text-[10px] text-white">REL</Badge>
               {t("game.comp.zone.rel")}
             </span>
             {isLastDivision && <span className="italic">{t("game.comp.zone.relNote")}</span>}

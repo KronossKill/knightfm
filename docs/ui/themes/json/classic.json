@@ -1,0 +1,94 @@
+{
+  "$schema": "https://knight.fm/schemas/theme-tokens-v2.json",
+  "meta": {
+    "id": "classic",
+    "label": "Verde Clásico",
+    "mode": "light",
+    "direction": "Elegant deep green with traditional football-club cues (LIGHT — Master UI/UX v2.0)",
+    "nameKey": "themes.classic",
+    "swatch": [
+      "#f3f8f4",
+      "#167a46",
+      "#0f2e1d"
+    ],
+    "default": false
+  },
+  "groups": {
+    "surfaces": {
+      "background": "oklch(0.975 0.008 150)",
+      "card": "oklch(1 0 0)",
+      "popover": "oklch(1 0 0)",
+      "muted": "oklch(0.93 0.015 150)",
+      "secondary": "oklch(0.93 0.02 150)",
+      "accent": "oklch(0.90 0.045 150)",
+      "sidebar": "oklch(0.95 0.014 150)",
+      "sidebar-accent": "oklch(0.90 0.045 150)"
+    },
+    "text": {
+      "foreground": "oklch(0.25 0.032 152)",
+      "card-foreground": "oklch(0.25 0.032 152)",
+      "popover-foreground": "oklch(0.25 0.032 152)",
+      "muted-foreground": "oklch(0.42 0.03 152)",
+      "secondary-foreground": "oklch(0.30 0.04 152)",
+      "accent-foreground": "oklch(0.26 0.045 152)",
+      "sidebar-foreground": "oklch(0.25 0.032 152)"
+    },
+    "brand": {
+      "primary": "oklch(0.44 0.105 152)",
+      "primary-foreground": "oklch(0.985 0.01 150)",
+      "sidebar-primary": "oklch(0.44 0.105 152)",
+      "sidebar-primary-foreground": "oklch(0.985 0.01 150)"
+    },
+    "status": {
+      "destructive": "oklch(0.45 0.17 27)",
+      "danger": "oklch(0.45 0.17 27)"
+    },
+    "feedback": {
+      "ring": "oklch(0.44 0.105 152)",
+      "input": "oklch(0.85 0.02 150)",
+      "border": "oklch(0.85 0.02 150)",
+      "sidebar-border": "oklch(0.85 0.02 150)"
+    },
+    "charts": {
+      "chart-1": "oklch(0.50 0.115 150)",
+      "chart-2": "oklch(0.62 0.11 85)",
+      "chart-3": "oklch(0.55 0.09 152)",
+      "chart-4": "oklch(0.50 0.15 28)",
+      "chart-5": "oklch(0.52 0.11 300)"
+    }
+  },
+  "flat": {
+    "accent": "oklch(0.90 0.045 150)",
+    "accent-foreground": "oklch(0.26 0.045 152)",
+    "background": "oklch(0.975 0.008 150)",
+    "border": "oklch(0.85 0.02 150)",
+    "card": "oklch(1 0 0)",
+    "card-foreground": "oklch(0.25 0.032 152)",
+    "chart-1": "oklch(0.50 0.115 150)",
+    "chart-2": "oklch(0.62 0.11 85)",
+    "chart-3": "oklch(0.55 0.09 152)",
+    "chart-4": "oklch(0.50 0.15 28)",
+    "chart-5": "oklch(0.52 0.11 300)",
+    "destructive": "oklch(0.45 0.17 27)",
+    "danger": "oklch(0.45 0.17 27)",
+    "foreground": "oklch(0.25 0.032 152)",
+    "input": "oklch(0.85 0.02 150)",
+    "muted": "oklch(0.93 0.015 150)",
+    "muted-foreground": "oklch(0.42 0.03 152)",
+    "popover": "oklch(1 0 0)",
+    "popover-foreground": "oklch(0.25 0.032 152)",
+    "primary": "oklch(0.44 0.105 152)",
+    "primary-foreground": "oklch(0.985 0.01 150)",
+    "ring": "oklch(0.44 0.105 152)",
+    "secondary": "oklch(0.93 0.02 150)",
+    "secondary-foreground": "oklch(0.30 0.04 152)",
+    "sidebar": "oklch(0.95 0.014 150)",
+    "sidebar-accent": "oklch(0.90 0.045 150)",
+    "sidebar-accent-foreground": "oklch(0.26 0.045 152)",
+    "sidebar-border": "oklch(0.85 0.02 150)",
+    "sidebar-foreground": "oklch(0.25 0.032 152)",
+    "sidebar-primary": "oklch(0.44 0.105 152)",
+    "sidebar-primary-foreground": "oklch(0.985 0.01 150)",
+    "sidebar-ring": "oklch(0.44 0.105 152)"
+  }
+}

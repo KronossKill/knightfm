@@ -1,0 +1,94 @@
+{
+  "$schema": "https://knight.fm/schemas/theme-tokens-v2.json",
+  "meta": {
+    "id": "royal",
+    "label": "Azul Real",
+    "mode": "dark",
+    "direction": "Deep navy with refined gold accents",
+    "nameKey": "themes.royal",
+    "swatch": [
+      "#0a1128",
+      "#c9a227",
+      "#e5e7eb"
+    ],
+    "default": false
+  },
+  "groups": {
+    "surfaces": {
+      "background": "oklch(0.16 0.035 268)",
+      "card": "oklch(0.2 0.04 268)",
+      "popover": "oklch(0.2 0.04 268)",
+      "muted": "oklch(0.24 0.035 268)",
+      "secondary": "oklch(0.26 0.04 268)",
+      "accent": "oklch(0.28 0.04 268)",
+      "sidebar": "oklch(0.18 0.04 268)",
+      "sidebar-accent": "oklch(0.26 0.04 268)"
+    },
+    "text": {
+      "foreground": "oklch(0.95 0.012 268)",
+      "card-foreground": "oklch(0.95 0.012 268)",
+      "popover-foreground": "oklch(0.95 0.012 268)",
+      "muted-foreground": "oklch(0.73 0.025 268)",
+      "secondary-foreground": "oklch(0.93 0.014 268)",
+      "accent-foreground": "oklch(0.95 0.012 268)",
+      "sidebar-foreground": "oklch(0.95 0.012 268)"
+    },
+    "brand": {
+      "primary": "oklch(0.8 0.13 87)",
+      "primary-foreground": "oklch(0.19 0.05 268)",
+      "sidebar-primary": "oklch(0.8 0.13 87)",
+      "sidebar-primary-foreground": "oklch(0.19 0.05 268)"
+    },
+    "status": {
+      "destructive": "oklch(0.66 0.19 25)",
+      "danger": "oklch(0.56 0.19 25)"
+    },
+    "feedback": {
+      "ring": "oklch(0.8 0.13 87)",
+      "input": "oklch(0.31 0.04 268)",
+      "border": "oklch(0.31 0.04 268)",
+      "sidebar-border": "oklch(0.31 0.04 268)"
+    },
+    "charts": {
+      "chart-1": "oklch(0.8 0.13 87)",
+      "chart-2": "oklch(0.7 0.1 268)",
+      "chart-3": "oklch(0.65 0.14 160)",
+      "chart-4": "oklch(0.66 0.16 25)",
+      "chart-5": "oklch(0.72 0.12 310)"
+    }
+  },
+  "flat": {
+    "accent": "oklch(0.28 0.04 268)",
+    "accent-foreground": "oklch(0.95 0.012 268)",
+    "background": "oklch(0.16 0.035 268)",
+    "border": "oklch(0.31 0.04 268)",
+    "card": "oklch(0.2 0.04 268)",
+    "card-foreground": "oklch(0.95 0.012 268)",
+    "chart-1": "oklch(0.8 0.13 87)",
+    "chart-2": "oklch(0.7 0.1 268)",
+    "chart-3": "oklch(0.65 0.14 160)",
+    "chart-4": "oklch(0.66 0.16 25)",
+    "chart-5": "oklch(0.72 0.12 310)",
+    "destructive": "oklch(0.66 0.19 25)",
+    "danger": "oklch(0.56 0.19 25)",
+    "foreground": "oklch(0.95 0.012 268)",
+    "input": "oklch(0.31 0.04 268)",
+    "muted": "oklch(0.24 0.035 268)",
+    "muted-foreground": "oklch(0.73 0.025 268)",
+    "popover": "oklch(0.2 0.04 268)",
+    "popover-foreground": "oklch(0.95 0.012 268)",
+    "primary": "oklch(0.8 0.13 87)",
+    "primary-foreground": "oklch(0.19 0.05 268)",
+    "ring": "oklch(0.8 0.13 87)",
+    "secondary": "oklch(0.26 0.04 268)",
+    "secondary-foreground": "oklch(0.93 0.014 268)",
+    "sidebar": "oklch(0.18 0.04 268)",
+    "sidebar-accent": "oklch(0.26 0.04 268)",
+    "sidebar-accent-foreground": "oklch(0.95 0.012 268)",
+    "sidebar-border": "oklch(0.31 0.04 268)",
+    "sidebar-foreground": "oklch(0.95 0.012 268)",
+    "sidebar-primary": "oklch(0.8 0.13 87)",
+    "sidebar-primary-foreground": "oklch(0.19 0.05 268)",
+    "sidebar-ring": "oklch(0.8 0.13 87)"
+  }
+}

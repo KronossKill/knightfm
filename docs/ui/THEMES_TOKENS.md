@@ -60,3 +60,23 @@ Prohibido `bg-[#hex]` en UI (excepciones auditadas: césped del tablero).
   `bg-muted/40`; overlay = Radix overlay + `bg-background/80 backdrop-blur`.
 - Radios: `rounded-md` (controles) / `rounded-lg`/`xl` (cards, campo).
 - Sombras: `shadow-xs` controles, `shadow-lg shadow-primary/20` CTA principal.
+
+---
+
+## Master UI/UX v2.0 — Delta de temas
+
+### Cambios estructurales v2.0
+
+1. **Verde Clásico (`classic`) es ahora el tema CLARO real** (era oscuro con metadato `light` — inconsistencia corregida según la v2.0). Fondo `oklch(0.975 0.008 150)`, texto verde-negro `0.25`, primario verde profundo `0.44`. Todos los pares AA verificados.
+2. **Separación `--destructive` / `--danger`** (ver ACCESSIBILITY_SPEC): texto rojo 0.66 (≥4.5 sobre tarjeta en los 4 temas oscuros) vs fondo de botón peligro 0.56 (texto blanco ≥4.5).
+3. **Charts de Obsidian rebalanceados** (0.88/0.72/0.58/0.80/0.52): todas las series ≥3:1 sobre tarjeta casi negra.
+
+### Entregable THEMES/ v2.0 (regenerado)
+
+- `themes/css/<tema>.css` — bloque `[data-theme]` completo por tema.
+- `themes/ts/<tema>.ts` — tokens tipados (`ThemeTokenMap`) por tema.
+- `themes/json/<tema>.json` — export estructurado v2.0 (`meta` + grupos `surfaces/text/brand/status/feedback/charts` + `flat`).
+- `themes/README.md` — índice + contrato de paridad (34 tokens obligatorios por tema).
+- `themes/wcag-contrast.md` — informe WCAG AA máquina-generado (115 comprobaciones, 0 fallos).
+
+Regenerar: `bun scripts/export-theme-deliverables.mjs` · Verificar: `bun scripts/verify-wcag-contrast.mjs`.

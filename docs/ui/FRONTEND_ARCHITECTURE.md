@@ -70,3 +70,32 @@ src/
 - **Nueva sección**: `NAV_MAIN`/`NAV_SYSTEM` (+ lazy si pesa) + i18n. Paleta y
   atajos la adoptan solos.
 - **Nuevo tema**: bloque CSS + `THEMES` + regenerar tokens (THEMES_TOKENS §1).
+
+---
+
+## Master UI/UX v2.0 — Delta de arquitectura frontend
+
+### Pipeline único de tokens (fuente única de verdad)
+
+```
+globals.css [data-theme="…"]            ← única fuente editable
+  └→ src/lib/theme-tokens.ts            ← extracción canónica (T91)
+       ├→ scripts/verify-wcag-contrast.mjs   → docs/ui/themes/wcag-contrast.md  (gate WCAG AA)
+       └→ scripts/export-theme-deliverables.mjs
+            └→ docs/ui/themes/{css,ts,json}/<tema>.*  + README.md  (entregable v2.0)
+```
+
+- Los componentes SOLO consumen utilidades semánticas (`bg-background`, `text-muted-foreground`, `bg-danger`…). Colores hardcodeados prohibidos; excepción de dominio documentada: césped/fondo de tesela táctica (`#0b1220`).
+- Añadir un tema = nuevo bloque `[data-theme]` + entrada en `themes.ts` + regenerar export + verificador en verde.
+
+### Estado
+
+- **Servidor**: TanStack Query (claves por dominio; refrescos 30–120 s).
+- **UI**: Zustand (`view-store` con deep linking `?view=` + última pantalla en `sessionStorage`; `depositEscape`).
+- **Dashboard**: layouts y presets en servidor (`/api/me/dashboard` por usuario+rol).
+- **Paleta**: favoritos/recientes en `localStorage` (por dispositivo, sin PII).
+
+### i18n (4 idiomas, paridad verificada)
+
+- Diccionarios planos por namespace (`dict/<ns>/{es,en,fr,pt}.ts`) — paridad 606/606/606/606 claves en `game.*`.
+- Español primario; interpolación `{n}`; reutilización de `common.*` (`player.trend.*`, `err.generic`).

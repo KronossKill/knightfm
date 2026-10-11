@@ -6,7 +6,7 @@ export const THEMES = [
   { id: "obsidian", nameKey: "themes.obsidian", swatch: ["#09090b", "#fafafa", "#a1a1aa"] },
   { id: "royal", nameKey: "themes.royal", swatch: ["#0a1128", "#c9a227", "#e5e7eb"] },
   { id: "aurora", nameKey: "themes.aurora", swatch: ["#111827", "#34d399", "#818cf8"] },
-  { id: "classic", nameKey: "themes.classic", swatch: ["#0f1f17", "#15803d", "#e7e5e4"] },
+  { id: "classic", nameKey: "themes.classic", swatch: ["#f3f8f4", "#167a46", "#0f2e1d"] },
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];

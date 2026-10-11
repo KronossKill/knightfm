@@ -41,3 +41,27 @@
   añada, exigir `.vtt` ×4 como parte de la definición de hecho.
 - Auditoría automática (axe/Lighthouse) recomendada en CI — manual ejecutada en
   E2E del navegador (foco, teclado, labels) en Task 91.
+
+---
+
+## Master UI/UX v2.0 — Delta de accesibilidad (verificado con script)
+
+### Verificación mecánica de contraste (WCAG 2.1 AA)
+
+- Script: `scripts/verify-wcag-contrast.mjs` (conversión oklch→sRGB, 23 pares críticos × 5 temas = **115 comprobaciones**).
+- Resultado v2.0: **0 fallos** — informe máquina-generado en `themes/wcag-contrast.md`.
+- Umbral texto 4.5:1 · UI/gráficos 3:1 · pares INFO con mitigación documentada (etiqueta visible + anillo de foco 2px `:focus-visible`).
+
+### Cambio estructural: `--destructive` vs `--danger`
+
+Un solo rojo no puede cumplir ambos roles (texto rojo ≥4.5 sobre tarjeta oscura EXIGE luminancia alta; fondo de botón con texto blanco ≥4.5 EXIGE luminancia baja). v2.0 separa los roles:
+
+- `--destructive` — rojo de **TEXTO** (alertas, importes negativos): ≥4.5:1 sobre `card` en los 5 temas.
+- `--danger` — fondo de **BOTÓN/badge** peligro con texto blanco: ≥4.5:1 (`button.tsx`, `badge.tsx`, `toast.tsx` migrados).
+- Regla "nunca solo color": todo estado de riesgo lleva icono (`ShieldAlert`, flechas de tendencia) + texto.
+
+### Otros pilares AA ya verificados
+
+- Navegación completa por teclado (sidebar, paleta con migas y pop con Backspace, widgets con asa de arrastre por teclado).
+- `aria-live` para toasts; `aria-keyshortcuts` en el gatillo de la paleta; etiquetas `sr-only` en instrucciones de arrastre.
+- `prefers-reduced-motion` respetado globalmente (`globals.css` capa base).

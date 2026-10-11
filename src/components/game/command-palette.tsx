@@ -1,9 +1,16 @@
 "use client";
-// Knight FM — GLOBAL COMMAND PALETTE (Task 91, UI/UX master mandate).
+// Knight FM — GLOBAL COMMAND PALETTE v2.0 (Master UI/UX v2.0).
 // VS-Code/Linear-style power-user layer: jump to any screen, switch theme /
-// language, toggle the sidebar, search the active squad. Open with Ctrl+K /
-// Cmd+K (handled by the shell) or the top-bar search button.
-// Recents persist in localStorage; fuzzy-ish matching comes from cmdk scoring.
+// language, search the active squad. Open with Ctrl+K / Cmd+K (shell hotkey)
+// or the top-bar search button.
+//
+// v2.0 additions over Task 91:
+//  · FAVORITES — star any navigation item; favorites persist in localStorage
+//    and float to the top group (alongside recents).
+//  · STACK NAVIGATION — drill into scoped contexts (players / themes /
+//    languages); Backspace with an empty query POPS the stack like a
+//    mini-router (Backspace at root closes the palette). A breadcrumb row
+//    always shows where you are, so there are no dead ends.
 
 import * as React from "react";
 import {
@@ -11,6 +18,7 @@ import {
   ArrowUpFromLine,
   Bot,
   Building2,
+  ChevronRight,
   Dumbbell,
   FlaskConical,
   Globe2,
@@ -22,6 +30,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Shirt,
+  Star,
   Trophy,
   Users,
   UsersRound,
@@ -37,22 +46,33 @@ import { fetchPlayers, type PlayerRow } from "@/components/game/api";
 import { cn } from "@/lib/utils";
 
 const RECENTS_KEY = "knightfm.palette.recents";
+const FAVORITES_KEY = "knightfm.palette.favorites";
 
-function readRecents(): string[] {
+function readIds(key: string): string[] {
   try {
-    const raw = window.localStorage.getItem(RECENTS_KEY);
+    const raw = window.localStorage.getItem(key);
     const arr = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string").slice(0, 5) : [];
+    return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === "string") : [];
   } catch {
     return [];
   }
 }
 
-function pushRecent(id: string) {
+function writeIds(key: string, ids: string[]) {
   try {
-    const next = [id, ...readRecents().filter((r) => r !== id)].slice(0, 5);
-    window.localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+    window.localStorage.setItem(key, JSON.stringify(ids));
   } catch {}
+}
+
+function pushRecent(id: string) {
+  writeIds(RECENTS_KEY, [id, ...readIds(RECENTS_KEY).filter((r) => r !== id)].slice(0, 5));
+}
+
+function toggleFavorite(id: string): boolean {
+  const favs = readIds(FAVORITES_KEY);
+  const next = favs.includes(id) ? favs.filter((f) => f !== id) : [id, ...favs].slice(0, 8);
+  writeIds(FAVORITES_KEY, next);
+  return next.includes(id);
 }
 
 interface NavTarget {
@@ -82,18 +102,63 @@ const NAV_TARGETS: NavTarget[] = [
 
 const RECENT_VIEW: Record<string, GameView> = Object.fromEntries(NAV_TARGETS.map((n) => [n.recentId, n.view]));
 
+// Scoped contexts for stack navigation ("mini-router" mandate).
+type PaletteCtx = "root" | "players" | "themes" | "langs";
+const CTX_CRUMB: Record<Exclude<PaletteCtx, "root">, string> = {
+  players: "game.palette.drillPlayers",
+  themes: "game.palette.drillThemes",
+  langs: "game.palette.drillLangs",
+};
+
+/** Trailing star toggle — stops propagation so the row's onSelect doesn't fire. */
+function FavoriteStar({ active, onToggle, label }: { active: boolean; onToggle: () => void; label: string }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      role="button"
+      aria-pressed={active}
+      aria-label={active ? t("game.palette.favRemove") : t("game.palette.favAdd")}
+      title={label}
+      className="ml-auto flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.stopPropagation();
+          onToggle();
+        }
+      }}
+    >
+      <Star aria-hidden="true" className={cn("size-4", active && "fill-primary text-primary")} />
+    </button>
+  );
+}
+
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t, lang, setLang } = useI18n();
   const { theme, setTheme } = useTheme();
   const setView = useViewStore((s) => s.setView);
   const { user } = useAuth();
   const activeClubId = useViewStore((s) => s.activeClubId);
+  const [stack, setStack] = React.useState<PaletteCtx[]>(["root"]);
+  const [query, setQuery] = React.useState("");
   const [recents, setRecents] = React.useState<string[]>([]);
+  const [favs, setFavs] = React.useState<string[]>([]);
   const [players, setPlayers] = React.useState<PlayerRow[] | null>(null);
+  const ctx = stack[stack.length - 1];
 
-  // Refresh recents each time the palette opens.
+  // Fresh state + recents/favorites every time the palette opens.
   React.useEffect(() => {
-    if (open) setRecents(readRecents());
+    if (open) {
+      setStack(["root"]);
+      setQuery("");
+      setRecents(readIds(RECENTS_KEY).slice(0, 5));
+      setFavs(readIds(FAVORITES_KEY));
+    }
   }, [open]);
 
   // Squad search source (active club only; loaded lazily while the palette is open).
@@ -112,113 +177,197 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
     };
   }, [open, activeClubId, players]);
 
+  const close = React.useCallback(() => onOpenChange(false), [onOpenChange]);
+
   const run = (recentId: string, action: () => void) => {
     pushRecent(recentId);
     action();
-    onOpenChange(false);
+    close();
   };
 
+  const pop = React.useCallback(() => {
+    setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
+  }, []);
+
+  // Mini-router: Backspace with an empty query pops the stack; at root it
+  // closes the palette (Escape also closes via the dialog itself).
+  const onListKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "Backspace" || query.length > 0) return;
+    e.preventDefault();
+    if (stack.length > 1) {
+      pop();
+    } else {
+      close();
+    }
+  };
+
+  const starFor = (recentId: string) => (
+    <FavoriteStar
+      active={favs.includes(recentId)}
+      onToggle={() => {
+        toggleFavorite(recentId);
+        setFavs(readIds(FAVORITES_KEY));
+      }}
+      label={t(favs.includes(recentId) ? "game.palette.favRemove" : "game.palette.favAdd")}
+    />
+  );
+
+  const navItem = (n: NavTarget) => {
+    const Icon = n.icon;
+    return (
+      <CommandItem key={n.recentId} value={`${t(n.labelKey)} ${n.recentId}`} onSelect={() => run(n.recentId, () => setView(n.view))}>
+        <Icon aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+        {t(n.labelKey)}
+        {ctx === "root" && starFor(n.recentId)}
+      </CommandItem>
+    );
+  };
+
+  const navTargets = NAV_TARGETS.filter((n) => !(n.view === "control-center" && user?.role !== "ADMIN"));
   const recentTargets = recents
+    .map((id) => NAV_TARGETS.find((n) => n.recentId === id))
+    .filter((n): n is NavTarget => !!n);
+  const favTargets = favs
     .map((id) => NAV_TARGETS.find((n) => n.recentId === id))
     .filter((n): n is NavTarget => !!n);
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder={t("game.palette.placeholder")} />
-      <CommandList>
+      {/* Breadcrumb — stack position always visible (no dead ends). */}
+      <div className="flex items-center gap-1 border-b px-3 pb-2 pt-3 text-xs text-muted-foreground" aria-hidden={stack.length === 1}>
+        <button
+          type="button"
+          className="rounded px-1 py-0.5 hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          onClick={() => (stack.length > 1 ? pop() : close())}
+          tabIndex={stack.length > 1 ? 0 : -1}
+        >
+          {t("game.palette.crumbRoot")}
+        </button>
+        {stack.slice(1).map((c, i) => (
+          <span key={`${c}-${i}`} className="flex items-center gap-1">
+            <ChevronRight aria-hidden="true" className="size-3" />
+            <span className="font-medium text-foreground">{t(CTX_CRUMB[c])}</span>
+          </span>
+        ))}
+        {stack.length > 1 && (
+          <span className="ml-auto hidden items-center gap-1 sm:flex">
+            <kbd className="rounded border bg-muted px-1.5 font-mono text-[10px] font-semibold">⌫</kbd>
+            {t("game.palette.back")}
+          </span>
+        )}
+      </div>
+
+      <CommandInput value={query} onValueChange={setQuery} placeholder={t("game.palette.placeholder")} />
+      <CommandList onKeyDown={onListKeyDown}>
         <CommandEmpty>{t("game.palette.noResults")}</CommandEmpty>
 
-        {recentTargets.length > 0 && (
+        {ctx === "root" && (
           <>
-            <CommandGroup heading={t("game.palette.recent")}>
-              {recentTargets.map((n) => {
-                const Icon = n.icon;
-                return (
-                  <CommandItem key={`recent-${n.recentId}`} onSelect={() => run(n.recentId, () => setView(n.view))}>
-                    <Icon aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-                    {t(n.labelKey)}
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
-            <CommandSeparator />
-          </>
-        )}
+            {favTargets.length > 0 && (
+              <>
+                <CommandGroup heading={t("game.palette.favorites")}>
+                  {favTargets.map(navItem)}
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
 
-        <CommandGroup heading={t("game.palette.nav")}>
-          {NAV_TARGETS.filter((n) => !(n.view === "control-center" && user?.role !== "ADMIN")).map((n) => {
-            const Icon = n.icon;
-            return (
-              <CommandItem key={n.recentId} onSelect={() => run(n.recentId, () => setView(n.view))}>
-                <Icon aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-                {t(n.labelKey)}
+            {recentTargets.length > 0 && (
+              <>
+                <CommandGroup heading={t("game.palette.recent")}>
+                  {recentTargets.map(navItem)}
+                </CommandGroup>
+                <CommandSeparator />
+              </>
+            )}
+
+            <CommandGroup heading={t("game.palette.nav")}>{navTargets.map(navItem)}</CommandGroup>
+
+            <CommandSeparator />
+            <CommandGroup heading={t("game.palette.actions")}>
+              <CommandItem value={`${t("game.palette.drillPlayers")} drill`} onSelect={() => { setStack(["root", "players"]); setQuery(""); }}>
+                <Search aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t("game.palette.drillPlayers")}
+                <ChevronRight aria-hidden="true" className="ml-auto size-3.5 text-muted-foreground" />
               </CommandItem>
-            );
-          })}
-        </CommandGroup>
+              <CommandItem value={`${t("game.palette.drillThemes")} drill`} onSelect={() => { setStack(["root", "themes"]); setQuery(""); }}>
+                <Palette aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t("game.palette.drillThemes")}
+                <ChevronRight aria-hidden="true" className="ml-auto size-3.5 text-muted-foreground" />
+              </CommandItem>
+              <CommandItem value={`${t("game.palette.drillLangs")} drill`} onSelect={() => { setStack(["root", "langs"]); setQuery(""); }}>
+                <Globe2 aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t("game.palette.drillLangs")}
+                <ChevronRight aria-hidden="true" className="ml-auto size-3.5 text-muted-foreground" />
+              </CommandItem>
+            </CommandGroup>
 
-        {activeClubId && players !== null && players.length > 0 && (
-          <>
             <CommandSeparator />
-            <CommandGroup heading={t("game.palette.players")}>
-              {players.slice(0, 60).map((p) => (
-                <CommandItem
-                  key={p.id}
-                  value={`${p.firstName} ${p.lastName} ${p.detailedPos} ${p.position}`}
-                  onSelect={() => run(`player:${p.id}`, () => setView("squad"))}
-                >
-                  <Users aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">
-                    {p.firstName} {p.lastName}
-                  </span>
-                  <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
-                    {p.ovr} · {p.detailedPos}
-                  </span>
-                </CommandItem>
-              ))}
+            <CommandGroup heading={t("game.palette.finance")}>
+              <CommandItem onSelect={() => run("nav:wallet", () => setView("wallet"))}>
+                <ArrowDownToLine aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t("game.palette.deposit")}
+              </CommandItem>
+              <CommandItem onSelect={() => run("nav:treasury", () => setView("treasury"))}>
+                <ArrowUpFromLine aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t("game.nav.treasury")}
+              </CommandItem>
             </CommandGroup>
           </>
         )}
 
-        <CommandSeparator />
-        <CommandGroup heading={t("game.palette.themes")}>
-          {THEMES.map((th) => (
-            <CommandItem
-              key={th.id}
-              onSelect={() => run(`theme:${th.id}`, () => setTheme(th.id as ThemeId))}
-              className={cn(theme === th.id && "bg-primary/10")}
-            >
-              <Palette aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-              {t(th.nameKey)}
-              {theme === th.id && <span className="sr-only">({t("common.yes")})</span>}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {ctx === "players" && activeClubId && players !== null && players.length > 0 && (
+          <CommandGroup heading={t("game.palette.players")}>
+            {players.slice(0, 60).map((p) => (
+              <CommandItem
+                key={p.id}
+                value={`${p.firstName} ${p.lastName} ${p.detailedPos} ${p.position}`}
+                onSelect={() => run(`player:${p.id}`, () => setView("squad"))}
+              >
+                <Users aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                <span className="min-w-0 flex-1 truncate">
+                  {p.firstName} {p.lastName}
+                </span>
+                <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                  {p.ovr} · {p.detailedPos}
+                </span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
 
-        <CommandGroup heading={t("game.palette.language")}>
-          {LANGUAGES.map((l) => (
-            <CommandItem
-              key={l.id}
-              onSelect={() => run(`lang:${l.id}`, () => setLang(l.id as Language))}
-              className={cn(lang === l.id && "bg-primary/10")}
-            >
-              <Globe2 aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-              {l.flag} {l.name}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {ctx === "themes" && (
+          <CommandGroup heading={t("game.palette.themes")}>
+            {THEMES.map((th) => (
+              <CommandItem
+                key={th.id}
+                onSelect={() => run(`theme:${th.id}`, () => setTheme(th.id as ThemeId))}
+                className={cn(theme === th.id && "bg-primary/10")}
+              >
+                <Palette aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {t(th.nameKey)}
+                {theme === th.id && (
+                  <span className="sr-only">({t("common.yes")})</span>
+                )}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
 
-        <CommandSeparator />
-        <CommandGroup heading={t("game.palette.finance")}>
-          <CommandItem onSelect={() => run("nav:wallet", () => setView("wallet"))}>
-            <ArrowDownToLine aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-            {t("game.palette.deposit")}
-          </CommandItem>
-          <CommandItem onSelect={() => run("nav:treasury", () => setView("treasury"))}>
-            <ArrowUpFromLine aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
-            {t("game.nav.treasury")}
-          </CommandItem>
-        </CommandGroup>
+        {ctx === "langs" && (
+          <CommandGroup heading={t("game.palette.language")}>
+            {LANGUAGES.map((l) => (
+              <CommandItem
+                key={l.id}
+                onSelect={() => run(`lang:${l.id}`, () => setLang(l.id as Language))}
+                className={cn(lang === l.id && "bg-primary/10")}
+              >
+                <Globe2 aria-hidden="true" className="mr-2 size-4 text-muted-foreground" />
+                {l.flag} {l.name}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
       </CommandList>
     </CommandDialog>
   );

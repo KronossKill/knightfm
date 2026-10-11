@@ -22,7 +22,12 @@ import {
   Gem,
   Globe2,
   Landmark,
+  Minus,
+  PieChart,
+  ScrollText,
   ShieldAlert,
+  TrendingDown,
+  TrendingUp,
   Trophy,
   Users,
   Wallet,
@@ -398,6 +403,115 @@ function WorldClockWidget() {
   );
 }
 
+// ── Widget: world-pulse (1×2) — Master UI/UX v2.0 "living world" mandate ──
+
+interface PulseMatch {
+  id: string;
+  competition: string;
+  stage: string | null;
+  matchDay: number;
+  kickoffAt: string;
+  home: string;
+  away: string;
+  homeGoals?: number | null;
+  awayGoals?: number | null;
+}
+
+interface PulseData {
+  seasonNumber: number | null;
+  online: { total: number; countries: { country: string | null; n: number }[] };
+  results: PulseMatch[];
+  upcoming: PulseMatch[];
+}
+
+async function fetchWorldPulse(): Promise<PulseData> {
+  const res = await fetch("/api/world/pulse", { cache: "no-store" });
+  if (!res.ok) throw new String(res.status);
+  const json = (await res.json()) as { data?: PulseData } & Partial<PulseData>;
+  return json.data ?? (json as PulseData);
+}
+
+function PulseRow({ m }: { m: PulseMatch }) {
+  const played = typeof m.homeGoals === "number" && typeof m.awayGoals === "number";
+  const kickoff = new Date(m.kickoffAt).toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+  return (
+    <li className="flex items-center gap-2 py-1">
+      <span className="w-14 shrink-0 truncate text-[10px] uppercase tracking-wider text-muted-foreground" title={m.competition}>
+        {m.competition === "LEAGUE" ? `J${m.matchDay}` : m.stage ?? m.competition.slice(0, 3)}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-right" title={m.home}>{m.home}</span>
+      <span className="shrink-0 rounded bg-muted/70 px-1.5 py-0.5 font-mono text-[11px] font-semibold tabular-nums">
+        {played ? `${m.homeGoals}\u2013${m.awayGoals}` : kickoff}
+      </span>
+      <span className="min-w-0 flex-1 truncate" title={m.away}>{m.away}</span>
+    </li>
+  );
+}
+
+function WorldPulseWidget() {
+  const { t } = useI18n();
+  const q = useQuery({
+    queryKey: ["dashboard", "worldPulse"],
+    queryFn: fetchWorldPulse,
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  });
+
+  if (q.isLoading) {
+    return (
+      <div className="space-y-2" aria-busy="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-4 animate-pulse rounded bg-muted/60" />
+        ))}
+      </div>
+    );
+  }
+  if (q.isError || !q.data) {
+    return <p className="py-4 text-xs text-muted-foreground">{t("game.dash.w.worldPulseEmpty")}</p>;
+  }
+
+  const d = q.data;
+  const topCountries = d.online.countries.slice(0, 3);
+  return (
+    <div className="flex h-full flex-col gap-3 overflow-y-auto pr-0.5 text-xs">
+      {/* Online snapshot — the world is alive right now */}
+      <p className="flex items-center gap-1.5 font-medium">
+        <span className="inline-block size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+        {t("game.dash.w.worldPulseOnline")}
+        <span className="font-mono tabular-nums text-muted-foreground">{d.online.total}</span>
+        {topCountries.length > 0 && (
+          <span className="ml-auto truncate font-mono text-[10px] uppercase text-muted-foreground" title={topCountries.map((c) => c.country ?? "?").join(", ")}>
+            {topCountries.map((c) => `${c.country ?? "?"} ${c.n}`).join(" · ")}
+          </span>
+        )}
+      </p>
+
+      <section aria-label={t("game.dash.w.worldPulseResults")}>
+        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{t("game.dash.w.worldPulseResults")}</p>
+        <ul className="divide-y divide-border/60">
+          {d.results.slice(0, 6).map((m) => (
+            <PulseRow key={m.id} m={m} />
+          ))}
+          {d.results.length === 0 && <li className="py-2 text-muted-foreground">{t("game.dash.w.worldPulseEmpty")}</li>}
+        </ul>
+      </section>
+
+      <section aria-label={t("game.dash.w.worldPulseUpcoming")}>
+        <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{t("game.dash.w.worldPulseUpcoming")}</p>
+        <ul className="divide-y divide-border/60">
+          {d.upcoming.slice(0, 4).map((m) => (
+            <PulseRow key={m.id} m={m} />
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 // ── Widget: standings (1×2) ─────────────────────────────────────
 
 function StandingsWidget({ club }: { club: ClubMine | null }) {
@@ -634,6 +748,185 @@ function YouthWidget({ club }: { club: ClubMine | null }) {
   );
 }
 
+
+// ── Widget: top-performers (1×1, MANAGER) — Master UI/UX v2.0 ──
+
+function TopPerformersWidget({ club }: { club: ClubMine | null }) {
+  const { t, lang } = useI18n();
+  const q = useQuery({
+    queryKey: ["dashboard", "players", club?.id],
+    queryFn: () => fetchPlayers(club!.id),
+    enabled: !!club,
+    staleTime: 60_000,
+  });
+  const players = React.useMemo(
+    () => [...(q.data?.players ?? [])].sort((a, b) => b.ovr - a.ovr).slice(0, 5),
+    [q.data],
+  );
+
+  if (q.isLoading) return <WidgetSkeleton lines={4} />;
+  if (q.isError) return <ErrorState message={t("err.generic")} onRetry={() => void q.refetch()} className="py-4" />;
+  if (players.length === 0) return <EmptyState title={t("game.dash.w.noPlayers")} />;
+
+  return (
+    <div className="flex h-full flex-col justify-between gap-1">
+      <ol className="space-y-1.5" aria-label={t("game.dash.w.topPerformers")}>
+        {players.map((p, i) => {
+          const trend = p.trendPerAttribute?.["ovr"] ?? "flat";
+          return (
+            <li key={p.id} className="flex items-center gap-2 text-sm">
+              <span className="w-4 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate">{p.firstName[0]}. {p.lastName}</span>
+              <span className="shrink-0 rounded bg-muted px-1 font-mono text-[10px] text-muted-foreground">{p.detailedPos}</span>
+              {trend === "up" && <TrendingUp aria-label={t("player.trend.up")} className="size-3.5 shrink-0 text-primary" />}
+              {trend === "down" && <TrendingDown aria-label={t("player.trend.down")} className="size-3.5 shrink-0 text-destructive" />}
+              {trend === "flat" && <Minus aria-label={t("player.trend.flat")} className="size-3.5 shrink-0 text-muted-foreground" />}
+              <span className="w-7 shrink-0 text-right font-mono font-bold tabular-nums">{p.ovr}</span>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="flex justify-end">
+        <WidgetLink view="squad" labelKey="game.nav.squad" />
+      </div>
+    </div>
+  );
+}
+
+// ── Widget: squad-overview (2×1, OWNER) — Master UI/UX v2.0 ──
+
+function SquadOverviewWidget({ club }: { club: ClubMine | null }) {
+  const { t, lang } = useI18n();
+  const fmt = React.useMemo(() => new Intl.NumberFormat(lang, { notation: "compact", maximumFractionDigits: 1 }), [lang]);
+  const q = useQuery({
+    queryKey: ["dashboard", "players", club?.id],
+    queryFn: () => fetchPlayers(club!.id),
+    enabled: !!club,
+    staleTime: 60_000,
+  });
+  const players = q.data?.players ?? [];
+  const avgOvr = players.length ? Math.round(players.reduce((s, p) => s + p.ovr, 0) / players.length) : 0;
+  const totalValue = players.reduce((s, p) => s + p.marketValue, 0);
+  const wages = players.reduce((s, p) => s + p.salary, 0);
+  const capacity = club?.capacity.finalCapacity ?? 0;
+  const usage = capacity > 0 ? Math.min(100, Math.round((club!.playerCount / capacity) * 100)) : 0;
+
+  return (
+    <div className="flex h-full flex-col justify-between gap-3">
+      <div className="space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">{t("game.dash.w.squadOverview")}</span>
+          <span className="font-mono font-bold tabular-nums">{club?.playerCount ?? 0} / {capacity}</span>
+        </div>
+        <Progress value={usage} aria-label={t("game.dash.w.squadOverview")} />
+      </div>
+      <dl className="grid grid-cols-3 gap-2 text-center">
+        <div>
+          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("game.dash.w.avgOvr")}</dt>
+          <dd className="font-mono text-lg font-bold tabular-nums">{avgOvr}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("game.dash.w.totalValue")}</dt>
+          <dd className="font-mono text-lg font-bold tabular-nums">{fmt.format(totalValue)}</dd>
+        </div>
+        <div>
+          <dt className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("game.dash.w.weeklyWages")}</dt>
+          <dd className="font-mono text-lg font-bold tabular-nums">{fmt.format(wages)}</dd>
+        </div>
+      </dl>
+      <div className="flex justify-end">
+        <WidgetLink view="squad" labelKey="game.nav.squad" />
+      </div>
+    </div>
+  );
+}
+
+// ── Widget: manager-contract (1×1, OWNER) — Master UI/UX v2.0 ──
+
+function ManagerContractWidget({ club }: { club: ClubMine | null }) {
+  const { t } = useI18n();
+  const contract = club?.contract ?? null;
+  const worldQ = useQuery({
+    queryKey: ["dashboard", "world"],
+    queryFn: fetchWorldState,
+    staleTime: 30_000,
+  });
+  const gameDay = worldQ.data?.gameDay ?? 0;
+  const remaining = contract ? Math.max(0, contract.endDay - gameDay) : 0;
+
+  if (!contract) {
+    return (
+      <div className="flex h-full flex-col justify-between">
+        <EmptyState title={t("game.dash.w.noContract")} />
+        <div className="flex justify-end">
+          <WidgetLink view="markets" labelKey="game.nav.markets" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col justify-between gap-2">
+      <div className="space-y-0.5">
+        <p className="font-mono text-xl font-bold tabular-nums">{contract.totalAmount.toLocaleString()} KS</p>
+        <p className="text-xs text-muted-foreground">
+          {t("game.dash.w.dailySalary")}: <span className="font-mono tabular-nums">{contract.dailySalary.toLocaleString()} KS</span>
+        </p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="outline" className="min-h-6 border-primary/40 text-xs text-primary">
+          {t("game.dash.w.remainingDays", { n: remaining })}
+        </Badge>
+        <div className="flex justify-end">
+          <WidgetLink view="treasury" labelKey="game.nav.treasury" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Widget: insolvency-risk (1×1, OWNER) — Master UI/UX v2.0 ──
+
+const RISK_STYLES: Record<string, string> = {
+  HEALTHY: "border-primary/40 bg-primary/10 text-primary",
+  INSOLVENT: "border-destructive/40 bg-destructive/10 text-destructive",
+  POSSIBLE_BANKRUPTCY: "border-destructive/40 bg-destructive/10 text-destructive",
+  BANKRUPT: "border-danger bg-danger text-white",
+};
+
+function InsolvencyRiskWidget({ club }: { club: ClubMine | null }) {
+  const { t } = useI18n();
+  const finState = club?.finState ?? "HEALTHY";
+  const atRisk = finState !== "HEALTHY";
+  const style = RISK_STYLES[finState] ?? RISK_STYLES.HEALTHY;
+
+  return (
+    <div className="flex h-full flex-col justify-between gap-2">
+      <div className="flex items-center gap-1.5">
+        {atRisk && <ShieldAlert aria-hidden="true" className="size-4 shrink-0 text-destructive" />}
+        <Badge variant="outline" className={`min-h-6 text-xs ${style}`}>
+          {t(`game.dash.fin.${finState}`)}
+        </Badge>
+      </div>
+      <dl className="space-y-1 text-sm">
+        <div className="flex items-center justify-between gap-2">
+          <dt className="text-muted-foreground">{t("game.dash.w.debt")}</dt>
+          <dd className={`font-mono font-bold tabular-nums ${club && club.debt > 0 ? "text-destructive" : ""}`}>
+            {(club?.debt ?? 0).toLocaleString()} KS
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <dt className="text-muted-foreground">{t("game.dash.w.operatingFund")}</dt>
+          <dd className="font-mono font-bold tabular-nums">{(club?.operatingFund ?? 0).toLocaleString()} KS</dd>
+        </div>
+      </dl>
+      <div className="flex justify-end">
+        <WidgetLink view="treasury" labelKey="game.nav.treasury" />
+      </div>
+    </div>
+  );
+}
+
 // ── Registry ────────────────────────────────────────────────────
 
 const S = (w: 1 | 2, h: 1 | 2): WidgetSize => ({ w, h });
@@ -758,6 +1051,64 @@ export const WIDGET_REGISTRY: WidgetDef[] = [
     defaultSize: S(1, 1),
     allowedSizes: [S(1, 1), S(2, 1)],
     render: ({ club }) => <YouthWidget club={club} />,
+  },
+  {
+    // Master UI/UX v2.0: squad top performers ("Top Performers").
+    id: "top-performers",
+    labelKey: "game.dash.w.topPerformers",
+    descKey: "game.dash.w.topPerformersDesc",
+    icon: TrendingUp,
+    roles: ["MANAGER"],
+    defaultSize: S(1, 1),
+    allowedSizes: [S(1, 1), S(2, 1), S(2, 2), S(1, 2)],
+    render: ({ club }) => <TopPerformersWidget club={club} />,
+  },
+  {
+    // Master UI/UX v2.0: owner roster snapshot ("Squad Overview").
+    id: "squad-overview",
+    labelKey: "game.dash.w.squadOverview",
+    descKey: "game.dash.w.squadOverviewDesc",
+    icon: PieChart,
+    roles: ["OWNER"],
+    defaultSize: S(2, 1),
+    allowedSizes: [S(1, 1), S(2, 1), S(2, 2), S(1, 2)],
+    render: ({ club }) => <SquadOverviewWidget club={club} />,
+  },
+  {
+    // Master UI/UX v2.0: active manager contract ("Manager Contract").
+    id: "manager-contract",
+    labelKey: "game.dash.w.managerContract",
+    descKey: "game.dash.w.managerContractDesc",
+    icon: ScrollText,
+    roles: ["OWNER"],
+    defaultSize: S(1, 1),
+    allowedSizes: [S(1, 1), S(2, 1)],
+    render: ({ club }) => <ManagerContractWidget club={club} />,
+  },
+  {
+    // Master UI/UX v2.0: insolvency risk ("Insolvency Risk"). Debt, operating
+    // fund and fin state — the owner's early-warning card.
+    id: "insolvency-risk",
+    labelKey: "game.dash.w.insolvencyRisk",
+    descKey: "game.dash.w.insolvencyRiskDesc",
+    icon: ShieldAlert,
+    roles: ["OWNER"],
+    defaultSize: S(1, 1),
+    allowedSizes: [S(1, 1), S(2, 1)],
+    render: ({ club }) => <InsolvencyRiskWidget club={club} />,
+  },
+  {
+    // Master UI/UX v2.0: live feed of the wider football world — the "living
+    // world" answer to FM26's "lost world building" criticism. Both roles get
+    // it by default; read-only, refetches every minute.
+    id: "world-pulse",
+    labelKey: "game.dash.w.worldPulse",
+    descKey: "game.dash.w.worldPulseDesc",
+    icon: Globe2,
+    roles: ["MANAGER", "OWNER"],
+    defaultSize: S(1, 2),
+    allowedSizes: [S(1, 1), S(1, 2), S(2, 2)],
+    render: () => <WorldPulseWidget />,
   },
 ];
 

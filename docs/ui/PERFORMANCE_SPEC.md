@@ -39,3 +39,14 @@
 
 - Lighthouse móvil en preview antes de cada entrega mayor (objetivo ≥90 PWA-ish).
 - dev.log sin queries N+1 nuevas (revisar `prisma:query` repetidos en ráfaga).
+
+---
+
+## Master UI/UX v2.0 — Delta de rendimiento
+
+- **Código separado por módulo**: cada vista del juego se carga perezosa vía `lazy-modules.tsx` (`ModuleSlot`); widgets independientes con `react-query` y esqueletos.
+- **Animaciones**: framer-motion restringido a transform/opacity; `prefers-reduced-motion` global.
+- **Refrescos programados**: world 60 s, clubes 120 s, pulso 60 s — sin polling agresivo en usuario inactivo.
+- **4K**: contenedor 1920 px evita reflows de viewport gigante; listas grandes (plantillas 60+ filas en paleta) limitadas y truncadas.
+- **CSS containment**: las tarjetas de widget aíslan su layout (`overflow-hidden` + rejilla con áreas fijas), evitando reflow en cascada.
+- Presupuestos vigentes: LCP < 2.5 s · INP < 200 ms · CLS < 0.1 · JS inicial < 200 KB gzip.

@@ -130,7 +130,7 @@ function ProspectCard({
                   <div
                     className={cn(
                       "h-full rounded-full",
-                      (avg ?? 0) >= 60 ? "bg-primary" : (avg ?? 0) >= 40 ? "bg-amber-500" : "bg-destructive"
+                      (avg ?? 0) >= 60 ? "bg-primary" : (avg ?? 0) >= 40 ? "bg-amber-500" : "bg-danger"
                     )}
                     style={{ width: `${avg ?? 0}%` }}
                   />

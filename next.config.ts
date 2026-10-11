@@ -31,6 +31,23 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Task 95 (USER MANDATE — "dame el zip para descargarlo desde la nueva
+  // pestaña"): dev.log showed a real 404 for
+  // `/knightfm_updated_20261011_145930_UTC_v9.0.0.zip` — the user pasted the
+  // delivery filename at the ROOT, without the `/downloads/` prefix, and got
+  // a blank error instead of the file. Fix at the config layer: any
+  // root-level `.zip` / `.txt` request is redirected to the same filename
+  // under `/downloads/`, so pasting the bare name in a new tab ALWAYS lands
+  // on the real artifact. Safety: no legit route or public file lives at the
+  // root with those extensions (all artifacts live in public/downloads/),
+  // so this cannot shadow anything. 307 (not 308) so no browser caches a
+  // mapping that might later change.
+  async redirects() {
+    return [
+      { source: "/:file([^/]+\\.zip)", destination: "/downloads/:file", permanent: false },
+      { source: "/:file([^/]+\\.txt)", destination: "/downloads/:file", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

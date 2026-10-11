@@ -1,0 +1,138 @@
+================================================================
+ KNIGHT FM - ACTUALIZACION PARCIAL: UI/UX v2.0
+ Solo los archivos nuevos y actualizados (49 en total)
+ Fecha: 2026-10-11 (UTC)  |  Base: zip completo v9.0.0
+================================================================
+
+QUE ES ESTE PAQUETE
+-------------------
+Este zip NO es una instalacion completa. Contiene UNICAMENTE los
+archivos nuevos o modificados del sistema de diseno UI/UX v2.0
+sobre tu proyecto v9.0.0. Va ENCIMA de tu carpeta
+D:\Programacion\knightfm ya existente y funcional.
+
+QUE INCLUYE
+-----------
+1) FUNCIONES NUEVAS EN EL JUEGO
+   - Widget "Pulso mundial" en el dashboard (el mundo vivo:
+     paises conectados, ultimos resultados del mundo, proximos
+     partidos) + su API nueva (src/app/api/world/pulse/route.ts)
+   - 4 widgets nuevos: Top plantilla (Manager); Resumen de
+     plantilla, Contrato del manager y Riesgo de insolvencia
+     (Owner)
+   - Paleta de comandos Ctrl+K v2.0: favoritos con estrella
+     (max. 8) y navegacion en pila (Backspace para volver)
+   - Deep linking: la pantalla abierta queda en la URL (?view=),
+     se puede compartir y recuerda donde estabas
+   - 5 temas con tokens verificados WCAG AA (115 pares, 0
+     fallos); el tema "Verde Clasico" ahora es tema CLARO real
+   - Entregables de temas en docs/ui/themes/ (JSON + CSS + TS)
+2) DOCUMENTACION ACTUALIZADA: 10 especificaciones en docs/ui/
+   (design system, navegacion, dashboard, tactical board, temas,
+   componentes, responsive, accesibilidad, rendimiento,
+   arquitectura + checklist de calidad v2.0)
+3) GUIA NUEVA: docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md
+   (paso a paso para GitHub + Supabase + Vercel sin perder datos)
+4) HERRAMIENTAS: scripts/verify-wcag-contrast.mjs (verificador
+   WCAG, listo para CI) y scripts/export-theme-deliverables.mjs
+   (regenera docs/ui/themes/ desde los tokens)
+5) next.config.ts: los zips ahora tambien se pueden descargar
+   pegando su nombre en la raiz del sitio (redireccion a
+   /downloads/)
+
+COMO INSTALARLO (WINDOWS, 2 minutos)
+------------------------------------
+PASO 1  Si el servidor esta abierto, detenlo con Ctrl + C.
+PASO 2  Clic derecho sobre este zip -> "Extraer todo...".
+PASO 3  En Destino escribe exactamente:
+          D:\Programacion\knightfm
+        y pulsa "Extraer".
+PASO 4  Si Windows pregunta "Reemplazar u omitir": elige
+        "Reemplazar los archivos de destino".
+PASO 5  Abre la terminal en D:\Programacion\knightfm y ejecuta:
+          npm run dev
+        Abre http://localhost:3000
+
+DEBES VER: el juego arranca igual que siempre; en el dashboard
+aparece el widget "Pulso mundial"; Ctrl+K abre la paleta y con
+la estrella fijas favoritos.
+
+IMPORTANTE - NO MEZCLES CARPETAS
+--------------------------------
+- NO extraigas este zip dentro de una carpeta nueva vacia: va
+  ENCIMA de tu carpeta existente.
+- NO extraigas zips nuevos ENCIMA de instalaciones viejas
+  mezcladas: los archivos sobrantes de versiones viejas rompen
+  builds. Si algun dia ves errores raros al compilar, reconstruye
+  la carpeta limpia con el zip completo (metodo knightfm-RESERVA).
+
+DESPUES DE INSTALAR: GITHUB + VERCEL
+------------------------------------
+Abre docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md y sigue sus fases.
+Resumen rapido (desde D:\Programacion\knightfm):
+  git add -A
+  git commit -m "UI/UX v2.0: World Pulse, widgets nuevos, paleta v2, temas WCAG"
+  git push
+Vercel redespliega solo y queda en verde. Tu base de datos de
+Supabase NO se toca: git y Vercel nunca borran datos. Los unicos
+3 comandos peligrosos siguen siendo: seed --force, db:reset y
+"Reset mundo" en admin.
+
+NOTA SOBRE VERIFICAR-INSTALACION.BAT
+------------------------------------
+Ese verificador pertenece al ZIP COMPLETO v9.0.0 y espera sus
+448 archivos correctos. Los archivos nuevos de este paquete
+apareceran en su lista como EXTRA: es NORMAL, no es un error.
+
+CONTENIDO COMPLETO (49 archivos)
+--------------------------------
+LEEME-ACTUALIZACION-UIUX.txt
+next.config.ts
+docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md
+docs/ui/ACCESSIBILITY_SPEC.md
+docs/ui/DASHBOARD_SPEC.md
+docs/ui/FRONTEND_ARCHITECTURE.md
+docs/ui/NAVIGATION_ARCHITECTURE.md
+docs/ui/PERFORMANCE_SPEC.md
+docs/ui/QUALITY_CHECKLIST.md
+docs/ui/RESPONSIVE_SPEC.md
+docs/ui/TACTICAL_BOARD_SPEC.md
+docs/ui/THEMES_TOKENS.md
+docs/ui/UI_UX_DESIGN_SYSTEM.md
+docs/ui/themes/README.md
+docs/ui/themes/wcag-contrast.md
+docs/ui/themes/css/aurora.css
+docs/ui/themes/css/classic.css
+docs/ui/themes/css/knight-emerald.css
+docs/ui/themes/css/obsidian.css
+docs/ui/themes/css/royal.css
+docs/ui/themes/json/aurora.json
+docs/ui/themes/json/classic.json
+docs/ui/themes/json/knight-emerald.json
+docs/ui/themes/json/obsidian.json
+docs/ui/themes/json/royal.json
+docs/ui/themes/ts/aurora.ts
+docs/ui/themes/ts/classic.ts
+docs/ui/themes/ts/knight-emerald.ts
+docs/ui/themes/ts/obsidian.ts
+docs/ui/themes/ts/royal.ts
+scripts/export-theme-deliverables.mjs
+scripts/verify-wcag-contrast.mjs
+src/app/api/world/pulse/route.ts
+src/app/globals.css
+src/components/game/command-palette.tsx
+src/components/game/competitions/competitions-view.tsx
+src/components/game/dashboard/widget-registry.tsx
+src/components/game/dashboard/widgets-grid.tsx
+src/components/game/view-store.ts
+src/components/game/youth/youth-view.tsx
+src/components/ui/badge.tsx
+src/components/ui/button.tsx
+src/components/ui/toast.tsx
+src/lib/i18n/dict/game/en.ts
+src/lib/i18n/dict/game/es.ts
+src/lib/i18n/dict/game/fr.ts
+src/lib/i18n/dict/game/pt.ts
+src/lib/theme-tokens.ts
+src/lib/themes.ts
+================================================================

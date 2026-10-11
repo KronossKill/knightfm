@@ -75,3 +75,70 @@ Progresivo (detalle profundo al hacer clic — p. ej. acta del partido) ·
 Consistente (misma card, paddings p-4/p-6, tipografía) · Accesible (teclado,
 aria-labels, live regions) · Rápido (queries independientes por widget con
 staleTime/refetchInterval apropiados) · Persistente (server-side por usuario+rol).
+
+## World Pulse (añadido — Master UI/UX v2.0)
+
+Widget `world-pulse` (1×2, roles MANAGER+OWNER, resize 1×1/1×2/2×2). Fuente: `GET /api/world/pulse`
+(solo lectura, autenticado; ventana de presencia D-009 de 5 min; consultas indexadas `[kickoffAt,status]`).
+
+Contenido (glanceable <3 s):
+1. **Online snapshot** — mánagers conectados ahora + top-3 países.
+2. **Latest results** — últimos 6 resultados del mundo (marcador real de `Match`, etiqueta J## / fase de copa).
+3. **Upcoming kickoffs** — próximos 6 pitidos de salida (hora en **UTC**, reloj de solo lectura).
+
+Refetch 60 s, skeleton `aria-busy`, estado vacío honesto, todos los strings vía i18n (es/en/fr/pt),
+todos los colores vía tokens semánticos. Sin acciones de estado: es observación pura del mundo vivo.
+
+---
+
+## Master UI/UX v2.0 — Delta del dashboard (implementado)
+
+### Registro de widgets v2.0 (17 widgets, `widget-registry.tsx`)
+
+| id | Widget | Roles | 1×1 | 2×1 | 1×2 | 2×2 | Acción principal |
+|---|---|---|:-:|:-:|:-:|:-:|---|
+| `next-match` | Próximo partido | M+O | ✓ | ✓ | ✓ | ✓ | Ver calendario |
+| `last-match` | Último partido | M+O | ✓ | ✓ | ✓ | ✓ | Detalle del partido |
+| `readiness` | Listura táctica | M | ✓ | ✓ | ✓ | ✓ | Ir a tácticas |
+| `squad-status` | Estado de plantilla | M+O | ✓ | ✓ | ✓ | ✓ | Ir a plantilla |
+| `inbox` | Bandeja | M+O | ✓ | ✓ | ✓ | ✓ | Abrir bandeja |
+| `world-clock` | Reloj del mundo (UTC, solo lectura) | M+O | ✓ | ✓ | — | — | — |
+| `standings` | Tabla (mini) | M+O | ✓ | ✓ | ✓ | ✓ | Ver competiciones |
+| `calendar` | Calendario | M+O | ✓ | ✓ | ✓ | ✓ | Ver calendario |
+| `finance` | Finanzas del club | O | ✓ | ✓ | ✓ | ✓ | Ir a tesorería |
+| `facilities` | Instalaciones | O | ✓ | ✓ | ✓ | ✓ | Gestionar |
+| `treasury-controls` | Tesorería rápida | O | ✓ | ✓ | — | — | Invertir/retirar |
+| `youth` | Cantera | M | ✓ | ✓ | — | — | Ir a cantera |
+| `world-pulse` | **Pulso mundial** (feed vivo del mundo) | M+O | ✓ | — | ✓ | ✓ | Ver competiciones |
+| `top-performers` | **Top de la plantilla** (v2.0) | M | ✓ | ✓ | ✓ | ✓ | Ir a plantilla |
+| `squad-overview` | **Resumen de plantilla** (v2.0) | O | ✓ | ✓ | ✓ | ✓ | Ir a plantilla |
+| `manager-contract` | **Contrato del mánager** (v2.0) | O | ✓ | ✓ | — | — | Ir a tesorería |
+| `insolvency-risk` | **Riesgo financiero** (v2.0) | O | ✓ | ✓ | — | — | Ir a tesorería |
+
+Cada widget: `react-query` propio (refresco 30–120 s), esqueleto de carga, estado vacío/error honestos, cadenas 100% i18n (4 idiomas, paridad 606/606/606/606), colores 100% por tokens.
+
+### Mapeo especificación v2.0 → dominio Knight FM
+
+| Widget del prompt v2.0 | Resolución en Knight FM |
+|---|---|
+| Previous/Next Match, Tactical Readiness, Squad Status, Inbox, World Clock, Standings, World Pulse, Club Finance, Facilities, Calendar, Treasury Controls | Implementación directa (tabla anterior) |
+| **Top Performers** | `top-performers` (top 5 por `ovr`, tendencia por `trendPerAttribute.ovr`) |
+| **Squad Overview** (Owner) | `squad-overview` (ocupación vs `capacity.finalCapacity`, media, valor, salarios) |
+| **Manager Contract** | `manager-contract` (`ClubMine.contract`: importe, salario diario, días restantes con `gameDay`) |
+| **Insolvency Risk** | `insolvency-risk` (`finState` + `debt` + `operatingFund`; icono+texto, nunca solo color) |
+| Training Plan | Cubierto por `readiness` + vista Entrenamiento (decisión de dominio; el plan diario vive en su sección) |
+| Scouting Reports | Cubierto por `youth` (la cantera ES el sistema de prospección de Knight FM) |
+| Commercial / Sponsors | **N/A**: el dominio (Master Spec v2.2) no incluye patrocinios; el equivalente económico es `finance` + `treasury-controls` |
+
+### World Pulse (respuesta al "lost world building" de FM26)
+
+- Feed en vivo de la liga/región: últimos resultados, próximos partidos, mánagers conectados (`/api/world/pulse`, refresco 60 s).
+- Presente por defecto en AMBOS roles; lectura pura (nunca muta estado).
+- Tamaños permitidos 1×1 / 1×2 / 2×2; vacío honesto ("Todavía no hay actividad del mundo").
+
+### Presets y persistencia (implementados, `widgets-grid.tsx` + `/api/me/dashboard`)
+
+- Tamaños de rejilla soportados: **1×1, 2×1, 1×2, 2×2** (`allowedSizes` por widget, ciclo con botón).
+- Reordenar: dnd-kit con asa de arrastre accesible (instrucciones `sr-only` + `aria-describedby`, `min-h-11`).
+- Presets: guardar con nombre (máx. 8), aplicar al instante, snapshóstico del layout; persistencia **server-side por usuario + rol** (`customized`, `widgets`, `presets`).
+- Por defecto por rol: `defaultLayout(role)` deriva del registro (código, no copias manuales).

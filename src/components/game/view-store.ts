@@ -44,9 +44,41 @@ interface ViewState {
 const initialDepositEscape =
   typeof window !== "undefined" && window.sessionStorage.getItem("kfm.onb.wallet") === "1";
 
+const ALL_VIEWS: GameView[] = [
+  "dashboard", "squad", "tactics", "training", "facilities", "staff", "youth",
+  "competitions", "markets", "treasury", "wallet", "inbox", "assistant",
+  "settings", "control-center",
+];
+
+// Master UI/UX v2.0 — deep linking: every screen has a unique URL (?view=…).
+// Priority: URL param (shareable/deep link) → last visited screen
+// (sessionStorage) → dashboard.
+function initialView(): GameView {
+  if (typeof window === "undefined") return "dashboard";
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("view");
+    if (fromUrl && ALL_VIEWS.includes(fromUrl as GameView)) return fromUrl as GameView;
+    const last = window.sessionStorage.getItem("kfm.view");
+    if (last && ALL_VIEWS.includes(last as GameView)) return last as GameView;
+  } catch {}
+  return "dashboard";
+}
+
+function syncUrl(view: GameView) {
+  try {
+    window.sessionStorage.setItem("kfm.view", view);
+    const url = new URL(window.location.href);
+    url.searchParams.set("view", view);
+    window.history.replaceState(null, "", url.toString());
+  } catch {}
+}
+
 export const useViewStore = create<ViewState>((set) => ({
-  view: "dashboard",
-  setView: (view) => set({ view }),
+  view: initialView(),
+  setView: (view) => {
+    set({ view });
+    if (typeof window !== "undefined") syncUrl(view);
+  },
   activeClubId: null,
   setActiveClub: (activeClubId) => set({ activeClubId }),
   depositEscape: initialDepositEscape,

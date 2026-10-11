@@ -93,3 +93,29 @@ Checklists completos en ACCESSIBILITY_SPEC.md y PERFORMANCE_SPEC.md.
   + claves i18n ×4. El grid y la persistencia no requieren cambios.
 - **Añadir una sección**: entrada en `NAV_MAIN`/`NAV_SYSTEM` + i18n; la paleta y
   los atajos la recogen automáticamente.
+
+---
+
+## Master UI/UX v2.0 — Delta del sistema de diseño
+
+### Principios 2026 adoptados
+
+1. **Comprensión en tiempo real bajo presión** — deltas (▲▼ con texto), countdowns, mini-historial en widgets; nada depende solo del color.
+2. **Divulgación progresiva con teselas/tarjetas** — widget = snapshot accionable; clic = detalle profundo.
+3. **Teclado primero + paleta** — Ctrl+K con favoritos/recientes/stack; Ctrl+1…9 por sección.
+4. **Personalización por widgets** — 17 widgets, 4 tamaños, presets por rol, persistencia servidor.
+5. **Tokens como única fuente de verdad** — pipeline globals.css → tokens → export JSON/CSS/TS + verificador WCAG.
+6. **Movimiento con propósito** — solo transform/opacity, respeta `prefers-reduced-motion`.
+7. **Conexión emocional con un mundo vivo** — World Pulse, reloj UTC, presencia en línea, resultados globales en el dashboard.
+
+### Los 5 temas (v2.0, verificados AA)
+
+| # | Tema | id | Modo | Dirección |
+|---|------|----|------|-----------|
+| 1 | Esmeralda Caballero | `knight-emerald` | Oscuro | Premium oscuro / esmeralda / metálico contenido. **Por defecto.** |
+| 2 | Obsidiana Nocturna | `obsidian` | Oscuro | Casi negro monocromo, alto contraste, acentos plata |
+| 3 | Azul Real | `royal` | Oscuro | Azul marino profundo + oro refinado |
+| 4 | Aurora Boreal | `aurora` | Oscuro | Grafito oscuro + gradientes fríos luminosos |
+| 5 | Verde Clásico | `classic` | **Claro** | Verde profundo elegante, señas del fútbol tradicional |
+
+Reglas inmutables: sin "Advance Day"/"Play Match" (el reloj del mundo es de solo lectura); los temas nunca afectan estado de juego; sin colores/cadenas hardcodeadas (tokens + i18n); cada pantalla refuerza el mundo vivo.

@@ -111,9 +111,9 @@ function SortableWidget({
           type="button"
           className="flex min-h-11 min-w-8 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:cursor-grabbing"
           aria-label={t("game.dash.w.dragHandle")}
-          aria-describedby={`drag-instructions-${placement.id}`}
           {...attributes}
           {...listeners}
+          aria-describedby={`drag-instructions-${placement.id}`}
         >
           <GripVertical aria-hidden="true" className="size-4" />
         </button>

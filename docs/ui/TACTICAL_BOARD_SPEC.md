@@ -50,3 +50,15 @@ El módulo se carga perezosamente desde el shell (`ModuleSlot moduleKey="tactics
 - Cambios sin guardar se indican; guardar requiere acción explícita del usuario.
 - Mobile 360px: el campo escala (`max-w-[540px]`), paneles se apilan; 4K: el
   módulo vive dentro del contenedor máx. 1920px del shell.
+
+---
+
+## Master UI/UX v2.0 — Delta del tablero táctico (verificado en código)
+
+- **Teselas cuadradas/redondeadas, jamás circulares** — verificado en `pitch.tsx`: `aspect-square … rounded-lg` (líneas 238/273); prohibición documentada en el propio encabezado del archivo. Única excepción circular del dominio: el marcador de amonestación (tarjeta roja, semántica del fútbol real, no es una tesela de jugador).
+- **Contenido de tesela**: dorsal, nombre corto, badge de posición, forma/estado; área táctil ≥56 px (mín. 44 px cumplido con margen).
+- **Clic en posición → selector de jugadores elegibles** (`slot-dialog.tsx`) con orden/filtrado por rol y disponibilidad.
+- **Panel izquierdo**: plantilla y comparación (`squad-panel.tsx`); **panel derecho**: instrucciones, riesgos, feedback (`analysis-panel.tsx`).
+- **Controles superiores**: formación, auto-completar (`/api/tactics/auto`), guardar, reset (`/api/tactics`).
+- **Explicación táctica contextual** tras cada cambio grande (`analysis-panel`).
+- Color de fondo de tesela: `#0b1220` constante de dominio — decisión de accesibilidad deliberada: garantiza contraste del texto blanco sobre CUALQUIER césped en los 5 temas (los tokens de tema gobiernan todo lo demás).

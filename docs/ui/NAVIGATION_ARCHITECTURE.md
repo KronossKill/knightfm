@@ -82,3 +82,31 @@ Ajustes; Control Center (ADMIN).
 - **"Ir a depositar"** (escape de fondos insuficientes): navegación limitada a
   Cartera. Ambos modes muestran banner explicativo + botón de salida; el modo de
   depósito tiene precedencia.
+
+---
+
+## Master UI/UX v2.0 — Delta de navegación (implementado)
+
+### Accesos por teclado verificados en código
+
+| Atajo | Acción | Implementación |
+|---|---|---|
+| `Ctrl/Cmd + K` | Abrir paleta de comandos | `useCommandPaletteHotkey` (shell monta una sola vez) |
+| `Ctrl/Cmd + 1…9` | Saltar a la N-ésima sección principal (`NAV_MAIN`) | `shell.tsx` — ignora teclas cuando el foco está en `INPUT`/`TEXTAREA`/`contentEditable` |
+| `Backspace` (consulta vacía) | Pop del stack de la paleta; en raíz cierra | mini-router de la paleta v2.0 |
+| `Escape` | Cerrar paleta / diálogos | Radix Dialog |
+
+### Paleta de comandos v2.0 (`command-palette.tsx`)
+
+- **Favoritos**: hasta 8 destinos fijados con ★ (persisten en `localStorage` → `knightfm.palette.favorites`); el grupo Favoritos flota sobre Recientes. Botón estrella accesible (`aria-pressed`, `aria-label` con estado, `stopPropagation` para no activar la fila).
+- **Navegación por stack**: contextos con ámbito `root → players | themes | langs`. Migas de pan siempre visibles con botón "Inicio" + pista `⌫ Volver`. Sin callejones sin salida.
+- **Recientes**: últimos 5 destinos (`knightfm.palette.recents`), refrescados al abrir.
+- **Filtrado difuso**: scoring de `cmdk` (prefijo > inicio de palabra > subsecuencia).
+- **Búsqueda de plantilla**: lista perezosa del club activo (máx. 60 filas, `ovr · posición`).
+
+### Deep linking v2.0 (implementado)
+
+- Cada pantalla tiene URL única: `/…?view=squad`, `?view=tactics`, etc. (`view-store.ts`).
+- Prioridad al cargar: parámetro `?view=` → última pantalla visitada (`sessionStorage:kfm.view`) → `dashboard`.
+- `setView` sincroniza con `history.replaceState` (URL compartible sin contaminar el historial).
+- Estado activo de club: `view-store.activeClubId` (conmutador de la barra superior).

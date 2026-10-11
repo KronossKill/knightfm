@@ -42,3 +42,18 @@ El mandato describe "sidebar colapsado en tablet": en 768–1199 usamos **bottom
 bar + drawer** (patrón superior en touch, evita hover-dependencia) y la sidebar
 de iconos aparece en desktop. El drawer garantiza el mismo alcance con 1 toque.
 Registrado como decisión, no como omisión.
+
+---
+
+## Master UI/UX v2.0 — Delta responsivo (verificado en código)
+
+| Rango | Comportamiento Knight FM | Evidencia |
+|---|---|---|
+| Móvil 360–767 | Barra inferior de 5 destinos + cajón completo; widgets a 1 columna; `min-h-11` (44 px) en táctiles | `shell.tsx` barra inferior (`max-w-lg` centrada) |
+| Tablet 768–1199 | Sidebar colapsada a iconos + barra superior; rejillas 2 columnas | `shell.tsx` breakpoints `md:`/`lg:` |
+| Desktop 1200–1919 | Sidebar expandida con etiquetas; layouts completos | `shell.tsx` `xl:` |
+| Ultrawide 1920–3839 | Contenido multicoluna; vistas con `max-w-6xl` centrado | `shell.tsx` módulos |
+| **4K ≥3840** | **Contenedor máximo 1920 px centrado** en la barra superior y vistas | `shell.tsx:911` `max-w-[1920px] mx-auto` |
+
+- El tablero táctico mantiene usabilidad de 360 px a 4K (campo `aspect-[68/105] max-w-[540px]` escalable + paneles que apilan en móvil).
+- Ninguna rejilla de widgets se rompe: 1→2→4 columnas fluidas con `grid-flow-dense`.
