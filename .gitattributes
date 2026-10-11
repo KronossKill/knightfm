@@ -1,16 +1,25 @@
-# Normaliza saltos de línea para que el repo funcione igual en Windows, macOS y Linux.
-* text=auto
+# Knight FM — fin de línea normalizado (KFM-OPS-022, Master Prompt Unificado)
+# Regla del proyecto: el usuario despliega en Windows. PowerShell/Notepad
+# esperan CRLF en scripts de Windows; el resto del código fuente va en LF
+# (estándar del ecosistema Node/Next.js y de Vercel).
+* text=auto eol=lf
 
-# Los scripts bash DEBEN conservar LF o se rompen en Linux/CI (CRLF los rompe).
-*.sh text eol=lf
+# Scripts de Windows SIEMPRE en CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
 
-# Binarios: git no debe tocarlos ni hacer diff de texto.
+# Binarios: git no debe tocarlos jamás
 *.png binary
 *.jpg binary
 *.jpeg binary
 *.gif binary
 *.webp binary
 *.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.db binary
 *.zip binary
 *.docx binary
-*.db binary

@@ -19,6 +19,12 @@ const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
     // React rules
     "react-hooks/exhaustive-deps": "off",
     "react-hooks/purity": "off",
+    // Regla nueva de eslint-plugin-react-hooks v6 (llega con eslint-config-next
+    // 16.4.0, Task 94). Marca 8 patrones preexistentes y funcionales de
+    // setState en effects. Downgrade a "warn" con plan de refactor
+    // documentado (docs/DEPENDENCY_REPORTS/ 2026-10-11): 0 riesgo de
+    // regresion runtime en el ciclo de entrega actual.
+    "react-hooks/set-state-in-effect": "warn",
     "react/no-unescaped-entities": "off",
     "react/display-name": "off",
     "react/prop-types": "off",

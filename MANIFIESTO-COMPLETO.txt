@@ -1,8 +1,23 @@
 # Knight FM - MANIFIESTO COMPLETO (generado por KFM-OPS-015)
 # formato: ruta|tamano_en_bytes - verifica con VERIFICAR-INSTALACION.bat
 .env.example|1728
+.gitattributes|617
+.gitignore|670
 .npmrc|36
-bun.lock|338219
+BACKUP_LOG.md|2048
+BACKUP_MANIFEST.json|2291
+CHANGELOG.md|4643
+CHANGELOG_UPDATE.md|2745
+DELIVERY_DIFF.md|3243
+DELIVERY_REPORT.md|2403
+DEPENDENCY_REPORT.md|4049
+DEPLOY_WINDOWS.bat|558
+DEPLOY_WINDOWS.ps1|6592
+INTEGRITY_REPORT.md|1542
+STATE.md|3784
+TROUBLESHOOTING_WINDOWS.md|5096
+WINDOWS_SETUP.md|6010
+bun.lock|365797
 components.json|430
 docs/01-arquitectura.md|6102
 docs/02-base-de-datos.md|5259
@@ -16,7 +31,16 @@ docs/09-changelog.md|5177
 docs/README.md|3391
 docs/analisis-competencia.md|8518
 docs/annex/competitor-research.md|18449
+docs/archive/MASTER_PROMPT_UNIFICADO_FUENTE.txt|31033
+docs/decisions/ADR-001-next-pinned.md|1349
 docs/knight-fm-documentacion.docx|41961
+docs/reports/01_INITIAL_INVENTORY.md|3672
+docs/reports/02_BACKUP_REPORT.md|2024
+docs/reports/03_UPDATE_ANALYSIS.md|4597
+docs/reports/04_APPLY_LOG.md|3423
+docs/reports/05_DEPENDENCY_REPORT.md|4049
+docs/reports/06_INTEGRITY_REPORT.md|2613
+docs/reports/07_DELIVERY_REPORT.md|1979
 docs/ui/ACCESSIBILITY_SPEC.md|2451
 docs/ui/COMPONENTS.md|4263
 docs/ui/DASHBOARD_SPEC.md|4511
@@ -34,9 +58,9 @@ docs/ui/themes/tokens/index.json|1254
 docs/ui/themes/tokens/knight-emerald.json|1528
 docs/ui/themes/tokens/obsidian.json|1359
 docs/ui/themes/tokens/royal.json|1472
-eslint.config.mjs|1632
+eslint.config.mjs|2027
 next.config.ts|1456
-package.json|3414
+package.json|3321
 postcss.config.mjs|81
 prisma/schema.prisma|31017
 prisma/schema.production.prisma|31017
@@ -75,7 +99,7 @@ public/logo.svg|1065
 public/og-knight-fm.png|325459
 public/robots.txt|39
 scripts/backfill-rest-rooms.ts|834
-scripts/build-full-delivery.sh|18590
+scripts/build-full-delivery.sh|23670
 scripts/docx-content1.js|22248
 scripts/docx-content2.js|21943
 scripts/docx-lib.js|12988
@@ -97,6 +121,7 @@ scripts/task27-verify.ts|19870
 scripts/task28-backfill.ts|4686
 scripts/task28-verify.ts|16359
 scripts/task88-e2e-solana-config.ts|883
+scripts/task94-backup.sh|3521
 src/app/.well-known/security.txt/route.ts|827
 src/app/api/_lib/active-season.ts|988
 src/app/api/_lib/club-access.ts|3826

@@ -1,5 +1,5 @@
 ════════════════════════════════════════════════════════════════════
- KNIGHT FM — SINCRONIZACIÓN COMPLETA v7 + MECANISMO ANTI-PÉRDIDA
+ KNIGHT FM — SINCRONIZACIÓN COMPLETA v9 + MECANISMO ANTI-PÉRDIDA
  (KFM-OPS-015) — paquete ÚNICO, DEFINITIVO y AUTO-VERIFICABLE
  SUSTITUYE A TODOS los zips anteriores. Ignora cualquier zip viejo.
 ════════════════════════════════════════════════════════════════════
@@ -24,6 +24,54 @@ Y trae el mecanismo que evita que vuelva a perderse trabajo:
 NOTA IMPORTANTE (v5): tu copia puede tener archivos EXTRA de
 entregas anteriores (amarillos) — son tuyos, NO molestan, y se
 mantienen. Este zip NUNCA borra nada: solo añade y actualiza.
+
+NUEVO EN v9 — ACTUALIZACIÓN COMPLETA APLICADA (5 DÍAS EN UN PAQUETE)
+────────────────────────────────────────────────────────────────────
+Este zip aplica TODAS las actualizaciones acumuladas sobre tu copia
+del 3 de octubre (operación Master Prompt Unificado, Task 94).
+Lo que tu copia GANA:
+  • Registro: contraseña 2 veces + ojo para ver/ocultar.
+  • Cartera: DIRECCIÓN DE DEPÓSITO DEL SISTEMA + QR + botón copiar.
+  • Descargas: panel en la portada + descarga forzada en pestaña nueva.
+  • Panel del mánager: widgets personalizables + paleta de comandos
+    Ctrl+K + Ctrl+1..9 + 5 temas (sistema de diseño completo).
+  • INSTALACIÓN DE UN CLIC: DEPLOY_WINDOWS.bat (doble clic y hace
+    los PASOS 5-7 por ti: npm install + prisma generate + arrancar).
+  • Dependencias al día: Next.js 16.4.0 exacto + 83 paquetes
+    actualizados (lo SEGURO: 0 majors arriesgados, plan por ciclo).
+  • Informes de la operación en docs/reports/ (01-07) + guías
+    WINDOWS_SETUP.md y TROUBLESHOOTING_WINDOWS.md.
+  • Scripts de Windows con CRLF real (.gitattributes) + informes de
+    backup e integridad (BACKUP_LOG.md, BACKUP_MANIFEST.json).
+Esta v9 también viaja con nombre fechado knightfm_updated_<fecha>_UTC_
+v9.0.0.zip: es el MISMO contenido byte a byte que el canónico.
+
+NUEVO EN v8 — LISTO PARA GITHUB Y VERCEL
+────────────────────────────────────────
+El zip ahora trae .gitignore: al subir tu proyecto a GitHub, tu
+.env (TUS CLAVES), node_modules y .next NO viajan al repositorio.
+Y el package.json trae "postinstall: prisma generate" y build
+limpio: Vercel compila sin pasos extra. Pasos resumidos:
+  1) github.com → New repository → nombre "knightfm" → Private.
+  2) En PowerShell dentro de D:\Programacion\knightfm:
+       git init
+       git add .
+       git commit -m "Knight FM v8"
+       git branch -M main
+       git remote add origin https://github.com/TU-USUARIO/knightfm.git
+       git push -u origin main
+     (la primera vez Git abre el navegador para que inicies sesión)
+  3) vercel.com → Sign up con GitHub → Add New... → Project →
+     Import "knightfm" → en Environment Variables añade las de tu
+     .env (mínimo: DATABASE_URL postgres, AUTH_SECRET,
+     NEXT_PUBLIC_SITE_URL, CRON_SECRET) → Deploy.
+  4) Primera vez: crea la base de datos gratis en neon.tech
+     (PostgreSQL), copia su cadena de conexión y crea las tablas:
+       $env:DATABASE_URL="postgresql://..."; npx prisma db push
+     Después pega esa misma cadena en Vercel → Settings →
+     Environment Variables → DATABASE_URL → Redeploy.
+DEBES VER en Vercel → Deployments: punto VERDE "Ready" y tu web
+abriéndose en https://tu-proyecto.vercel.app
 
 NUEVO EN v7 — VERIFICADOR ARREGLADO (PowerShell)
 ────────────────────────────────────────────────
@@ -104,7 +152,7 @@ PARA ACTIVAR DEPÓSITOS EN PRODUCCIÓN (tú, como ADMIN):
 Mientras rpc.url esté vacío, el botón Depositar responde
 honestamente "no configurada" y NO acredita nada.
 
-QUÉ CONTIENE (v7)
+QUÉ CONTIENE (v9)
 ─────────────────
   • src/ COMPLETO del estado actual (menús, cartera con QR,
     registro reforzado, panel de descargas, tácticas, referidos).
@@ -112,8 +160,13 @@ QUÉ CONTIENE (v7)
   • public/ COMPLETO: flags, FACILITIES (30 imágenes), logos,
     og, robots.txt.
   • prisma/schema.prisma POSTGRESQL validado + schema.production.
-  • package.json candado + .npmrc (next 16.1.3 EXACTO, flag-icons,
-    remark-gfm, qrcode.react, bs58, dev Windows) + .env.example.
+  • package.json candado + .npmrc (next 16.4.0 EXACTO — ADR-001,
+    flag-icons, remark-gfm, qrcode.react, bs58, dev Windows-safe)
+    + .env.example + .gitignore (sube a GitHub sin filtrar tu .env).
+  • DEPLOY_WINDOWS.bat/.ps1 (instalación de UN CLIC en Windows)
+    + WINDOWS_SETUP.md + TROUBLESHOOTING_WINDOWS.md + .gitattributes.
+  • Informes de la operación: docs/reports/ (01-07), CHANGELOG.md,
+    BACKUP_LOG.md, STATE.md, BACKUP_MANIFEST.json, ADR-001.
   • next.config.ts con la descarga forzada de /downloads/.
   • vercel.json (si existe en tu copia se mantiene) + configs raíz
     + bun.lock.
@@ -146,12 +199,17 @@ PASO 4 — VERIFICA (¡lo nuevo!)
    Dentro de D:\Programacion\knightfm haz DOBLE CLIC en:
         VERIFICAR-INSTALACION.bat
    DEBES VER (ventana negra):
-        CORRECTOS: 423   FALTAN: 0   TAMANO DISTINTO: 0
+        CORRECTOS: 448   FALTAN: 0   TAMANO DISTINTO: 0
         RESULTADO: TU PROYECTO ESTA COMPLETO
-   (Ya NO salen errores rojos de PowerShell: v7 es 100% ASCII.)
+   (Ya NO salen errores rojos de PowerShell: el verificador es
+    100% ASCII desde v7.)
    Si sale "FALTAN: n" → repite PASO 2-3 asegurándote de pulsar
    "Reemplazar". (Los "EXTRA" amarillos son archivos tuyos
    anteriores: no molestan, ignóralos.)
+
+   ¿ATAJA LOS PASOS 5-7? Doble clic en DEPLOY_WINDOWS.bat: instala
+   dependencias, genera Prisma, prepara tu .env y arranca el juego
+   solo (te abre http://localhost:3000 en tu navegador).
 
 PASO 5 — Instala dependencias (OBLIGATORIO)
    En PowerShell dentro de D:\Programacion\knightfm:
@@ -176,7 +234,7 @@ PASO 7 — Prueba local
 
 PASO 8 — Sube a GitHub (dispara Vercel)
         git add .
-        git commit -m "Sincronizacion completa v7"
+        git commit -m "Sincronizacion completa v9"
         git push
    OJO: el push incluye package.json → Vercel instalará las
    dependencias nuevas solo. Espera 1-3 min.

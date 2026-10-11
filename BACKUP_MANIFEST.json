@@ -1,0 +1,47 @@
+{
+  "schema": "kfm.backup-manifest/1",
+  "generated_utc": "2026-10-11T14:41:00Z",
+  "task": "94 - Master Prompt Unificado: aplicar actualizaciones acumuladas y entregar zip completo",
+  "delivery_version": "v9.0.0",
+  "canonical_delivery": "knightfm-sincronizacion-completa.zip",
+  "preupdate_backup": {
+    "file": "backups/knightfm_backup_20261011_141038_UTC_v8.0.0_phase0.zip",
+    "sha256": "ff63590a918a8f4ffdc46dab8b3fc6804283e839120b47d981504d12fc8b83cc",
+    "size_bytes": 30000548,
+    "file_count": 447,
+    "uncompressed_bytes": 59377608,
+    "created_utc": "2026-10-11 14:10:39 UTC",
+    "version_backed_up": "v8.0.0",
+    "sidecar_manifest": "backups/knightfm_backup_20261011_141038_UTC_v8.0.0_phase0.manifest.json",
+    "sidecar_content": "SHA-256 por archivo + copia del manifiesto dentro del zip",
+    "generator": "scripts/task94-backup.sh"
+  },
+  "uploaded_source": {
+    "file": "upload/knight-fm-proyecto-completo (1).zip",
+    "sha256": "ff5fc849ac0a8c64a28bcd6b1d98409a2f59438e4fe276d387593d9acc39a7f7",
+    "size_bytes": 16140948,
+    "zip_entries": 605,
+    "extracted_files": 431,
+    "snapshot_date": "2026-10-03",
+    "package_version": "0.2.1",
+    "next_pin": "^16.1.1 (flotante)",
+    "dependencies_declared": 70,
+    "prisma_provider": "sqlite",
+    "preserved_at": "upload/ (intacto, no se modifica ni se borra)"
+  },
+  "user_local_data_policy": {
+    "env_file": "NO viaja en zips y NO se toca: conserva tu .env (claves). Tu zip original tambien lo contiene.",
+    "database": "NO viaja y NO se toca: db/custom.db (SQLite, 33.7 MB) se conserva en tu disco. Esta version usa PostgreSQL (ver WINDOWS_SETUP.md seccion 4).",
+    "extras": "Archivos propios de entregas anteriores: nunca se borran; el verificador los lista como EXTRA (ignorables)."
+  },
+  "archive_policy": "Archive-instead-of-delete: nada se elimina; el contenido sustituido queda en el backup phase0 y en el zip original del usuario; docs/archive/ conserva la fuente del mandato.",
+  "reports": [
+    "docs/reports/01_INITIAL_INVENTORY.md",
+    "docs/reports/02_BACKUP_REPORT.md",
+    "docs/reports/03_UPDATE_ANALYSIS.md",
+    "docs/reports/04_APPLY_LOG.md",
+    "docs/reports/05_DEPENDENCY_REPORT.md",
+    "docs/reports/06_INTEGRITY_REPORT.md",
+    "docs/reports/07_DELIVERY_REPORT.md"
+  ]
+}
