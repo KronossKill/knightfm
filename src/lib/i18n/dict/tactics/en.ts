@@ -16,6 +16,16 @@ export const dict: Dict = {
   "tactics.view.hint.combined": "Full XI at base positions.",
   "tactics.view.hint.in": "In possession: the block pushes up and attacks through the wings.",
   "tactics.view.hint.out": "Out of possession: compact block near our own box.",
+  // KMIE 2.0 (Task 100) — possession styles (engine-applied factors)
+  "tactics.style.in.label": "In possession: style",
+  "tactics.style.in.balanced": "Balanced",
+  "tactics.style.in.possession": "Possession (+5% possession)",
+  "tactics.style.in.direct": "Direct (+4% attack)",
+  "tactics.style.in.counter": "Counter-attack (+2% defense)",
+  "tactics.style.out.label": "Out of possession: style",
+  "tactics.style.out.mid-block": "Mid block",
+  "tactics.style.out.high-press": "High press (+3% defense, +5% injuries)",
+  "tactics.style.out.low-block": "Low block (+5% defense, −2% attack)",
 
   // Actions
   "tactics.action.auto": "Auto-complete",

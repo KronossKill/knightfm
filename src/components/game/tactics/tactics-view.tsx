@@ -59,6 +59,10 @@ export interface TacticsViewProps {
 interface LineupState {
   formation: Formation;
   slots: Record<string, string | null>;
+  // KMIE 2.0 (Task 100): possession styles — persisted with the lineup and
+  // applied by the match engine (attack/defense/possession factors).
+  inPossession: string;
+  outOfPossession: string;
 }
 
 // ─── Default export (resilient to a missing app-level QueryClientProvider) ──
@@ -123,7 +127,12 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
     const formation = (FORMATIONS as readonly string[]).includes(d.formation)
       ? (d.formation as Formation)
       : "4-4-2";
-    return { formation, slots: normalizeSlots(d.slots, formation) };
+    return {
+      formation,
+      slots: normalizeSlots(d.slots, formation),
+      inPossession: d.inPossession ?? "balanced",
+      outOfPossession: d.outOfPossession ?? "mid-block",
+    };
   }, [lineupQ.data]);
 
   // Adopt the server snapshot once (working copy is local & optimistic).
@@ -139,7 +148,10 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
   const dirty =
     !!state &&
     !!saved &&
-    (state.formation !== saved.formation || JSON.stringify(state.slots) !== JSON.stringify(saved.slots));
+    (state.formation !== saved.formation ||
+      JSON.stringify(state.slots) !== JSON.stringify(saved.slots) ||
+      state.inPossession !== saved.inPossession ||
+      state.outOfPossession !== saved.outOfPossession);
 
   const openSlot = state && openSlotId ? layout.find((s) => s.id === openSlotId) ?? null : null;
 
@@ -162,8 +174,16 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
           slots[s.id] = null;
         }
       }
-      return { formation, slots };
+      return { ...prev, formation, slots };
     });
+  }, []);
+
+  const handleInStyleChange = useCallback((value: string) => {
+    setState((prev) => (prev ? { ...prev, inPossession: value } : prev));
+  }, []);
+
+  const handleOutStyleChange = useCallback((value: string) => {
+    setState((prev) => (prev ? { ...prev, outOfPossession: value } : prev));
   }, []);
 
   const handleAssign = useCallback((slotId: string, playerId: string | null) => {
@@ -183,9 +203,19 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
   const handleSave = useCallback(async () => {
     if (!state) return;
     try {
-      const res = await saveMut.mutateAsync({ formation: state.formation, slots: state.slots });
+      const res = await saveMut.mutateAsync({
+        formation: state.formation,
+        slots: state.slots,
+        inPossession: state.inPossession,
+        outOfPossession: state.outOfPossession,
+      });
       const formation = res.formation as Formation;
-      const next: LineupState = { formation, slots: normalizeSlots(res.slots, formation) };
+      const next: LineupState = {
+        formation,
+        slots: normalizeSlots(res.slots, formation),
+        inPossession: res.inPossession ?? state.inPossession,
+        outOfPossession: res.outOfPossession ?? state.outOfPossession,
+      };
       setState(next);
       toast({
         title: t("tactics.toast.saved"),
@@ -205,7 +235,12 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
     try {
       const res = await autoMut.mutateAsync({ formation: state.formation });
       const formation = res.formation as Formation;
-      const next: LineupState = { formation, slots: normalizeSlots(res.slots, formation) };
+      const next: LineupState = {
+        formation,
+        slots: normalizeSlots(res.slots, formation),
+        inPossession: state.inPossession,
+        outOfPossession: state.outOfPossession,
+      };
       setState(next);
       toast({
         title: t("tactics.toast.autoDone"),
@@ -381,6 +416,38 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
               {FORMATIONS.map((f) => (
                 <SelectItem key={f} value={f}>
                   {f}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* KMIE 2.0 (Task 100): possession styles — engine-applied factors */}
+          <Select value={state?.inPossession ?? "balanced"} onValueChange={handleInStyleChange}>
+            <SelectTrigger
+              aria-label={t("tactics.style.in.label")}
+              className="w-[168px] text-xs sm:w-[190px] sm:text-sm"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["balanced", "possession", "direct", "counter"].map((s) => (
+                <SelectItem key={s} value={s}>
+                  {t(`tactics.style.in.${s}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={state?.outOfPossession ?? "mid-block"} onValueChange={handleOutStyleChange}>
+            <SelectTrigger
+              aria-label={t("tactics.style.out.label")}
+              className="w-[168px] text-xs sm:w-[190px] sm:text-sm"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {["mid-block", "high-press", "low-block"].map((s) => (
+                <SelectItem key={s} value={s}>
+                  {t(`tactics.style.out.${s}`)}
                 </SelectItem>
               ))}
             </SelectContent>

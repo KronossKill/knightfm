@@ -4,7 +4,9 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { simulateMatch, TeamStrengthInput, mulberry32, seedFromString } from "@/lib/engine/kmie";
-import { computeContextualOvr } from "@/lib/engine/ovr";
+import { computeContextualOvr, positionFit } from "@/lib/engine/ovr";
+import { deriveConditions, medicalInjuryMul } from "@/lib/engine/conditions";
+import { runTramaMatch } from "@/lib/engine/trama";
 import { autoCompleteLineup, AutoPlayer } from "@/lib/engine/tactics";
 import { FORMATION_LAYOUTS, Formation, Position } from "@/lib/types";
 import { allocateRevenue, creditClub } from "@/lib/engine/finance";
@@ -20,11 +22,11 @@ function avg(nums: number[]): number {
 }
 
 function strengthFromPlayers(
-  players: { position: Position; ovr: number; fatigue: number; sharpness: number; morale: number; confidence: number }[],
+  players: { position: Position; ovr: number; fatigue: number; sharpness: number; morale: number; confidence: number; roleFit?: number }[],
   formation: Formation
 ): TeamStrengthInput {
   const ctx = (p: (typeof players)[number]) =>
-    computeContextualOvr({ rawOvr: p.ovr, fatigue: p.fatigue, sharpness: p.sharpness, morale: p.morale, confidence: p.confidence });
+    computeContextualOvr({ rawOvr: p.ovr, fatigue: p.fatigue, sharpness: p.sharpness, morale: p.morale, confidence: p.confidence, roleFit: p.roleFit ?? 1 });
   const gks = players.filter((p) => p.position === "GK");
   const dfs = players.filter((p) => p.position === "DF");
   const mfs = players.filter((p) => p.position === "MF");
@@ -40,6 +42,37 @@ function strengthFromPlayers(
   };
 }
 
+// KMIE 2.0 (Task 100): in/out-possession style effects. The Lineup.inPossession /
+// outOfPossession columns existed since genesis but were DEAD — never accepted by
+// the tactics API and never applied by the engine (tacticsFactor was hardcoded 1.0).
+// Effects are deliberately modest (±2..5%) so style refines strength, never replaces it.
+const IN_STYLE_EFFECT: Record<string, { atk: number; poss: number }> = {
+  balanced: { atk: 1.0, poss: 0 },
+  possession: { atk: 1.02, poss: 5 },
+  direct: { atk: 1.04, poss: -5 },
+  counter: { atk: 1.03, poss: -3 },
+};
+const OUT_STYLE_EFFECT: Record<string, { def: number; inj: number }> = {
+  "mid-block": { def: 1.0, inj: 1.0 },
+  "high-press": { def: 1.03, inj: 1.05 },
+  "low-block": { def: 1.05, inj: 1.0 },
+};
+function styleFactors(lineup: { inPossession?: string; outOfPossession?: string } | null | undefined): {
+  attackFactor: number;
+  defenseFactor: number;
+  possessionBias: number;
+  injuryMul: number;
+} {
+  const inE = IN_STYLE_EFFECT[lineup?.inPossession ?? "balanced"] ?? IN_STYLE_EFFECT.balanced;
+  const outE = OUT_STYLE_EFFECT[lineup?.outOfPossession ?? "mid-block"] ?? OUT_STYLE_EFFECT["mid-block"];
+  return {
+    attackFactor: inE.atk,
+    defenseFactor: outE.def * (lineup?.inPossession === "counter" ? 1.02 : 1),
+    possessionBias: inE.poss,
+    injuryMul: outE.inj,
+  };
+}
+
 export interface SimOutcome {
   played: boolean;
   homeGoals?: number;
@@ -52,8 +85,8 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
     include: {
       match: true,
       season: true,
-      home: { include: { players: true, lineups: true } },
-      away: { include: { players: true, lineups: true } },
+      home: { include: { players: true, lineups: true, facilities: true, region: { select: { index: true } } } },
+      away: { include: { players: true, lineups: true, facilities: true, region: { select: { index: true } } } },
     },
   });
   if (!fixture || fixture.status !== "SCHEDULED" || fixture.match) return { played: false };
@@ -61,7 +94,10 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
   const now = new Date();
   const rng = mulberry32(seedFromString(`KMIE-EV:${fixture.id}`));
 
-  const buildXI = (club: typeof fixture.home): { ids: string[]; strength: TeamStrengthInput } => {
+  const buildXI = (club: typeof fixture.home): {
+    ids: string[]; strength: TeamStrengthInput; style: ReturnType<typeof styleFactors>;
+    details: { ages: number[]; fatigueAvg: number; moraleConf: number; youthCount: number };
+  } => {
     const eligible = club.players.filter(
       (p) => !p.retired && !p.isYouth && (!p.injuredUntil || p.injuredUntil < now) && p.suspension === 0
     );
@@ -79,16 +115,113 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
       if (!chosen.has(s.slotId) && s.playerId) chosen.set(s.slotId, s.playerId);
     }
     const xiIds = [...chosen.values()];
-    const xi = (xiIds.length >= 7 ? eligible.filter((p) => xiIds.includes(p.id)) : eligible.slice(0, 11)).map((p) => ({
-      position: p.position as Position, ovr: p.ovr, fatigue: p.fatigue, sharpness: p.sharpness, morale: p.morale, confidence: p.confidence,
-    }));
-    return { ids: xi.map((_, i) => xiIds[i] ?? ""), strength: strengthFromPlayers(xi, formation) };
+    // KMIE 2.0 (Task 100): positional fit now affects effective strength — a DF
+    // slotted into MF contributes his contextual OVR × roleFit (0.55), so bad
+    // manual lineups and injuries in the wrong zone genuinely cost quality.
+    const slotPosById = new Map(slots.map((s) => [s.id, s.pos] as const));
+    const slotIdOfPlayer = new Map<string, string>();
+    for (const [slotId, playerId] of chosen) slotIdOfPlayer.set(playerId, slotId);
+    const xiBase = xiIds.length >= 7 ? eligible.filter((p) => xiIds.includes(p.id)) : eligible.slice(0, 11);
+    const xi = xiBase.map((p) => {
+      const slotId = slotIdOfPlayer.get(p.id);
+      const slotPos = slotId ? slotPosById.get(slotId) : undefined;
+      return {
+        position: p.position as Position, ovr: p.ovr, fatigue: p.fatigue, sharpness: p.sharpness, morale: p.morale, confidence: p.confidence,
+        roleFit: slotPos ? positionFit(p.position as Position, slotPos) : 1,
+      };
+    });
+    const details = {
+      ages: xiBase.map((p) => p.age),
+      fatigueAvg: xiBase.length ? xiBase.reduce((a, b) => a + b.fatigue, 0) / xiBase.length : 20,
+      moraleConf: xiBase.length ? xiBase.reduce((a, b) => a + (b.morale + b.confidence) / 2, 0) / xiBase.length : 60,
+      youthCount: xiBase.filter((p) => p.age < 21).length,
+    };
+    return { ids: xi.map((_, i) => xiIds[i] ?? ""), strength: strengthFromPlayers(xi, formation), style: styleFactors(club.lineups), details };
   };
 
   const homeXI = buildXI(fixture.home);
   const awayXI = buildXI(fixture.away);
+
+  // KMIE 2.0 (Task 100): weather / pitch / referee / hidden day-form, all
+  // deterministic from the fixture seed. Region.index picks the climate band;
+  // home STADIUM level drives pitch state.
+  const facilityLevel = (club: typeof fixture.home, type: string): number =>
+    club.facilities?.find((f) => f.type === type)?.level ?? 1;
+  const [weatherEnabled, pitchEnabled] = await Promise.all([
+    getBool("matches.weatherEnabled"),
+    getBool("matches.pitchEnabled"),
+  ]);
+  const [dayFormPct, refereeVariancePct] = await Promise.all([
+    getInt("matches.dayFormPct", 10),
+    getInt("matches.refereeVariancePct", 20),
+  ]);
+  const cond = deriveConditions(`${fixture.season.number}:${fixture.competition}:${fixture.id}`, {
+    regionIndex: fixture.home.region?.index ?? 5,
+    homeStadiumLevel: facilityLevel(fixture.home, "STADIUM"),
+    weatherEnabled,
+    pitchEnabled,
+    dayFormPct,
+    refereeVariancePct,
+  });
+
+  const homeStrength: TeamStrengthInput = {
+    ...homeXI.strength,
+    attackFactor: homeXI.style.attackFactor,
+    defenseFactor: homeXI.style.defenseFactor,
+    possessionBias: homeXI.style.possessionBias,
+  };
+  const awayStrength: TeamStrengthInput = {
+    ...awayXI.strength,
+    attackFactor: awayXI.style.attackFactor,
+    defenseFactor: awayXI.style.defenseFactor,
+    possessionBias: awayXI.style.possessionBias,
+  };
   const seed = `KMIE:${fixture.season.number}:${fixture.competition}:${fixture.id}`;
-  const sim = simulateMatch(seed, homeXI.strength, awayXI.strength);
+
+  // Task 101 — TRAMA engine (spec "Parte 3"): five-thread knot simulation.
+  // Enabled by trama.enabled (default true); when false the legacy Poisson
+  // aggregate path runs. Both paths are deterministic from the same seed.
+  const tramaEnabled = await getBool("trama.enabled");
+  const [chaosBudget, blackSwanPerMil, homeAdvCapPct] = await Promise.all([
+    getInt("trama.chaosBudget", 4),
+    getInt("trama.blackSwanPerMil", 3),
+    getInt("trama.homeAdvCapPct", 3),
+  ]);
+  const trama = tramaEnabled
+    ? runTramaMatch(
+        seed,
+        {
+          strength: homeStrength,
+          ages: homeXI.details.ages,
+          fatigueAvg: homeXI.details.fatigueAvg,
+          moraleConf: homeXI.details.moraleConf,
+          youthCount: homeXI.details.youthCount,
+          stadiumLevel: facilityLevel(fixture.home, "STADIUM"),
+        },
+        {
+          strength: awayStrength,
+          ages: awayXI.details.ages,
+          fatigueAvg: awayXI.details.fatigueAvg,
+          moraleConf: awayXI.details.moraleConf,
+          youthCount: awayXI.details.youthCount,
+          stadiumLevel: facilityLevel(fixture.away, "STADIUM"),
+        },
+        cond,
+        { competition: fixture.competition, stage: fixture.stage ?? null },
+        { chaosBudget, blackSwanPerMil, homeAdvCapPct }
+      )
+    : null;
+  const sim = trama
+    ? {
+        homeGoals: trama.homeGoals,
+        awayGoals: trama.awayGoals,
+        possessionHome: trama.possessionHome,
+        shotsHome: trama.shotsHome,
+        shotsAway: trama.shotsAway,
+        xgHomeX100: trama.xgHomeX100,
+        xgAwayX100: trama.xgAwayX100,
+      }
+    : simulateMatch(seed, homeStrength, awayStrength, cond);
 
   const allPlayers = [...fixture.home.players, ...fixture.away.players].filter((p) => !p.retired && !p.isYouth);
   // MatchEvent.clubId is non-nullable; resolve the club by squad membership.
@@ -99,6 +232,14 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
 
   interface Ev { minute: number; type: string; clubId: string; playerId: string | null; detail: string }
   const events: Ev[] = [];
+  // KMIE 2.0 (Task 100): pre-match conditions as minute-0 events — visible in the
+  // match report, hidden day-form deliberately NOT reported. clubId anchors the
+  // conditions to the HOME club (pitch owner); the dialog renders them neutrally.
+  events.push(
+    { minute: 0, type: "WEATHER", clubId: fixture.homeId, playerId: null, detail: `${cond.weather}|${cond.tempC}C|${cond.windKmh}kmh` },
+    { minute: 0, type: "PITCH", clubId: fixture.homeId, playerId: null, detail: cond.pitch },
+    { minute: 0, type: "REFEREE", clubId: fixture.homeId, playerId: null, detail: cond.referee },
+  );
   const weightedPick = (pool: typeof allPlayers, minEdge = 40) => {
     if (pool.length === 0) return null;
     const weights = pool.map((p) => Math.max(1, p.ovr - minEdge + (p.position === "FW" ? 18 : p.position === "MF" ? 6 : 0)));
@@ -110,14 +251,32 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
   const addGoals = (clubId: string, goals: number) => {
     for (let g = 0; g < goals; g++) {
       const minute = 1 + Math.floor(rng() * 90);
-      const scorer = weightedPick(scorerPool.filter((p) => p.clubId === clubId));
-      const assister = rng() < 0.72 ? weightedPick(assistPool.filter((p) => p.clubId === clubId && p.id !== scorer?.id), 42) : null;
-      events.push({ minute, type: "GOAL", clubId, playerId: scorer?.id ?? null, detail: "" });
-      if (assister) events.push({ minute, type: "ASSIST", clubId, playerId: assister.id, detail: "" });
+      addGoalAt(clubId, minute, "", false);
     }
   };
-  addGoals(fixture.homeId, sim.homeGoals);
-  addGoals(fixture.awayId, sim.awayGoals);
+  const addGoalAt = (clubId: string, minute: number, detail: string, penalty: boolean) => {
+    const scorer = weightedPick(scorerPool.filter((p) => p.clubId === clubId));
+    const assister = rng() < 0.72 ? weightedPick(assistPool.filter((p) => p.clubId === clubId && p.id !== scorer?.id), 42) : null;
+    events.push({ minute, type: "GOAL", clubId, playerId: scorer?.id ?? null, detail });
+    if (assister) events.push({ minute, type: "ASSIST", clubId, playerId: assister.id, detail: "" });
+    void penalty;
+  };
+  if (trama) {
+    // TRAMA: minutes, bands and CAUSES come from the knot engine (spec 3.12:
+    // every event carries its causes, e.g. "CLIMA +0.20 · TERRENO +0.18").
+    for (const g of trama.goalsHome) addGoalAt(fixture.homeId, g.minute, g.causes || g.band, g.penalty);
+    for (const g of trama.goalsAway) addGoalAt(fixture.awayId, g.minute, g.causes || g.band, g.penalty);
+    for (const pen of trama.penalties) {
+      if (!pen.scored) {
+        const clubId = pen.side === "home" ? fixture.homeId : fixture.awayId;
+        const taker = weightedPick(scorerPool.filter((p) => p.clubId === clubId));
+        events.push({ minute: pen.minute, type: "MISSED_PENALTY", clubId, playerId: taker?.id ?? null, detail: "" });
+      }
+    }
+  } else {
+    addGoals(fixture.homeId, sim.homeGoals);
+    addGoals(fixture.awayId, sim.awayGoals);
+  }
   events.sort((a, b) => a.minute - b.minute);
 
   const winningClub = sim.homeGoals > sim.awayGoals ? fixture.homeId : sim.awayGoals > sim.homeGoals ? fixture.awayId : null;
@@ -143,9 +302,37 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
   //   player's NEXT club fixture, stacked on any send-off ban).
   const sendOffs = new Map<string, number>(); // playerId -> ban matches
   const bookedIds = new Set<string>(); // one count per match, per player
-  const redChancePct = Math.max(0, Math.min(100, await getInt("matches.redCardChancePct", 5)));
   const maxSusp = Math.max(1, await getInt("matches.redCardSuspensionMatches", 2));
-  if (redChancePct > 0 && rng() * 100 < redChancePct) {
+  if (trama) {
+    // Task 101 — TRAMA discipline (3.8): cards come from in-match fouls scaled
+    // by the referee severity, not from flat per-match draws. Player picks are
+    // weighted uniform over that side's XI; a booked player picked again is his
+    // second yellow (same ban ladder as Task 28).
+    const xiOf = (side: "home" | "away") =>
+      allPlayers.filter((p) => playedIds.has(p.id) && (side === "home" ? p.clubId === fixture.homeId : p.clubId === fixture.awayId));
+    for (const c of trama.cards) {
+      const pool = xiOf(c.side);
+      const target = pool.length > 0 ? pool[Math.floor(rng() * pool.length)] : null;
+      if (!target) continue;
+      const clubId = c.side === "home" ? fixture.homeId : fixture.awayId;
+      if (c.kind === "YELLOW") {
+        if (bookedIds.has(target.id)) {
+          sendOffs.set(target.id, 1 + Math.floor(rng() * maxSusp));
+          events.push({ minute: c.minute, type: "RED_CARD", clubId, playerId: target.id, detail: "SECOND_YELLOW" });
+        } else {
+          bookedIds.add(target.id);
+          events.push({ minute: c.minute, type: "YELLOW_CARD", clubId, playerId: target.id, detail: "" });
+        }
+      } else {
+        sendOffs.set(target.id, 1 + Math.floor(rng() * maxSusp));
+        events.push({ minute: c.minute, type: "RED_CARD", clubId, playerId: target.id, detail: c.kind === "RED_SECOND" ? "SECOND_YELLOW" : "" });
+      }
+    }
+    events.sort((a, b) => a.minute - b.minute);
+  } else {
+  const redChancePct = Math.max(0, Math.min(100, await getInt("matches.redCardChancePct", 5)));
+  const redChance = Math.min(100, redChancePct * cond.cardMul);
+  if (redChance > 0 && rng() * 100 < redChance) {
     const xiPool = allPlayers.filter((p) => playedIds.has(p.id));
     const straightRed = xiPool.length > 0 ? xiPool[Math.floor(rng() * xiPool.length)] : null;
     if (straightRed) {
@@ -156,10 +343,11 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
   }
   const ycChancePct = Math.max(0, Math.min(100, await getInt("matches.yellowCardChancePct", 40)));
   const ycMaxDraws = Math.max(0, await getInt("matches.yellowCardMaxPerMatch", 4));
-  if (ycChancePct > 0 && ycMaxDraws > 0) {
+  const ycChance = Math.min(100, ycChancePct * cond.cardMul);
+  if (ycChance > 0 && ycMaxDraws > 0) {
     const xiPool = allPlayers.filter((p) => playedIds.has(p.id));
     for (let d = 0; d < ycMaxDraws; d++) {
-      if (rng() * 100 >= ycChancePct) continue;
+      if (rng() * 100 >= ycChance) continue;
       const target = xiPool.length > 0 ? xiPool[Math.floor(rng() * xiPool.length)] : null;
       if (!target) break;
       if (sendOffs.has(target.id)) continue; // a sent-off player cannot be booked
@@ -174,6 +362,7 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
       }
     }
     events.sort((a, b) => a.minute - b.minute);
+  }
   }
   const ycThreshold = Math.max(1, await getInt("matches.yellowCardsForSuspension", 5));
 
@@ -209,7 +398,35 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
     // - Condition/morale/injury updates keep the historical sampling for
     //   squad players who did not feature.
     // - Injuries on featured players emit an INJURY event for the match report.
+    // - Task 100 (KMIE 2.0): injury chance now scales with weather/pitch
+    //   (conditions.injuryFactor), the club's MEDICAL_CENTER + SPORTS_SCIENCE
+    //   levels (medicalInjuryMul) and the team's out-of-possession style
+    //   (high-press ×1.05). HAPPINESS: unused players react to the result —
+    //   bench of the winner +1 morale, bench of the loser −1 (draw 0) — so
+    //   rotation and losing streaks feed back into future matches via the
+    //   contextual-OVR state factor.
     const postEvents: Ev[] = [];
+    // Task 101 — TRAMA injuries assigned to concrete players (weighted by
+    // fatigue — tired players break more, spec 3.5).
+    const tramaInjuredIds = new Map<string, { severity: "KNOCK" | "MUSCLE"; minute: number }>();
+    if (trama) {
+      for (const inj of trama.injuries) {
+        const clubId = inj.side === "home" ? fixture.homeId : fixture.awayId;
+        const pool = allPlayers.filter((p) => p.clubId === clubId && playedIds.has(p.id));
+        if (pool.length === 0) continue;
+        const weights = pool.map((p) => Math.max(1, p.fatigue));
+        const total = weights.reduce((a, b) => a + b, 0);
+        let r = rng() * total;
+        let picked = pool[pool.length - 1];
+        for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { picked = pool[i]; break; } }
+        tramaInjuredIds.set(picked.id, { severity: inj.severity, minute: inj.minute });
+      }
+    }
+    const medicalMul = (clubId: string): number => {
+      const club = clubId === fixture.homeId ? fixture.home : fixture.away;
+      return medicalInjuryMul(facilityLevel(club, "MEDICAL_CENTER"), facilityLevel(club, "SPORTS_SCIENCE"));
+    };
+    const styleInj = (clubId: string): number => (clubId === fixture.homeId ? homeXI.style.injuryMul : awayXI.style.injuryMul);
     for (const p of allPlayers) {
       const played = playedIds.has(p.id);
       const updateCondition = played || rng() >= 0.8;
@@ -227,27 +444,41 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
       const nextSuspension = isOffender
         ? (sendOffs.get(p.id) ?? 1) + thresholdBan
         : Math.max(0, p.suspension - 1) + thresholdBan;
-      if (!updateCondition && nextSuspension === p.suspension && !booked) continue;
-      const injury = updateCondition ? rng() < 0.02 + p.fatigue / 5000 : false;
+      const happinessDelta = played ? 0 : winningClub === null ? 0 : p.clubId === winningClub ? 1 : -1;
+      if (!updateCondition && nextSuspension === p.suspension && !booked && happinessDelta === 0) continue;
+      const injury = updateCondition
+        ? trama
+          ? tramaInjuredIds.has(p.id)
+          : rng() < (0.02 + p.fatigue / 5000) * cond.injuryFactor * medicalMul(p.clubId ?? fixture.homeId) * styleInj(p.clubId ?? fixture.homeId)
+        : false;
       const delta = p.clubId === winningClub ? 4 : -2;
+      const moodDelta = trama ? (p.clubId === fixture.homeId ? trama.moodHome : trama.moodAway) : 0;
+      const fatigueDelta = trama ? (p.clubId === fixture.homeId ? trama.fatigueDeltaHome : trama.fatigueDeltaAway) : 12 + Math.floor(rng() * 10);
+      const injDays = injury
+        ? trama
+          ? tramaInjuredIds.get(p.id)?.severity === "MUSCLE"
+            ? 4 + Math.floor(rng() * 6)
+            : 1 + Math.floor(rng() * 3)
+          : 2 + Math.floor(rng() * 8)
+        : 0;
       await tx.player.update({
         where: { id: p.id },
         data: {
           ...(updateCondition
             ? {
-                fatigue: Math.min(100, p.fatigue + 12 + Math.floor(rng() * 10)),
+                fatigue: Math.min(100, p.fatigue + fatigueDelta),
                 sharpness: Math.min(100, p.sharpness + 4),
                 form: Math.max(5, Math.min(95, p.form + (p.clubId === winningClub ? 3 : -1) + Math.floor((rng() - 0.5) * 4))),
-                morale: Math.max(5, Math.min(95, p.morale + delta)),
-                injuredUntil: injury ? new Date(now.getTime() + (2 + Math.floor(rng() * 8)) * 86400000) : p.injuredUntil,
+                morale: Math.max(5, Math.min(95, p.morale + delta + moodDelta)),
+                injuredUntil: injury ? new Date(now.getTime() + injDays * 86400000) : p.injuredUntil,
               }
-            : {}),
+            : { morale: Math.max(5, Math.min(95, p.morale + happinessDelta)) }),
           suspension: nextSuspension,
           ...(booked ? { yellowCards } : {}),
         },
       });
       if (updateCondition && injury && played) {
-        postEvents.push({ minute: 1 + Math.floor(rng() * 90), type: "INJURY", clubId: clubIdOf(p), playerId: p.id, detail: "" });
+        postEvents.push({ minute: trama ? tramaInjuredIds.get(p.id)?.minute ?? 45 : 1 + Math.floor(rng() * 90), type: "INJURY", clubId: clubIdOf(p), playerId: p.id, detail: "" });
       }
     }
     for (const ev of postEvents) {

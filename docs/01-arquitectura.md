@@ -35,7 +35,7 @@ src/
 ├── lib/
 │   ├── api.ts      ok()/fail(), requireAuth, audit, clientIp, gates de mantenimiento
 │   ├── auth.ts     Emisión/rotación de tokens, hash argon2id
-│   ├── config.ts   113 claves CONFIG_DEFAULTS (ver 04-configuracion.md)
+│   ├── config.ts   123 claves CONFIG_DEFAULTS (ver 04-configuracion.md)
 │   ├── genesis.ts  Wipe + reseed del mundo (usado por CLI y /api/admin/reset)
 │   ├── db.ts       Cliente Prisma singleton
 │   ├── security.ts Headers, rate limit, sanitización
@@ -81,9 +81,32 @@ Días 31–32    Transición → nueva temporada
 - **Mundial de Clubes**: solo desde la **Temporada 2** (en T1 no existen clasificados). Clasifican el top-3 de cada 1ª división regional + el campeón de copa regional (si ya clasificó, entra el 4º de esa 1ª división).
 - **Ascensos/descensos**: 3 suben / 3 bajan entre divisiones contiguas (la 10ª no baja, la 1ª no sube).
 
-## Motor KMIE (simulación causal)
+## Motor TRAMA (Tejido de Reacciones, Azar y Momentos Adaptativos — Task 101)
 
-`lib/engine/kmie.ts` + `matches.ts` simulan cada partido con: atributos técnicos/físicos/mentales por jugador, forma/fatiga/frescura/moral/confianza, táctica (formación, estilo, presión, agresividad — Tablero Táctico interactivo), localía, portero y rachas. Eventos: goles, amarillas (máx. 4, 5 → suspensión), rojas (5% prob., 2 partidos de suspensión), lesiones según Ciencia Deportiva.
+Implementación del spec propio del proyecto ("Parte 3 · Motor de partido TRAMA", subida por el usuario). El partido es un tejido de **5 hilos** (Mundo, Cuerpo, Mente, Juego, Azar) cuyas tensiones se cruzan en **nudos** resueltos en 5 pasos:
+
+```
+RE = Calidad × Fcuerpo × Fmente × Fmundo × Frol × Fsinergia × Fexp   (cada F ∈ 0.60–1.15)
+M  = (RE_atacante − RE_defensor) + Espacio + Táctica + Marea
+P  = 1 / (1 + e^(−M/T))     con T = 3 × (1 + Caos de contexto), caos 0–1.5
+Banda: Excelente / Correcto / Forzado / Fallo / Error / Desastre  (colas pesadas)
+```
+
+| Hilo | Qué modela aquí |
+|---|---|
+| Mundo | clima evolutivo (frentes cambian en el descanso/tramo final), terreno por zonas con desgaste→barro según lluvia, reparación del descanso (10-20% según estadio), afición (estadio), árbitro con severidad+consistencia |
+| Cuerpo | depósitos aeróbico/anaeróbico/mental con curva no lineal (>70% libre, 70-40 gradual, <40 fuerte, <15 calambres); lesiones R = R0 × Fatiga^1.5 × Terreno × Frío × (1−Protección médica) |
+| Mente | ánimo reaccionando a goles/errores, lapsus post-gol (3 min) agravados por plantilla joven, concentración que se agota con presión |
+| Juego | cadenas de posesión con 4 puertas (construcción→progresión→creación→finalización), lectura adaptativa de rutas (−12% si repites), marea del partido (−1..1 con inercia 0.93), gestión del marcador progresiva (0.88–1.08), estilos Con/Sin balón como términos Táctica/Espacio |
+| Azar | temperatura de azar variable por nudo, día de forma oculto (±8%, colas pesadas), cisnes negros (fallo de focos, objetos, invasión) con **presupuesto de caos** (4 extremos por partido, efecto acotado), rebotes y segundas jugadas |
+
+**Experiencia (3.15)**: Madurez = 1/(1+e^(−(edad−22)/3)) por edad real; Bagaje = 100×(1−e^(−PE/200)) con proxy determinista de carrera (PE=(edad−17)×26); Fexp = 1 + pesoNudo×(expEfectiva − exigencia) acotado [0.85, 1.04]; Colas = 1.35 − 0.5×Madurez (los jóvenes viven más extremos); Serenidad amortigua nervios.
+
+**Equidad (3.11)**: ventaja local = factores reales (sin viaje + afición) **con tope configurable (3%)**; reglas idénticas para ambos; determinismo auditable desde la semilla.
+
+**Calibración (3.13)** — `bun scripts/calibrate-trama.ts 12000`: 2.58 goles, 9.6 tiros/equipo, 3.8 córners, 23.1 faltas, 3.85 amarillas, 0.09 rojas, 0.25 penaltis, 46.7/20.6/32.7% 1X2, 0.32 ms/partido. Dominancia táctica máx. 49.8% (<58%) y simetría <3% verificadas.
+
+Los informes guardan las **causas** de cada gol (3.12): "CLIMA +0.20 · TERRENO +0.18" en el detalle del evento. Toggle: `trama.enabled` (false → camino Poisson legado). Simplificaciones documentadas: pulsos→cadenas, malla 24×16→3 zonas, sinergia por pares→equipo, PE real→proxy por edad (fase 2 del roadmap).
 
 ## Génesis y reset del mundo
 

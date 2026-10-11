@@ -9,13 +9,22 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CircleOff,
+  Cloud,
+  CloudLightning,
+  CloudRain,
   Cross,
+  Flag,
   Goal,
   Hourglass,
   RectangleHorizontal,
   Repeat,
+  Snowflake,
+  Sprout,
   Star,
+  Sun,
   Target,
+  Thermometer,
+  Wind,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +62,20 @@ function eventColor(type: string): string {
       return "text-muted-foreground";
   }
 }
+
+// KMIE 2.0 (Task 100): minute-0 condition events (WEATHER/PITCH/REFEREE) render
+// as a dedicated strip instead of timeline rows. detail payloads written by the
+// engine: "TYPE|tempC|windKmh" / pitch state / referee mood.
+const CONDITION_TYPES = new Set(["WEATHER", "PITCH", "REFEREE"]);
+const WEATHER_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  CLEAR: Sun,
+  CLOUDY: Cloud,
+  RAIN: CloudRain,
+  STORM: CloudLightning,
+  SNOW: Snowflake,
+  WIND: Wind,
+  HEAT: Thermometer,
+};
 
 function StatRow({
   label,
@@ -106,6 +129,14 @@ export function MatchDetailDialog({
 
   const match = query.data?.match;
   const notFound = query.error instanceof ApiError && query.error.code === "MATCH_NOT_FOUND";
+  const condEvents = React.useMemo(
+    () => (match ? match.events.filter((e) => CONDITION_TYPES.has(e.type) && e.minute === 0) : []),
+    [match]
+  );
+  const timelineEvents = React.useMemo(
+    () => (match ? match.events.filter((e) => !(CONDITION_TYPES.has(e.type) && e.minute === 0)) : []),
+    [match]
+  );
 
   return (
     <>
@@ -181,6 +212,45 @@ export function MatchDetailDialog({
               </div>
             </div>
 
+            {/* KMIE 2.0 (Task 100): match conditions strip */}
+            {condEvents.length > 0 && (
+              <div
+                className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 rounded-xl border bg-card/40 px-3 py-2 text-[11px] text-muted-foreground"
+                aria-label={t("game.match.conditions")}
+              >
+                <span className="font-semibold uppercase tracking-wide">{t("game.match.conditions")}</span>
+                {condEvents.map((ev, i) => {
+                  const detail = ev.detail ?? "";
+                  if (ev.type === "WEATHER") {
+                    const [w, temp, wind] = detail.split("|");
+                    const Icon = WEATHER_ICONS[w] ?? Sun;
+                    return (
+                      <span key={i} className="inline-flex items-center gap-1">
+                        <Icon aria-hidden="true" className="size-3.5 text-foreground" />
+                        {t(`game.match.weather.${w}`, { defaultValue: w })}
+                        {temp ? ` · ${temp}` : ""}
+                        {wind ? ` · ${wind}` : ""}
+                      </span>
+                    );
+                  }
+                  if (ev.type === "PITCH") {
+                    return (
+                      <span key={i} className="inline-flex items-center gap-1">
+                        <Sprout aria-hidden="true" className="size-3.5 text-foreground" />
+                        {t(`game.match.pitch.${detail}`, { defaultValue: detail })}
+                      </span>
+                    );
+                  }
+                  return (
+                    <span key={i} className="inline-flex items-center gap-1">
+                      <Flag aria-hidden="true" className="size-3.5 text-foreground" />
+                      {t(`game.match.referee.${detail}`, { defaultValue: detail })}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Stats */}
             <div className="space-y-3 rounded-xl border p-4">
               <StatRow
@@ -203,11 +273,11 @@ export function MatchDetailDialog({
               <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {t("game.comp.events")}
               </h4>
-              {match.events.length === 0 ? (
+              {timelineEvents.length === 0 ? (
                 <EmptyState title={t("game.comp.noEvents")} className="py-6" />
               ) : (
                 <ol className="max-h-64 space-y-1.5 overflow-y-auto pr-1" aria-label={t("game.comp.events")}>
-                  {match.events.map((ev, i) => {
+                  {timelineEvents.map((ev, i) => {
                     const Icon = EVENT_ICONS[ev.type] ?? Goal;
                     const isHome = ev.clubId === match.home.id;
                     return (

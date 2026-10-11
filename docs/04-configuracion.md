@@ -1,4 +1,4 @@
-# 04 — Configuración (113 claves editables por el administrador)
+# 04 — Configuración (123 claves editables por el administrador)
 
 Todas las claves viven en `ConfigKey` (`defaultValue` + `currentValue` + min/max + locked) y se editan desde **Centro de Control → Configuración** (o `PUT /api/admin/config`). El genesis las siembra de `CONFIG_DEFAULTS` (`src/lib/config.ts`); los resets del mundo NO pierden los valores editados.
 
@@ -60,6 +60,14 @@ Todas las claves viven en `ConfigKey` (`defaultValue` + `currentValue` + min/max
 | `players.youthPromotionAge` | 18 |
 | `matches.redCardChancePct` / `redCardSuspensionMatches` | 5 / 2 |
 | `matches.yellowCardChancePct` / `yellowCardMaxPerMatch` / `yellowCardsForSuspension` | 40 / 4 / 5 |
+| `matches.weatherEnabled` | true — clima por partido (KMIE 2.0) |
+| `matches.pitchEnabled` | true — estado del terreno según estadio + clima (KMIE 2.0) |
+| `matches.dayFormPct` | 10 — volatilidad oculta "día de forma" por equipo (0 = resultados puramente por fuerza) |
+| `matches.refereeVariancePct` | 20 — variación del humor del árbitro sobre tarjetas |
+| `trama.enabled` | true — motor TRAMA (nudos, 5 hilos); false = camino Poisson legado |
+| `trama.chaosBudget` | 4 — tope de eventos extremos por partido (presupuesto de caos) |
+| `trama.blackSwanPerMil` | 3 — probabilidad ‰ de cisne negro (focos, objetos, invasión) |
+| `trama.homeAdvCapPct` | 3 — tope de la ventaja local (factores reales, 3.11) |
 
 ## Youth
 | Clave | Default |

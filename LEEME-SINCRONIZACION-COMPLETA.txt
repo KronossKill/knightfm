@@ -1,5 +1,5 @@
 ════════════════════════════════════════════════════════════════════
- KNIGHT FM — SINCRONIZACIÓN COMPLETA v9 + MECANISMO ANTI-PÉRDIDA
+ KNIGHT FM — SINCRONIZACIÓN COMPLETA v9.1 + MECANISMO ANTI-PÉRDIDA
  (KFM-OPS-015) — paquete ÚNICO, DEFINITIVO y AUTO-VERIFICABLE
  SUSTITUYE A TODOS los zips anteriores. Ignora cualquier zip viejo.
 ════════════════════════════════════════════════════════════════════
@@ -24,6 +24,72 @@ Y trae el mecanismo que evita que vuelva a perderse trabajo:
 NOTA IMPORTANTE (v5): tu copia puede tener archivos EXTRA de
 entregas anteriores (amarillos) — son tuyos, NO molestan, y se
 mantienen. Este zip NUNCA borra nada: solo añade y actualiza.
+
+NUEVO EN v9.2 — MOTOR DE PARTIDO TRAMA (spec "Parte 3", Task 101)
+────────────────────────────────────────────────────────────────────
+Tu especificación TRAMA (Tejido de Reacciones, Azar y Momentos
+Adaptativos) ya ES el motor del partido:
+  • Nudos de 5 pasos: RE = Calidad × Cuerpo × Mente × Mundo × Rol ×
+    Sinergia × Experiencia; probabilidad logística con TEMPERATURA DE
+    AZAR VARIABLE (el caos sube con lluvia, barro, fatiga, nervios,
+    importancia y árbitro — tabla exacta del spec).
+  • Bandas graduadas: Excelente / Correcto / Forzado / Fallo / Error /
+    Desastre, con colas pesadas (los jóvenes viven más extremos).
+  • 5 hilos vivos: clima que CAMBIA durante el partido, terreno que se
+    desgasta y se convierte en barro (reparación en el descanso),
+    depósitos de energía con calambres, ánimo y lapsus post-gol,
+    MAREA del partido, LECTURA ADAPTATIVA (si repites ruta te leen,
+    −12%), GESTIÓN DEL MARCADOR (el que gana administra).
+  • Fábrica de imprevisible: día de forma oculto, CISNES NEGROS
+    (fallo de focos, objetos, invasión) con PRESUPUESTO DE CAOS
+    (máx. 4 extremos por partido, efecto acotado).
+  • Experiencia: madurez por edad, bagaje, Fexp con exigencia
+    (un jóven de 18 rinde menos en una final; un veterano sereno
+    aguanta la presión).
+  • Equidad: ventaja local = factores reales con tope (3%,
+    configurable); determinismo auditable; las CAUSAS de cada gol
+    quedan guardadas en el informe.
+  • Calibrado con 12.000 partidos contra la tabla 3.13 del spec
+    (goles, tiros, faltas, tarjetas, penaltis, 1X2) + dominancia
+    táctica <58% y simetría verificadas. 0.32 ms por partido.
+  • 4 claves nuevas de admin: trama.enabled / chaosBudget /
+    blackSwanPerMil / homeAdvCapPct.
+Esta v9.2 viaja con nombre fechado knightfm_updated_<fecha>_UTC_
+v9.2.0.zip: MISMO contenido byte a byte que el canónico.
+
+NUEVO EN v9.1 — MOTOR DE PARTIDO KMIE 2.0 + UI/UX v2.0 (Task 99/100)
+────────────────────────────────────────────────────────────────────
+AUDITORÍA FORENSE PEDIDA POR EL USUARIO y nuevas capas del motor:
+  • CLIMA por partido (descriptivo): Despejado, Nublado, Lluvia,
+    Tormenta, Nieve, Viento, Calor — según banda climática de la
+    región del local y semilla del partido. Baja goles, sube ruido
+    de posesión y riesgo de lesión.
+  • ESTADO DEL TERRENO según el ESTADIO del local + clima:
+    Excelente / Bueno / Desgastado / Pesado. El campo malo AMPLIFICA
+    la ventaja local (el local conoce su césped).
+  • IMPREDECIBILIDAD honesta: "día de forma" oculto por equipo
+    (inspirado ×1.18 / apagado ×0.82, 10% configurable) + árbitro de
+    humor variable (Permisivo / Normal / Estricto) que multiplica
+    tarjetas. Sin favoritismo hacia débiles: puro azar simétrico.
+  • FELICIDAD/ÁNIMO: los suplentes reaccionan al resultado (+1 si
+    el club gana, −1 si pierde) y su moral alimenta futuros partidos.
+  • TÁCTICAS que de verdad pesan: los estilos "Con balón"
+    (Equilibrado/Posesión/Directo/Contraataque) y "Sin balón"
+    (Bloque medio/Presión alta/Bloque bajo) ahora se GUARDAN en la
+    Pizarra Táctica y el motor los aplica (ataque/defensa/posesión).
+    Los jugadores fuera de posición rinden según su encaje real.
+  • CIENCIA DEPORTIVA: Centro Médico + Ciencia Deportiva del club
+    reducen lesiones hasta −30%; presión alta las sube 5%.
+  • Informe del partido con franja de CONDICIONES (clima + terreno
+    + arbitraje) en 4 idiomas. 4 claves nuevas de admin para ajustar
+    todo (weatherEnabled, pitchEnabled, dayFormPct, refereeVariancePct).
+  • Más el delta UI/UX v2.0 ya entregado como parche: widget Pulso
+    mundial + 4 widgets nuevos, Ctrl+K con favoritos y pila,
+    deep-linking ?view=, temas WCAG AA verificados (115 pares),
+    10 specs docs/ui v2.0 + temas exportables + guía
+    GitHub-Supabase-Vercel incluida en docs/.
+Esta v9.1 viaja con nombre fechado knightfm_updated_<fecha>_UTC_
+v9.1.0.zip: MISMO contenido byte a byte que el canónico.
 
 NUEVO EN v9 — ACTUALIZACIÓN COMPLETA APLICADA (5 DÍAS EN UN PAQUETE)
 ────────────────────────────────────────────────────────────────────

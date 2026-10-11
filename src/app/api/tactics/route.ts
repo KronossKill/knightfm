@@ -1,5 +1,6 @@
 // GET  /api/tactics?clubId= — saved Lineup + squad availability summary.
-// PUT  /api/tactics — validate & persist formation + slot assignments.
+// PUT  /api/tactics — validate & persist formation + slot assignments +
+//                      in/out-possession style (KMIE 2.0, Task 100).
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -11,10 +12,17 @@ import { getClubAccess, clubAccessError, parseJson } from "@/app/api/_lib/club-a
 
 export const dynamic = "force-dynamic";
 
+const IN_STYLES = ["balanced", "possession", "direct", "counter"] as const;
+const OUT_STYLES = ["mid-block", "high-press", "low-block"] as const;
+
 const putSchema = z.object({
   clubId: z.string().min(1, "clubId is required"),
   formation: z.enum(FORMATIONS),
   slots: z.record(z.string(), z.string().nullable()),
+  // KMIE 2.0 (Task 100): the style columns existed in the Lineup table but were
+  // never writable. Optional with defaults so older clients keep working.
+  inPossession: z.enum(IN_STYLES).optional(),
+  outOfPossession: z.enum(OUT_STYLES).optional(),
 });
 
 function toAutoPlayer(p: {
@@ -117,7 +125,7 @@ export async function PUT(req: NextRequest) {
   if (!parsed.success) {
     return fail("VALIDATION_ERROR", parsed.error.issues[0]?.message ?? "Invalid body", 400);
   }
-  const { clubId, formation, slots } = parsed.data;
+  const { clubId, formation, slots, inPossession, outOfPossession } = parsed.data;
 
   const access = await getClubAccess(auth.userId, clubId);
   const guard = clubAccessError(access);
@@ -167,11 +175,22 @@ export async function PUT(req: NextRequest) {
 
   await db.lineup.upsert({
     where: { clubId },
-    create: { clubId, formation, slots: JSON.stringify(savedSlots) },
-    update: { formation, slots: JSON.stringify(savedSlots) },
+    create: {
+      clubId,
+      formation,
+      slots: JSON.stringify(savedSlots),
+      inPossession: inPossession ?? "balanced",
+      outOfPossession: outOfPossession ?? "mid-block",
+    },
+    update: {
+      formation,
+      slots: JSON.stringify(savedSlots),
+      ...(inPossession ? { inPossession } : {}),
+      ...(outOfPossession ? { outOfPossession } : {}),
+    },
   });
 
-  await audit("TACTICS_SAVED", auth.userId, { clubId, formation, filled, total, completeness });
+  await audit("TACTICS_SAVED", auth.userId, { clubId, formation, filled, total, completeness, inPossession: inPossession ?? null, outOfPossession: outOfPossession ?? null });
 
-  return ok({ saved: true, formation, slots: savedSlots, filled, total, completeness });
+  return ok({ saved: true, formation, slots: savedSlots, filled, total, completeness, inPossession: inPossession ?? "balanced", outOfPossession: outOfPossession ?? "mid-block" });
 }

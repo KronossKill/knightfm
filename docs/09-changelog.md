@@ -58,3 +58,11 @@ Historial completo de tareas. El detalle técnico de cada una está en `worklog.
 - **43** Cuenta de administrador por defecto = **kronoss2803@gmail.com** (seed promote-if-exists + config + migración de DB; placeholder admin@knight.fm eliminado)
 - **44** **libreventas581@gmail.com (Kronoss) promovida a ADMIN** (registrationIp liberado, audit ADMIN_GRANTED)
 - **45** **Documentación completa** (esta carpeta) + ZIP descargable desde la propia app
+
+## Fase 7 — Entrega, UI/UX v2.0 y motor KMIE 2.0 (Tasks 90–100)
+- **90/94** Entrega sellada con builder autoauditado (KFM-OPS-015/020/023) + wallet QR + registro reforzado + panel de descargas
+- **91/99** Sistema de diseño v6 → v2.0: 5 temas WCAG AA (115 pares verificados), widgets drag&drop con presets server-side, paleta Ctrl+K (favoritos + pila), deep-linking, World Pulse y 4 widgets nuevos
+- **95** Descarga de zips desde la raíz del sitio (redirección 307)
+- **96** Guía completa GitHub + Supabase + Vercel sin perder datos (`docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md`)
+- **100** **Auditoría forense del motor** (evidencia: el clima/terreno/felicidad nunca existieron en ninguna entrega) + **KMIE 2.0**: clima por banda climática de región, estado del terreno según estadio + clima, volatilidad oculta "día de forma", árbitro de humor variable, felicidad de suplentes, estilos tácticos Con/Sin balón aplicados de verdad (antes eran columnas muertas), encaje posicional real en la fuerza del XI, lesiones según Centro Médico + Ciencia Deportiva, franja de condiciones en el informe (4 idiomas) y 4 claves de admin
+- **101** **Motor TRAMA** (spec "Parte 3" subida por el usuario): nudos de 5 pasos con temperatura de azar variable, 5 hilos (Mundo/Cuerpo/Mente/Juego/Azar), bandas graduadas con colas pesadas, marea, lectura adaptativa, gestión del marcador, cisnes negros con presupuesto de caos, experiencia (madurez/bagaje/Fexp), equidad con ventaja local acotada y calibración 12k partidos (13 métricas vs tabla 3.13, dominancia <58%, simetría <3%)

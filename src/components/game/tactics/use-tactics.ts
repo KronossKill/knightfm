@@ -86,6 +86,9 @@ export interface SaveResult {
   filled: number;
   total: number;
   completeness: number;
+  // KMIE 2.0 (Task 100): style values persisted with the lineup.
+  inPossession?: string;
+  outOfPossession?: string;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────
@@ -132,11 +135,23 @@ export function useClubFallback(enabled: boolean) {
 export function useSaveLineup(clubId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { formation: Formation; slots: Record<string, string | null> }) =>
-      apiFetch<SaveResult>("/api/tactics", { method: "PUT", body: { clubId, ...body } }),
+    mutationFn: (body: {
+      formation: Formation;
+      slots: Record<string, string | null>;
+      inPossession?: string;
+      outOfPossession?: string;
+    }) => apiFetch<SaveResult>("/api/tactics", { method: "PUT", body: { clubId, ...body } }),
     onSuccess: (data) => {
       qc.setQueryData<LineupResponse>(["tactics", clubId], (prev) =>
-        prev ? { ...prev, formation: data.formation, slots: data.slots } : prev
+        prev
+          ? {
+              ...prev,
+              formation: data.formation,
+              slots: data.slots,
+              inPossession: data.inPossession ?? prev.inPossession,
+              outOfPossession: data.outOfPossession ?? prev.outOfPossession,
+            }
+          : prev
       );
     },
   });

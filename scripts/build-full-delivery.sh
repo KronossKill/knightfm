@@ -26,14 +26,14 @@
 # (antes de empaquetar y auditar), probe next 16.4.0, guards de los nuevos
 # documentos Windows (DEPLOY_WINDOWS, WINDOWS_SETUP, .gitattributes,
 # docs/reports, ADR-001) y generación automática de la copia fechada
-# knightfm_updated_<TS>_UTC_v9.0.0.zip (mismo contenido que el canónico).
+# knightfm_updated_<TS>_UTC_v9.2.0.zip (mismo contenido que el canónico).
 # ═══════════════════════════════════════════════════════════════════
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ZIP_NAME="knightfm-sincronizacion-completa.zip"
 ZIP_PATH="public/downloads/$ZIP_NAME"
-DELIVERY_VERSION="v9.0.0"
+DELIVERY_VERSION="v9.2.0"
 UPDATED_TS="${KFM_UPDATED_TS:-$(date -u +%Y%m%d_%H%M%S)}"
 UPDATED_NAME="knightfm_updated_${UPDATED_TS}_UTC_${DELIVERY_VERSION}.zip"
 STAGE="$(mktemp -d /tmp/kfm-stage-XXXXXX)"
@@ -274,6 +274,8 @@ src/app/api/me/dashboard/route.ts
 docs/ui/UI_UX_DESIGN_SYSTEM.md
 docs/ui/themes/tokens/index.json
 src/lib/solana/solana-verify.ts
+src/lib/engine/conditions.ts
+src/lib/engine/trama.ts
 src/lib/i18n/dict/auth/es.ts
 src/lib/i18n/dict/markets/es.ts
 prisma/schema.production.prisma
@@ -333,6 +335,18 @@ grep -q "OpenJS.NodeJS.LTS" "$STAGE/DEPLOY_WINDOWS.ps1" || die "DEPLOY_WINDOWS.p
 grep -q "file:" "$STAGE/DEPLOY_WINDOWS.ps1" || die "DEPLOY_WINDOWS.ps1 sin aviso SQLite-PostgreSQL (Task 94)"
 grep -q "neon.tech" "$STAGE/WINDOWS_SETUP.md" || die "WINDOWS_SETUP.md sin ruta de base de datos"
 grep -q "NUEVO EN v9" "$STAGE/LEEME-SINCRONIZACION-COMPLETA.txt" || die "LEEME sin seccion v9"
+# Probes KMIE 2.0 (Task 100: clima + terreno + volatilidad + estilos + felicidad)
+grep -q "deriveConditions" "$STAGE/src/lib/engine/matches.ts" || die "matches.ts sin deriveConditions (Task 100)"
+grep -q "matches.weatherEnabled" "$STAGE/src/lib/config.ts" || die "config sin matches.weatherEnabled (Task 100)"
+grep -q "tactics.style.in.label" "$STAGE/src/lib/i18n/dict/tactics/es.ts" || die "dict tactics sin estilos (Task 100)"
+grep -q "game.match.conditions" "$STAGE/src/lib/i18n/dict/game/es.ts" || die "dict game sin condiciones (Task 100)"
+grep -q "inPossession" "$STAGE/src/app/api/tactics/route.ts" || die "tactics API sin estilos (Task 100)"
+grep -q "medicalInjuryMul" "$STAGE/src/lib/engine/conditions.ts" || die "conditions sin ciencia deportiva (Task 100)"
+# Probes TRAMA (Task 101: spec Parte 3)
+grep -q "runTramaMatch" "$STAGE/src/lib/engine/matches.ts" || die "matches.ts sin TRAMA (Task 101)"
+grep -q "trama.enabled" "$STAGE/src/lib/config.ts" || die "config sin trama.enabled (Task 101)"
+grep -q "calibrate-trama" "$STAGE/scripts/calibrate-trama.ts" || die "falta calibrador TRAMA (3.13)"
+grep -q "TRAMA:W:" "$STAGE/src/lib/engine/trama.ts" || die "trama sin streams de semilla (Task 101)"
 # package.json dentro del zip: versiones candado
 unzip -p "$TMPZIP" package.json > /tmp/kfm-pkg.json
 node -e '

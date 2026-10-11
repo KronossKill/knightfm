@@ -1,0 +1,94 @@
+================================================================
+ KNIGHT FM - ACTUALIZACION MOTOR DE PARTIDO (KMIE 2.0 + TRAMA)
+ Paquete parcial v9.2.0 - unicamente los archivos modificados
+================================================================
+
+QUE ES ESTE PAQUETE
+- 24 archivos + este LEEME: 23 modificados/nuevos del motor mas el
+  LEEME-SINCRONIZACION-COMPLETA.txt general (v9.2).
+- Lleva tu proyecto al motor de partido TRAMA / KMIE 2.0 (v9.2.0).
+- Sirve si tu proyecto es v9.0.0 + actualizacion uiux-v2, o si ya
+  aplicaste la version completa v9.2.0 (en ese caso sobreescribe
+  con el mismo contenido: no rompe nada).
+- NO toca la base de datos: cero cambios de esquema, cero
+  dependencias nuevas. NO necesitas npm install, ni db:push,
+  ni seed, ni borrar nada.
+
+QUE ANADE AL MOTOR (resumen en 8 puntos)
+1. CLIMA (src/lib/engine/conditions.ts): nublado, lluvia, tormenta,
+   nieve, viento y calor segun la banda climatica de la region de
+   cada equipo. Cambia goles, posesion, fatiga y lesiones.
+2. ESTADO DEL TERRENO: EXCELLENT / GOOD / WORN / HEAVY segun el
+   estadio del local mas el desgaste del clima. Terreno pesado =
+   menos goles y mas lesiones.
+3. ARBITRO VARIABLE: NORMAL / STRICT / LENIENT con varianza por
+   partido. Las tarjetas ya no salen siempre iguales.
+4. DIA DE FORMA OCULTO: dia inspirado (+18%) o apagado (-18%),
+   simetrico para ambos equipos, sin favoritismo hacia nadie.
+5. FELICIDAD / ANIMO: los suplentes reaccionan al resultado y la
+   moral se mueve con victorias/derrotas; la moral afecta el OVR
+   contextual de cada jugador en el campo.
+6. MOTOR TRAMA (src/lib/engine/trama.ts): el partido se juega en
+   nudos causales con 5 hilos (Mundo, Cuerpo, Mente, Juego, Azar),
+   temperatura de azar variable, presupuesto de caos, cisnes
+   negros acotados, experiencia por edad y ventaja local limitada
+   al 3%. Los partidos son impredecibles pero con causas reales:
+   cada gol guarda su explicacion (CLIMA / PRESION / NERVIOS /
+   MAREA / DIA DE FORMA...) en el detalle del evento.
+7. ESTILOS TACTICOS: en posesion (equilibrado / posesion / directo
+   / contragolpe) y sin balon (bloque medio / presion alta / bloque
+   bajo) - dos Select nuevos en la pizarra tactica, guardados en la
+   base de datos y usados por el motor.
+8. CIENCIA DEPORTIVA: las instalaciones MEDICAL CENTER + SPORTS
+   SCIENCE reducen las lesiones hasta un 30%.
+
+COMO INSTALAR (Windows, paso a paso)
+1. Cierra el servidor si esta abierto: Ctrl+C en la ventana negra.
+2. Ve a D:\Programacion\knightfm
+3. Copia TODO el contenido de este zip ENCIMA de esa carpeta y
+   acepta REEMPLAZAR cuando Windows pregunte. Los archivos nuevos
+   (src/lib/engine/trama.ts, conditions.ts y
+   scripts/calibrate-trama.ts) entran solos.
+4. Arranca de nuevo: abre terminal en la carpeta y ejecuta
+      npm run dev
+   (DEBES VER: "Ready" sin errores rojos)
+5. Comprobacion: cuando se juegue un partido, abre su informe y
+   busca la franja "Condiciones del partido" (icono de clima +
+   terreno + arbitro) y el detalle de causas en cada gol.
+
+NOTAS IMPORTANTES
+- VERIFICAR-INSTALACION.bat puede mostrar diferencias en los 24
+  archivos actualizados y EXTRA en los nuevos: es lo esperado con
+  un paquete parcial. No significa que haya nada roto.
+- Las 8 claves nuevas del panel de configuracion
+  (matches.weatherEnabled, matches.pitchEnabled, matches.dayFormPct,
+  matches.refereeVariancePct, trama.enabled, trama.chaosBudget,
+  trama.blackSwanPerMil, trama.homeAdvCapPct) ya funcionan con sus
+  valores por defecto SIN tocar la base de datos. Aparecen en el
+  panel admin cuando las edites por primera vez.
+- Motor antiguo disponible: panel admin -> trama.enabled = false
+  y el motor vuelve al Poisson clasico. Todo es reversible.
+- scripts/calibrate-trama.ts es el calibrador oficial (spec 3.13);
+  es opcional y no se ejecuta solo.
+
+CONTENIDO DEL PAQUETE
+  CHANGELOG.md
+  LEEME-SINCRONIZACION-COMPLETA.txt (actualizado a v9.2)
+  LEEME-ACTUALIZACION-MOTOR.txt (este archivo)
+  docs/01-arquitectura.md
+  docs/04-configuracion.md
+  docs/09-changelog.md
+  scripts/build-full-delivery.sh
+  scripts/calibrate-trama.ts (nuevo)
+  src/app/api/tactics/route.ts
+  src/components/game/competitions/match-dialog.tsx
+  src/components/game/tactics/tactics-view.tsx
+  src/components/game/tactics/use-tactics.ts
+  src/lib/config.ts
+  src/lib/engine/conditions.ts (nuevo)
+  src/lib/engine/kmie.ts
+  src/lib/engine/matches.ts
+  src/lib/engine/trama.ts (nuevo)
+  src/lib/i18n/dict/game/{en,es,fr,pt}.ts
+  src/lib/i18n/dict/tactics/{en,es,fr,pt}.ts
+================================================================

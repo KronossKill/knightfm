@@ -16,6 +16,16 @@ export const dict: Dict = {
   "tactics.view.hint.combined": "Onze complet en positions de base.",
   "tactics.view.hint.in": "Avec ballon : le bloc monte et attaque par les ailes.",
   "tactics.view.hint.out": "Sans ballon : bloc compact près de notre surface.",
+  // KMIE 2.0 (Task 100) — possession styles (engine-applied factors)
+  "tactics.style.in.label": "Avec ballon : style",
+  "tactics.style.in.balanced": "Équilibré",
+  "tactics.style.in.possession": "Possession (+5% possession)",
+  "tactics.style.in.direct": "Direct (+4% attaque)",
+  "tactics.style.in.counter": "Contre-attaque (+2% défense)",
+  "tactics.style.out.label": "Sans ballon : style",
+  "tactics.style.out.mid-block": "Bloc moyen",
+  "tactics.style.out.high-press": "Pressing haut (+3% défense, +5% blessures)",
+  "tactics.style.out.low-block": "Bloc bas (+5% défense, −2% attaque)",
 
   // Actions
   "tactics.action.auto": "Auto-compléter",
