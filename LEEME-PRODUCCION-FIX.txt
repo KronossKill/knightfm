@@ -1,0 +1,89 @@
+════════════════════════════════════════════════════════════════════
+ KNIGHT FM — FIX PRODUCCIÓN: "Module not found:
+ Can't resolve 'flag-icons/css/flag-icons.min.css'" (Vercel)
+════════════════════════════════════════════════════════════════════
+
+AUDITORÍA FORENSE (qué pasó exactamente)
+─────────────────────────────────────────
+1. El paquete de banderas (knightfm-banderas-pais-v3.zip, 10 oct)
+   instaló el CÓDIGO de las banderas (layout.tsx línea 6 +
+   country-flag.tsx) pero NO llevaba el package.json actualizado.
+   La dependencia "flag-icons" NUNCA llegó a tu proyecto.
+2. Desde entonces, CUALQUIER build de Vercel se detiene justo ahí:
+      ./src/app/layout.tsx:6:1
+      Module not found: Can't resolve 'flag-icons/css/...'
+   (producción seguía mostrando el último despliegue bueno).
+3. Mi auditoría de ayer concluyó por error que esa dependencia no
+   se usaba (grep defectuoso) y te dije que no hacía falta
+   "npm install": FALSO. Este paquete corrige ese error y RETIRA
+   el zip anterior del package.json para que nadie vuelva a
+   aplicarlo.
+
+LA SOLUCIÓN
+───────────
+package.json con UNA sola diferencia respecto al que tienes:
+   + "flag-icons": "^7.5.0"   (en dependencies)
+Y mantiene el script "dev" compatible con Windows que ya
+instalamos ("next dev -p 3000", sin tee). Nada más cambia.
+Auditoría realizada: se escanearon los 362 archivos TS/TSX del
+proyecto — flag-icons es la ÚNICA dependencia que faltaba
+(los demás imports son módulos nativos de Node o paquetes que ya
+tienes; los archivos legales/solana nunca salieron en zips, no
+están en tu proyecto ni afectan al build).
+
+PASOS (en orden, sin saltarte ninguno)
+──────────────────────────────────────
+PASO 1 — Descarga
+   knightfm-fix-produccion-flag-icons.zip  (a tu Escritorio)
+
+PASO 2 — Extrae ENCIMA de tu proyecto
+   Clic derecho → "Extraer todo..." → destino EXACTO:
+        D:\Programacion\knightfm
+   → marca "Reemplazar los archivos en el destino".
+   DEBES VER: 2 archivos extraídos (package.json + este LEEME).
+
+PASO 3 — Instala la dependencia  (AHORA SÍ es obligatorio)
+   En PowerShell, dentro de D:\Programacion\knightfm:
+        npm install
+   DEBES VER al final: algo como "added 1 package" y SIN errores
+   rojos. (Tarda 1-2 min; es normal que muestre avisos amarillos
+   de "audit".)
+
+PASO 4 — Prueba local
+        npm run dev
+   DEBES VER:
+        ✓ Ready in ...
+        - Local:  http://localhost:3000
+   Abre http://localhost:3000 → inicia sesión → donde antes se
+   veían los códigos de país ahora se ven las BANDERAS.
+   Cuando termines, Ctrl+C.
+
+PASO 5 — Sube el arreglo a GitHub (dispara Vercel)
+        git add .
+        git commit -m "Fix produccion: dependencia flag-icons de las banderas"
+        git push
+   (el commit incluirá package.json y package-lock.json: correcto)
+
+PASO 6 — Vigila Vercel
+   vercel.com → tu proyecto → pestaña "Deployments" → arriba, tu
+   commit nuevo.
+   DEBES VER tras 1-3 minutos: punto VERDE y "Ready" (ya no
+   aparece el error rojo de layout.tsx).
+
+PASO 7 — Verifica producción
+   Abre tu web de producción con Ctrl+F5 → DEBES VER: la app
+   carga con normalidad y las banderas se ven en producción.
+
+NO HAGAS ESTO
+─────────────
+✗ NO uses de nuevo knightfm-fix-npm-run-dev-windows.zip: ha sido
+  RETIRADO (su package.json era antiguo y provocaría este mismo
+  error). Este paquete lo SUSTITUYE y ya incluye el fix de "tee".
+✗ No ejecutes "prisma db push" ni "prisma migrate".
+✗ No toques vercel.json ni las variables de entorno de Vercel.
+
+SI ALGO FALLA
+─────────────
+Captura de pantalla de lo que veas (terminal o Vercel) y me la
+envías.
+════════════════════════════════════════════════════════════════════
