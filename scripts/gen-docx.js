@@ -72,7 +72,7 @@ const doc = new Document({
         metaLines: [
           "Versión 1.0 · Septiembre 2026",
           "Stack: Next.js 16 · TypeScript 5 · Prisma 6 / SQLite · Solana",
-          "Administradores: configurados vía ADMIN_BOOTSTRAP_EMAIL (variable de entorno)",
+          "Administradores: kronoss2803@gmail.com · libreventas581@gmail.com",
           "45 tareas de desarrollo documentadas · 113 claves de configuración",
         ],
         footerLeft: "KNIGHT FM",

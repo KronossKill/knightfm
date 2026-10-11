@@ -181,13 +181,13 @@ async function seedKnowledge(client: Client): Promise<void> {
 }
 
 async function seedAdmin(client: Client): Promise<void> {
-  // SECURITY: the bootstrap admin comes from environment variables (.env).
+  // USER MANDATE: the platform's default administrator account is
+  // kronoss2803@gmail.com (admin.bootstrapEmail default matches). If the owner
+  // already registered that email before genesis ran, it is PROMOTED to ADMIN
+  // in place (keeping its username/password); otherwise it is created here
+  // with the documented bootstrap password — change it after first login.
   const { hash } = await import("@node-rs/argon2");
-  const email = process.env.ADMIN_BOOTSTRAP_EMAIL ?? "owner@knight-fm.local";
-  const bootstrapPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
-  if (!bootstrapPassword) {
-    console.warn("[genesis] ADMIN_BOOTSTRAP_PASSWORD is not set — using a temporary fallback.");
-  }
+  const email = "kronoss2803@gmail.com";
   const existing = await client.user.findUnique({ where: { email } });
   if (existing) {
     if (existing.role !== "ADMIN" || !existing.emailVerified) {
@@ -200,7 +200,7 @@ async function seedAdmin(client: Client): Promise<void> {
   }
   await client.user.create({
     data: {
-      email, username: "owner", passwordHash: await hash(bootstrapPassword ?? "ChangeMe-Bootstrap!", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+      email, username: "kronoss2803", passwordHash: await hash("KnightAdmin!2025", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
       role: "ADMIN", emailVerified: true, path: "OWNER",
     },
   });

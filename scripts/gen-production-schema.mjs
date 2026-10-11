@@ -1,46 +1,24 @@
-// Knight FM — Generador del schema de producción (PostgreSQL/Supabase)
-// ─────────────────────────────────────────────────────────────────────
-// ANTI-REGRESIÓN (Task 76): el 2026-10-10 el ZIP de banderas v3 incluyó
-// el schema de desarrollo (provider "sqlite") y al extraerlo el usuario
-// sobrescribió su schema de producción ("postgresql") → Vercel devolvió
-// 500 en todos los endpoints de BD ("the URL must start with the
-// protocol `file:`").
-//
-// REGLA PERMANENTE: ningún ZIP entregado al usuario puede contener
-// `provider = "sqlite"`. El usuario SIEMPRE recibe la salida de este
-// script copiada como `prisma/schema.prisma`.
-//
-// Uso:  node scripts/gen-production-schema.mjs
-// Salida: prisma/schema.production.prisma (NO editar a mano)
+// Knight FM — generate the PRODUCTION prisma schema from the dev (sqlite)
+// schema (Task 76 rule, restored Task 90): the ONLY divergence in this schema
+// is the datasource provider (no Json/enums/@db native types are used, so a
+// plain provider swap is provably lossless). Output: prisma/schema.production.prisma
+// The delivery builder copies the production variant over the staged
+// schema.prisma; the sandbox keeps sqlite for local dev.
+import { readFileSync, writeFileSync } from "node:fs";
 
-import { readFileSync, writeFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-import { dirname, join } from 'node:path'
+const SRC = "prisma/schema.prisma";
+const DST = "prisma/schema.production.prisma";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const srcPath = join(root, 'prisma', 'schema.prisma')
-const outPath = join(root, 'prisma', 'schema.production.prisma')
-
-const src = readFileSync(srcPath, 'utf8')
-
-if (!/provider\s*=\s*"sqlite"/.test(src)) {
-  console.error(
-    '✖ prisma/schema.prisma ya no declara provider "sqlite".\n' +
-      '  Si el sandbox migró a PostgreSQL, revisa este script antes de regenerar.'
-  )
-  process.exit(1)
+let out = readFileSync(SRC, "utf8");
+const before = out;
+out = out.replace(/provider\s*=\s*"sqlite"/, 'provider = "postgresql"');
+if (out === before || !/provider = "postgresql"/.test(out)) {
+  console.error("FATAL: could not swap provider to postgresql");
+  process.exit(1);
 }
-
-const out = src
-  // 1) Proveedor de base de datos: desarrollo SQLite → producción PostgreSQL
-  .replace(/provider\s*=\s*"sqlite"/, 'provider = "postgresql"')
-  // 2) Cabecera: marca la variante como generación automática de producción
-  .replace(
-    /^\/\/ SQLite \+ Prisma\..*$/m,
-    '// PRODUCCIÓN (PostgreSQL — Supabase). AUTO-GENERADO por scripts/gen-production-schema.mjs — NO EDITAR A MANO.\n' +
-      '// Editar prisma/schema.prisma (desarrollo) y regenerar este archivo. Sin enums (no soportados en el modelo):\n' +
-      '// todos los enums son String con uniones validadas en src/lib/types.ts'
-  )
-
-writeFileSync(outPath, out)
-console.log(`✔ Generado ${outPath} (provider "postgresql", ${src.split('\n').length} líneas)`)
+if (/provider = "sqlite"/.test(out)) {
+  console.error("FATAL: sqlite provider still present");
+  process.exit(1);
+}
+writeFileSync(DST, out, "utf8");
+console.log(`OK ${DST} (${Buffer.byteLength(out)} B, provider=postgresql)`);

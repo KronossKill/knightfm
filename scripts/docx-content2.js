@@ -60,10 +60,10 @@ const cap7 = [
   h1("7. Guía del administrador"),
   h2("7.1 Cuentas de administrador"),
   tbl(["Cuenta", "Usuario", "Rol"], [
-    ["ADMIN_BOOTSTRAP_EMAIL", "kronoss2803", "ADMIN — cuenta por defecto de la plataforma"],
-    ["(segunda cuenta del propietario)", "Kronoss", "ADMIN — promovida a petición del usuario"],
+    ["kronoss2803@gmail.com", "kronoss2803", "ADMIN — cuenta por defecto de la plataforma"],
+    ["libreventas581@gmail.com", "Kronoss", "ADMIN — promovida a petición del usuario"],
   ], [36, 22, 42]),
-  bullet("Contraseña bootstrap: definida por ADMIN_BOOTSTRAP_PASSWORD en el .env del servidor — nunca en código ni documentación pública. Cámbiala tras el primer login."),
+  bullet("Contraseña bootstrap de kronoss2803@gmail.com: KnightAdmin!2025 — cámbiala tras el primer login."),
   bullet("Quien se registre con un email de admin.bootstrapEmail nace ADMIN (sin sello de IP)."),
   bullet("Promover/revocar: Centro de Control → Usuarios y fondos (POST /api/admin/promote). Al conceder ADMIN se limpia registrationIp."),
   bullet("Los admins nunca se bloquean y son los únicos autorizados a compartir IP."),
@@ -227,8 +227,8 @@ const cap10 = [
   bullet("40: análisis competitivo con 13 rivales (capítulo 9)."),
   bullet("41: regla de 30 días — 2 cuentas en la misma IP → bloqueo automático de todas; desbloqueo SOLO del admin; evidencia IpLink + auditoría."),
   bullet("42: exención total de admins — nunca se bloquean y son los ÚNICOS que pueden compartir IP."),
-  bullet("43: cuenta de administrador por defecto configurable vía ADMIN_BOOTSTRAP_EMAIL (seed promote-if-exists + config + migración; placeholder admin@knight.fm eliminado)."),
-  bullet("44: segunda cuenta del propietario promovida a ADMIN (registrationIp liberado, audit ADMIN_GRANTED)."),
+  bullet("43: cuenta de administrador por defecto = kronoss2803@gmail.com (seed promote-if-exists + config + migración; placeholder admin@knight.fm eliminado)."),
+  bullet("44: libreventas581@gmail.com (Kronoss) promovida a ADMIN (registrationIp liberado, audit ADMIN_GRANTED)."),
   bullet("45: documentación completa (docs/) + ZIP descargable desde la landing + este documento Word."),
 ];
 

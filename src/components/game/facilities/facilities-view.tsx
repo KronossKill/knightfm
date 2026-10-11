@@ -1,19 +1,16 @@
 "use client";
-// Knight FM — Facilities view (Task 4-a → Task 58 UX restructure).
-// "Galería modular": each facility is an image-protagonist card (full-bleed
-// render + dark veil) with its upgrade data OVERLAID as floating chips — no
-// data stacked under the photo. Clicking a card opens a GLASS side panel
-// (Sheet) with the full upgrade detail; the upgrade confirmation AlertDialog
-// and the server contract (atomic debit + scheduler completion) are unchanged.
+// Knight FM — Facilities view (Task 4-a).
+// 5 facility cards (level badge, 10-segment bar, live upgrade progress with
+// completesAt countdown), ICP summary card and OWNER-only upgrade flow with
+// cost preview + confirmation (server debits atomically; scheduler completes).
 
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BedDouble, Building2, FlaskConical, HardHat, HeartPulse, Landmark, Microscope } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,7 +33,6 @@ import {
 } from "@/components/game/api";
 import { useActiveClub } from "@/components/game/hooks/use-active-club";
 import { ErrorState, SegmentedBar, formatCountdown, useNow } from "@/components/game/ui/bits";
-import CinemaHeader from "@/components/game/ui/cinema-header";
 
 const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   STADIUM: Landmark,
@@ -58,266 +54,128 @@ const FACILITY_IMAGES: Record<string, string> = {
   REST_ROOMS: "/facilities/rest-rooms",
 };
 
-function benefitKey(type: string): string {
-  return `game.fac.benefit.${type}`;
-}
-
-/** Facility benefit copy (REST_ROOMS uses its live per-level effect instead). */
-function BenefitText({ type, restRecovery }: { type: string; restRecovery: number | undefined }) {
-  const { t } = useI18n();
-  if (type === "REST_ROOMS") {
-    return (
-      <p className="text-sm text-muted-foreground">
-        {restRecovery != null
-          ? t("game.fac.restEffectPerLevel", { n: restRecovery })
-          : t("game.fac.restEffect")}
-      </p>
-    );
-  }
-  return <p className="text-sm text-muted-foreground">{t(benefitKey(type))}</p>;
-}
-
-// ── Gallery card (image protagonist, data overlaid) ─────────────
-
-function GalleryCard({
+function FacilityCard({
   facility,
   maxLevel,
-  onOpen,
+  isOwner,
+  restRecovery,
+  onUpgrade,
 }: {
   facility: FacilityView;
   maxLevel: number;
-  onOpen: (f: FacilityView) => void;
+  isOwner: boolean;
+  restRecovery: number | undefined;
+  onUpgrade: (f: FacilityView) => void;
 }) {
-  const { t, formatCurrency } = useI18n();
+  const { t, formatCurrency, formatDate } = useI18n();
   const nowMs = useNow(1000);
   const Icon = FACILITY_ICONS[facility.type] ?? Building2;
   const atMax = facility.level >= maxLevel;
   const upgrading = !!facility.upgrade;
   const imgBase = FACILITY_IMAGES[facility.type];
   const tier = Math.min(5, Math.ceil(facility.level / 2));
-  const condition = t(`facility.condition.t${tier}`);
+  const targetTier = facility.upgrade ? Math.min(5, Math.ceil(facility.upgrade.toLevel / 2)) : tier;
+  const currentCondition = t(`facility.condition.t${tier}`);
 
   return (
-    <button
-      type="button"
-      onClick={() => onOpen(facility)}
-      aria-label={t("game.fac.openDetails", { facility: t(`facility.${facility.type}`) })}
-      className={cn(
-        "player-card group relative block w-full overflow-hidden rounded-xl border text-left",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        upgrading && "border-amber-500/50",
-      )}
-    >
-      <div className="relative aspect-[4/3] w-full overflow-hidden">
-        {imgBase && (
-          <img
-            src={`${imgBase}-t${tier}.jpg`}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-            loading="lazy"
-          />
+    <Card className={cn(upgrading && "border-amber-500/40")}>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Icon aria-hidden="true" className="size-5 text-primary" />
+          {t(`facility.${facility.type}`)}
+        </CardTitle>
+        <CardDescription>
+          {t("facility.level", { level: facility.level })}
+          {upgrading && facility.upgrade ? ` → ${t("facility.level", { level: facility.upgrade.toLevel })}` : ""}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {/* REST_ROOMS effect (Task 9-b): daily fatigue reduction for the whole squad. */}
+        {facility.type === "REST_ROOMS" && (
+          <p className="text-xs text-muted-foreground">
+            {restRecovery != null
+              ? t("game.fac.restEffectPerLevel", { n: restRecovery })
+              : t("game.fac.restEffect")}
+          </p>
         )}
-        {/* Legibility veil: dark at the bottom where text sits */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" aria-hidden="true" />
 
-        {/* Floating chips — level + next-level cost (or MAX) */}
-        <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1.5">
-          <Badge className="bg-background/85 text-xs text-foreground backdrop-blur">
-            {t("facility.level", { level: facility.level })}
-          </Badge>
-          {!atMax && !upgrading && facility.nextLevelCost !== null && (
-            <Badge variant="outline" className="border-border/70 bg-background/85 font-mono text-[11px] backdrop-blur">
-              {formatCurrency(facility.nextLevelCost)}
+        {imgBase ? (
+          <div className="relative">
+            <img
+              src={`${imgBase}-t${tier}.jpg`}
+              alt={currentCondition}
+              className="h-40 w-full rounded-lg border object-cover"
+              loading="lazy"
+            />
+            <Badge className="absolute bottom-2 left-2 bg-background/85 text-xs backdrop-blur">
+              {currentCondition}
             </Badge>
-          )}
-          {atMax && (
-            <Badge variant="outline" className="border-primary/40 bg-background/85 text-[11px] text-primary backdrop-blur">
-              {t("facility.maxLevel")}
-            </Badge>
-          )}
-        </div>
-
-        {/* Bottom overlay: identity + condition + live upgrade progress */}
-        <div className="absolute inset-x-0 bottom-0 space-y-2 p-3.5">
-          <div className="flex items-end justify-between gap-2">
-            <p className="flex min-w-0 items-center gap-2 font-semibold text-foreground">
-              <Icon aria-hidden="true" className="size-4 shrink-0 text-primary" />
-              <span className="truncate">{t(`facility.${facility.type}`)}</span>
-            </p>
-            <span className="shrink-0 rounded-md border border-border/70 bg-background/70 px-1.5 py-0.5 text-[10px] text-muted-foreground backdrop-blur">
-              {condition}
-            </span>
           </div>
+        ) : null}
 
-          {upgrading && facility.upgrade ? (
-            <div className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-                <HardHat aria-hidden="true" className="size-3.5" />
-                {t("facility.level", { level: facility.upgrade.toLevel })} · {t("game.fac.progress")}
-              </p>
-              <Progress value={facility.upgrade.progressPct} aria-label={`${t("game.fac.progress")}: ${facility.upgrade.progressPct}%`} />
-              <p className="text-right font-mono text-xs tabular-nums text-amber-200/90">
-                {nowMs > 0 ? formatCountdown(new Date(facility.upgrade.completesAt).getTime(), nowMs) : "--:--:--"}
-              </p>
-            </div>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              {atMax
-                ? t("facility.maxLevel")
-                : facility.nextLevelCost !== null
-                  ? `${t("game.fac.cost")}: ${formatCurrency(facility.nextLevelCost)} · ${t("game.fac.durationDays", { n: facility.durationDays })}`
-                  : "—"}
+        <SegmentedBar level={facility.level} max={maxLevel} />
+
+        {upgrading && facility.upgrade && imgBase ? (
+          <div className="space-y-1.5">
+            <p className="text-xs font-medium text-amber-200">
+              → {t("game.fac.preview")}: {t(`facility.condition.t${targetTier}`)}
             </p>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
+            <img
+              src={`${imgBase}-t${targetTier}.jpg`}
+              alt={t(`facility.condition.t${targetTier}`)}
+              className="h-24 w-full rounded-lg border object-cover"
+              loading="lazy"
+            />
+          </div>
+        ) : null}
 
-// ── Glass side panel (upgrade detail without leaving the screen) ─
-
-function FacilityPanel({
-  facility,
-  maxLevel,
-  isOwner,
-  restRecovery,
-  open,
-  onOpenChange,
-  onUpgrade,
-}: {
-  facility: FacilityView | null;
-  maxLevel: number;
-  isOwner: boolean;
-  restRecovery: number | undefined;
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  onUpgrade: (f: FacilityView) => void;
-}) {
-  const { t, formatCurrency, formatDate } = useI18n();
-  const nowMs = useNow(1000);
-
-  const tier = facility ? Math.min(5, Math.ceil(facility.level / 2)) : 1;
-  const targetTier = facility?.upgrade ? Math.min(5, Math.ceil(facility.upgrade.toLevel / 2)) : tier;
-  const imgBase = facility ? FACILITY_IMAGES[facility.type] : undefined;
-  const atMax = facility ? facility.level >= maxLevel : false;
-  const upgrading = facility ? !!facility.upgrade : false;
-  const Icon = facility ? FACILITY_ICONS[facility.type] ?? Building2 : Building2;
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="glass w-full overflow-y-auto p-0 sm:max-w-md">
-        {facility && (
-          <>
-            {/* Photo header */}
-            <div className="relative h-40 w-full overflow-hidden sm:h-48">
-              {imgBase && (
-                <img
-                  src={`${imgBase}-t${tier}.jpg`}
-                  alt=""
-                  aria-hidden="true"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" aria-hidden="true" />
-              <SheetHeader className="absolute inset-x-0 bottom-0 space-y-1 p-4">
-                <SheetTitle className="flex items-center gap-2 text-base">
-                  <Icon aria-hidden="true" className="size-5 text-primary" />
-                  {t(`facility.${facility.type}`)}
-                </SheetTitle>
-                <SheetDescription>
-                  {t("facility.level", { level: facility.level })}
-                  {upgrading && facility.upgrade
-                    ? ` → ${t("facility.level", { level: facility.upgrade.toLevel })}`
-                    : ` · ${t(`facility.condition.t${tier}`)}`}
-                </SheetDescription>
-              </SheetHeader>
-            </div>
-
-            <div className="space-y-4 p-4">
-              {/* Benefit (honest per-type copy) */}
-              <BenefitText type={facility.type} restRecovery={restRecovery} />
-
-              {/* Level bar */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{t("game.fac.levelProgress", { level: facility.level, max: maxLevel })}</span>
-                </div>
-                <SegmentedBar level={facility.level} max={maxLevel} />
-              </div>
-
-              {/* Live upgrade progress */}
-              {upgrading && facility.upgrade ? (
-                <div className="space-y-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-                    <HardHat aria-hidden="true" className="size-3.5" />
-                    {t("game.fac.inProgress", { date: formatDate(facility.upgrade.completesAt) })}
-                  </p>
-                  <Progress value={facility.upgrade.progressPct} aria-label={`${t("game.fac.progress")}: ${facility.upgrade.progressPct}%`} />
-                  <p className="text-right font-mono text-xs tabular-nums text-amber-200/90">
-                    {nowMs > 0 ? formatCountdown(new Date(facility.upgrade.completesAt).getTime(), nowMs) : "--:--:--"}
-                  </p>
-                  {imgBase && (
-                    <div className="space-y-1 pt-1">
-                      <p className="text-xs text-muted-foreground">
-                        {t("game.fac.preview")}: {t(`facility.condition.t${targetTier}`)}
-                      </p>
-                      <img
-                        src={`${imgBase}-t${targetTier}.jpg`}
-                        alt={t(`facility.condition.t${targetTier}`)}
-                        className="h-24 w-full rounded-lg border object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="rounded-lg border bg-muted/30 p-2.5">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("game.fac.cost")}</p>
-                    <p className="font-mono text-sm font-semibold">
-                      {facility.nextLevelCost !== null ? formatCurrency(facility.nextLevelCost) : "—"}
-                    </p>
-                  </div>
-                  <div className="rounded-lg border bg-muted/30 p-2.5">
-                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{t("game.fac.durationTitle")}</p>
-                    <p className="font-mono text-sm font-semibold">{t("game.fac.durationDays", { n: facility.durationDays })}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Upgrade action (OWNER only) */}
-              {atMax ? (
-                <Badge variant="outline" className="w-full justify-center border-primary/40 text-primary">
-                  {t("facility.maxLevel")}
-                </Badge>
-              ) : isOwner ? (
-                <Button
-                  className="min-h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                  disabled={upgrading}
-                  onClick={() => onUpgrade(facility)}
-                >
-                  {t("facility.upgrade", { level: facility.level + 1 })}
-                </Button>
-              ) : (
-                <p className="text-xs text-muted-foreground">{t("game.fac.ownerOnly")}</p>
-              )}
-            </div>
-          </>
+        {upgrading && facility.upgrade ? (
+          <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
+              <HardHat aria-hidden="true" className="size-3.5" />
+              {t("game.fac.inProgress", { date: formatDate(facility.upgrade.completesAt) })}
+            </p>
+            <Progress value={facility.upgrade.progressPct} aria-label={`${t("game.fac.progress")}: ${facility.upgrade.progressPct}%`} />
+            <p className="text-right font-mono text-xs tabular-nums text-amber-200/90">
+              {nowMs > 0 ? formatCountdown(new Date(facility.upgrade.completesAt).getTime(), nowMs) : "--:--:--"}
+            </p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>
+              {t("game.fac.cost")}:{" "}
+              <span className="font-mono">
+                {facility.nextLevelCost !== null ? formatCurrency(facility.nextLevelCost) : "—"}
+              </span>
+            </span>
+            <span>{facility.durationDays}d</span>
+          </div>
         )}
-      </SheetContent>
-    </Sheet>
+
+        {atMax ? (
+          <Badge variant="outline" className="w-full justify-center border-primary/40 text-primary">
+            {t("facility.maxLevel")}
+          </Badge>
+        ) : (
+          <Button
+            variant="outline"
+            className="min-h-11 w-full"
+            disabled={upgrading || !isOwner}
+            title={!isOwner ? t("game.fac.ownerOnly") : undefined}
+            onClick={() => onUpgrade(facility)}
+          >
+            {t("facility.upgrade", { level: facility.level + 1 })}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
-
-// ── View ─────────────────────────────────────────────────────────
 
 export default function FacilitiesView() {
   const { t, formatCurrency } = useI18n();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [detailTarget, setDetailTarget] = React.useState<FacilityView | null>(null);
   const [upgradeTarget, setUpgradeTarget] = React.useState<FacilityView | null>(null);
 
   // Task 23-e: operate on the ACTIVE club (top-bar switcher) — every club owns
@@ -377,21 +235,19 @@ export default function FacilitiesView() {
 
   const data = query.data;
   const icp = data?.icp;
-  // Keep the open panel in sync with live data (upgrade progress ticks via refetch).
-  const detail = detailTarget ? data?.facilities.find((f) => f.type === detailTarget.type) ?? null : null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <CinemaHeader
-        title={t("game.fac.title")}
-        subtitle={
-          club
-            ? `${t("game.fac.subtitle")} · ${club.name}`
-            : t("game.fac.subtitle")
-        }
-        image="/images/stadium-night.jpg"
-        icon={Building2}
-      />
+      <header>
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <Building2 aria-hidden="true" className="size-5 text-primary" />
+          {t("game.fac.title")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("game.fac.subtitle")}
+          {club ? <span className="font-medium text-foreground"> · {club.name}</span> : null}
+        </p>
+      </header>
 
       {/* ICP summary */}
       <Card className="border-primary/25">
@@ -440,7 +296,7 @@ export default function FacilitiesView() {
       {query.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 5 }, (_, i) => (
-            <Skeleton key={i} className="aspect-[4/3] w-full" aria-hidden="true" />
+            <Skeleton key={i} className="h-56 w-full" aria-hidden="true" />
           ))}
         </div>
       ) : query.isError ? (
@@ -448,23 +304,17 @@ export default function FacilitiesView() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {data!.facilities.map((f) => (
-            <GalleryCard key={f.type} facility={f} maxLevel={data!.config.maxLevel} onOpen={setDetailTarget} />
+            <FacilityCard
+              key={f.type}
+              facility={f}
+              maxLevel={data!.config.maxLevel}
+              isOwner={!!isOwner}
+              restRecovery={data!.config.restRecoveryPerLevel}
+              onUpgrade={setUpgradeTarget}
+            />
           ))}
         </div>
       )}
-
-      {/* Task 58 — glass side panel with the full upgrade detail */}
-      <FacilityPanel
-        facility={detail}
-        maxLevel={data?.config.maxLevel ?? 10}
-        isOwner={!!isOwner}
-        restRecovery={data?.config.restRecoveryPerLevel}
-        open={!!detail}
-        onOpenChange={(v) => {
-          if (!v) setDetailTarget(null);
-        }}
-        onUpgrade={setUpgradeTarget}
-      />
 
       {/* Upgrade confirmation */}
       <AlertDialog open={!!upgradeTarget} onOpenChange={(v) => !v && setUpgradeTarget(null)}>

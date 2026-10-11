@@ -1,8 +1,7 @@
-// Knight FM — visual themes (spec §32). One design system, six user-selectable themes.
+// Knight FM — visual themes (spec §32). One design system, five user-selectable themes.
 // Theme selection never changes game state. All themes meet WCAG AA contrast.
 
 export const THEMES = [
-  { id: "onyx", nameKey: "themes.onyx", swatch: ["#0a0a0a", "#10b981", "#f59e0b"] },
   { id: "knight-emerald", nameKey: "themes.knightEmerald", swatch: ["#0b1220", "#10b981", "#d4af37"] },
   { id: "obsidian", nameKey: "themes.obsidian", swatch: ["#09090b", "#fafafa", "#a1a1aa"] },
   { id: "royal", nameKey: "themes.royal", swatch: ["#0a1128", "#c9a227", "#e5e7eb"] },
@@ -11,7 +10,7 @@ export const THEMES = [
 ] as const;
 
 export type ThemeId = (typeof THEMES)[number]["id"];
-export const DEFAULT_THEME: ThemeId = "onyx";
+export const DEFAULT_THEME: ThemeId = "knight-emerald";
 export const isValidTheme = (id: string): id is ThemeId => THEMES.some((t) => t.id === id);
 
 export const LANGUAGES = [

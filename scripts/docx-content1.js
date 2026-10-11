@@ -8,7 +8,7 @@ const cap1 = [
   p("Knight FM es el mánager de fútbol online persistente: un mundo que vive 24/7 en UTC, con 10 regiones × 10 divisiones × 16 clubes (1.600 clubes, 32.000 jugadores), economía $Knight con puente a Solana, mercados completos (subastas, venta directa, cláusulas, cesiones, agentes libres, ofertas a mánagers) y un motor de simulación causal (KMIE) sin progresión manual."),
   bullet("Idioma principal: Español, con diccionarios completos en EN, FR y PT."),
   bullet("Reloj del mundo: UTC server-authoritative; el avance del juego no puede ser manipulado por el cliente."),
-  bullet("Cuentas de administrador: se configuran vía ADMIN_BOOTSTRAP_EMAIL / ADMIN_BOOTSTRAP_PASSWORD en el .env del servidor (nunca en código ni documentación pública)."),
+  bullet("Cuentas de administrador por defecto: kronoss2803@gmail.com y libreventas581@gmail.com (usuario Kronoss)."),
   gap(),
   h2("1.1 Arranque rápido"),
   ...codeBlock([
@@ -17,7 +17,7 @@ const cap1 = [
     "bun run db:push        # crea el schema en db/custom.db",
     "bun run dev            # servidor en http://localhost:3000",
   ]),
-  p("El mundo se genera automáticamente al primer arranque (genesis): 10 regiones, 100 divisiones, 1.600 clubes con 20 jugadores cada uno, 40 agentes libres, calendario de liga y copa, y la cuenta de administrador definida en ADMIN_BOOTSTRAP_EMAIL (contraseña de ADMIN_BOOTSTRAP_PASSWORD — cámbiala tras el primer login)."),
+  p("El mundo se genera automáticamente al primer arranque (genesis): 10 regiones, 100 divisiones, 1.600 clubes con 20 jugadores cada uno, 40 agentes libres, calendario de liga y copa, y la cuenta de administrador kronoss2803@gmail.com (contraseña bootstrap KnightAdmin!2025 — cámbiala tras el primer login)."),
   h2("1.2 Scripts"),
   tbl(["Script", "Acción"], [
     ["bun run dev", "Servidor de desarrollo (puerto 3000, log en dev.log)"],
@@ -286,7 +286,7 @@ const cap5 = [
   ], [60, 40], { small: true }),
   h2("5.5 Operations, Facilities y Training"),
   tbl(["Clave", "Default"], [
-    ["admin.bootstrapEmail", "valor de ADMIN_BOOTSTRAP_EMAIL (emails que nacen ADMIN)"],
+    ["admin.bootstrapEmail", "kronoss2803@gmail.com (emails que nacen ADMIN)"],
     ["ops.maintenanceMode / maintenanceMessage", "false / mensaje configurable"],
     ["facilities.maxLevel / upgradeDays / baseCost / restRecoveryPerLevel", "10 / 5 / 80 / 2"],
     ["training.generalSessionsPerDay / specialPerTypePerDay", "1 / 1"],

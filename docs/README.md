@@ -4,7 +4,7 @@
 
 - **Idioma principal**: Español (con diccionarios completos en EN/FR/PT)
 - **Reloj del mundo**: UTC server-authoritative — el avance del juego no puede ser manipulado por el cliente
-- **Cuentas de administrador**: se configuran vía variables de entorno `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` — nunca en el código ni en documentación pública
+- **Cuenta de administrador por defecto**: `kronoss2803@gmail.com` (y `libreventas581@gmail.com` / Kronoss, también ADMIN)
 
 ---
 
@@ -21,7 +21,6 @@
 | [07-economia.md](07-economia.md) | $Knight, gravámenes, salarios semanales, mercados de pases, depósitos/retiros Solana |
 | [08-competencia.md](08-competencia.md) | Comparativa con los competidores más potentes del sector (ganador/perdedor) |
 | [09-changelog.md](09-changelog.md) | Historial completo de las 45 tareas de desarrollo |
-| [10-despliegue-github-supabase.md](10-despliegue-github-supabase.md) | **Guía de despliegue**: subir el proyecto a GitHub y migrar la base de datos a Supabase (PostgreSQL), paso a paso desde Windows |
 
 ---
 
@@ -32,11 +31,9 @@
 bun install                # o npm install
 bun run db:push            # crea el schema en db/custom.db
 bun run dev                # servidor en http://localhost:3000
-
-# ¿Producción con GitHub + Supabase (PostgreSQL)? Ver docs/10-despliegue-github-supabase.md
 ```
 
-El mundo se genera automáticamente al primer arranque (genesis): 10 regiones, 100 divisiones, 1.600 clubes con 20 jugadores cada uno, 40 agentes libres, calendario de liga y copa, y la cuenta de administrador definida en `ADMIN_BOOTSTRAP_EMAIL` (con la contraseña de `ADMIN_BOOTSTRAP_PASSWORD` — cámbiala tras el primer login).
+El mundo se genera automáticamente al primer arranque (genesis): 10 regiones, 100 divisiones, 1.600 clubes con 20 jugadores cada uno, 40 agentes libres, calendario de liga y copa, y la cuenta de administrador `kronoss2803@gmail.com` (contraseña bootstrap `KnightAdmin!2025` — cámbiala tras el primer login).
 
 ## Scripts npm
 

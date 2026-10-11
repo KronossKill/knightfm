@@ -33,7 +33,6 @@ import {
 } from "@/components/game/api";
 import { useActiveClub } from "@/components/game/hooks/use-active-club";
 import { BrandBadge, EmptyState, ErrorState, TableSkeleton } from "@/components/game/ui/bits";
-import CinemaHeader from "@/components/game/ui/cinema-header";
 import { MatchDetailDialog } from "@/components/game/competitions/match-dialog";
 import { ClubSquadDialog } from "@/components/game/competitions/club-squad-dialog";
 import { CalendarTab } from "@/components/game/competitions/season-calendar";
@@ -706,12 +705,12 @@ export default function CompetitionsView() {
   const { t } = useI18n();
   return (
     <div className="mx-auto max-w-6xl space-y-4">
-      <CinemaHeader
-        title={t("game.nav.competitions")}
-        subtitle={t("game.cinema.competitions")}
-        image="/images/trophy-gold.jpg"
-        icon={Trophy}
-      />
+      <header>
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <Trophy aria-hidden="true" className="size-5 text-primary" />
+          {t("game.nav.competitions")}
+        </h1>
+      </header>
 
       <Tabs defaultValue="standings">
         <TabsList className="h-auto min-h-9 flex-wrap">

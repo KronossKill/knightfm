@@ -1,63 +1,35 @@
-// Knight FM — Downloads index (Task 81).
-// Public GET: lists every deliverable file in /public/downloads so the landing
-// footer panel can offer one-click downloads for ALL packages, newest first.
-// Read-only, fixed directory (no user input reaches the filesystem paths),
-// extension-whitelisted, dotfiles skipped, always-fresh (no-store).
+// Knight FM — GET /api/downloads (Task 87/90): public, auth-less listing of
+// the DELIVERY artifacts in public/downloads, newest first. The landing
+// downloads panel renders this list; the newest file is flagged so the UI can
+// badge it "MÁS RECIENTE". Read-only, tiny, no secrets: it exposes exactly the
+// files that are already publicly downloadable.
 
-import { NextResponse } from "next/server";
-import { readdir, stat } from "fs/promises";
-import path from "path";
+import { NextRequest } from "next/server";
+import { ok } from "@/lib/api";
+import { readdir, stat } from "node:fs/promises";
+import path from "node:path";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_EXT = new Set([".zip", ".txt", ".sql", ".docx", ".md"]);
-
-interface DownloadEntry {
-  name: string;
-  size: number;
-  modifiedAt: string;
-}
-
-export async function GET() {
+export async function GET(_req: NextRequest) {
+  const dir = path.join(process.cwd(), "public", "downloads");
   try {
-    const dir = path.join(process.cwd(), "public", "downloads");
-    const entries = await readdir(dir, { withFileTypes: true });
-
-    const files: DownloadEntry[] = [];
-    for (const entry of entries) {
-      if (!entry.isFile()) continue;
-      if (entry.name.startsWith(".")) continue;
-      const dot = entry.name.lastIndexOf(".");
-      if (dot < 0) continue;
-      const ext = entry.name.slice(dot).toLowerCase();
-      if (!ALLOWED_EXT.has(ext)) continue;
-      try {
-        const st = await stat(path.join(dir, entry.name));
-        files.push({ name: entry.name, size: st.size, modifiedAt: st.mtime.toISOString() });
-      } catch {
-        // File vanished mid-scan — skip it, never fail the whole listing.
-      }
-    }
-
-    files.sort((a, b) =>
-      a.modifiedAt === b.modifiedAt
-        ? a.name.localeCompare(b.name)
-        : b.modifiedAt.localeCompare(a.modifiedAt),
+    const names = await readdir(dir);
+    const files = await Promise.all(
+      names
+        .filter((n) => !n.startsWith("."))
+        .map(async (name) => {
+          const s = await stat(path.join(dir, name));
+          return { name, size: s.size, mtimeMs: s.mtimeMs, isFile: s.isFile() };
+        })
     );
-
-    return NextResponse.json(
-      { files },
-      { headers: { "Cache-Control": "no-store" } },
-    );
+    const sorted = files
+      .filter((f) => f.isFile)
+      .sort((a, b) => b.mtimeMs - a.mtimeMs)
+      .map((f, i) => ({ name: f.name, size: f.size, mtime: new Date(f.mtimeMs).toISOString(), newest: i === 0 }));
+    return ok({ files: sorted });
   } catch {
-    return NextResponse.json(
-      {
-        error: {
-          code: "DOWNLOADS_UNAVAILABLE",
-          message: "Downloads directory unavailable",
-        },
-      },
-      { status: 500 },
-    );
+    return ok({ files: [] });
   }
 }

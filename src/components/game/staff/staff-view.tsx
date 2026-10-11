@@ -33,7 +33,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import CinemaHeader from "@/components/game/ui/cinema-header";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
@@ -493,12 +492,13 @@ export default function StaffView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <CinemaHeader
-        title={t("game.staff.title")}
-        subtitle={t("game.staff.subtitle")}
-        image="/images/locker-mood.jpg"
-        icon={UsersRound}
-      />
+      <header>
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <UsersRound aria-hidden="true" className="size-5 text-primary" />
+          {t("game.staff.title")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("game.staff.subtitle")}</p>
+      </header>
 
       {query.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

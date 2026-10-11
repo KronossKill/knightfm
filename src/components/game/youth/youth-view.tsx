@@ -30,7 +30,6 @@ import { apiFetch, ApiError } from "@/components/auth/store";
 import { fetchYouth, qk, type YouthProspect } from "@/components/game/api";
 import { useActiveClub } from "@/components/game/hooks/use-active-club";
 import { EmptyState, ErrorState, PositionBadge } from "@/components/game/ui/bits";
-import CinemaHeader from "@/components/game/ui/cinema-header";
 
 function ProspectCard({
   prospect,
@@ -299,13 +298,15 @@ export default function YouthView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <CinemaHeader
-        title={t("game.youth.title")}
-        subtitle={t("game.youth.subtitle")}
-        image="/images/training-dusk.jpg"
-        icon={FlaskConical}
-        right={
-          <div className="flex flex-wrap items-center gap-2">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-semibold">
+            <FlaskConical aria-hidden="true" className="size-5 text-primary" />
+            {t("game.youth.title")}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t("game.youth.subtitle")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {/* Task 26: academy CAPACITY — level 1 holds exactly the base (default 3)
               and grows with every upgrade. Red when the cantera is full. */}
           {typeof query.data?.youthCapacity === "number" && (
@@ -356,9 +357,8 @@ export default function YouthView() {
               ? "…"
               : t("game.youth.scout", { n: query.data?.prospectsPerSession ?? query.data?.scoutStars ?? 1 })}
           </Button>
-          </div>
-        }
-      />
+        </div>
+      </header>
 
       <p className="text-xs text-muted-foreground">{t("game.youth.promotionNote")}</p>
 

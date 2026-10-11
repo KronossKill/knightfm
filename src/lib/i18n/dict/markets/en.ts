@@ -198,7 +198,6 @@ export const dict: Dict = {
   // ── Treasury ─────────────────────────────────────────────────
   "markets.treasury.title": "Club treasury",
   "markets.treasury.subtitle": "Club finances, investment and ledger",
-  "markets.treasury.payrollSchedule": "Salaries (players, staff and manager) are paid automatically every Sunday at 01:00 server time (UTC).",
   "markets.treasury.operatingFund": "Operating fund",
   "markets.treasury.debt": "Debt",
   "markets.treasury.finState": "Financial state",
@@ -235,6 +234,13 @@ export const dict: Dict = {
   "markets.wallet.priceAt": "Captured",
   "markets.wallet.depositTitle": "Deposit $Knight",
   "markets.wallet.depositDesc": "Deposits come from the Solana network only: send tokens to the platform deposit address and paste the transaction signature. Deposits carry no levy.",
+  // Task 88 (USER MANDATE): system deposit address + QR.
+  "markets.wallet.depositDestTitle": "System deposit address",
+  "markets.wallet.depositDestCopy": "Copy address",
+  "markets.wallet.depositDestCopied": "Address copied!",
+  "markets.wallet.depositDestMint": "Official token: {mint}. Sending any other token gets the deposit automatically rejected.",
+  "markets.wallet.depositDestRules": "Send ONLY to this address: transfers that do not reach the system wallet are rejected. Each transaction signature can be used exactly once.",
+  "markets.wallet.depositDestUnavailable": "Deposits not yet available: the administrator has not configured the system deposit address.",
   "markets.wallet.depositSignature": "Transaction signature",
   "markets.wallet.depositSignatureHint": "Base58, 64–88 characters, exactly as your wallet returns it.",
   "markets.wallet.previewGross": "Gross",

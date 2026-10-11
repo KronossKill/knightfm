@@ -11,6 +11,8 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Check,
+  Eye,
+  EyeOff,
   Globe,
   Info,
   KeyRound,
@@ -55,6 +57,10 @@ function describeError(err: unknown, t: TFn): string {
   // error) surface as plain Errors with a TURNSTILE_ prefix — give them an
   // actionable message instead of the generic one.
   if (err instanceof Error && err.message.startsWith("TURNSTILE_")) {
+    // Task 70: Turnstile error-callback codes (e.g. TURNSTILE_ERROR_110200 =
+    // domain not allowed in the widget) are shown to pinpoint the cause.
+    const m = /^TURNSTILE_ERROR_(\d+|UNKNOWN)$/.exec(err.message);
+    if (m) return t("auth.err.captchaFailed", { code: m[1] });
     return t("auth.err.captchaUnavailable");
   }
   if (err instanceof ApiError) {
@@ -149,6 +155,68 @@ function SubmitLabel({ busy, label }: { busy: boolean; label: string }) {
   );
 }
 
+// ─── Password input with visibility toggle (Task 89, USER MANDATE) ──
+
+interface PasswordInputProps {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  autoComplete?: string;
+  placeholder?: string;
+  show: boolean;
+  onToggle: () => void;
+  invalid?: boolean;
+}
+
+/**
+ * Password field with an eye button to show/hide the typed value, so the user
+ * can review exactly what they wrote before submitting (Task 89). The toggle
+ * is keyboard accessible (real <button>, aria-label + aria-pressed) and the
+ * field propagates aria-invalid for the destructive border when mismatched.
+ */
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  placeholder,
+  show,
+  onToggle,
+  invalid,
+}: PasswordInputProps) {
+  const { t } = useI18n();
+  const label = show ? t("auth.action.hidePassword") : t("auth.action.showPassword");
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={show ? "text" : "password"}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="pr-11"
+        aria-invalid={invalid || undefined}
+        required
+      />
+      <button
+        type="button"
+        onClick={onToggle}
+        className="absolute right-1.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={label}
+        aria-pressed={show}
+        title={label}
+      >
+        {show ? (
+          <EyeOff className="size-4" aria-hidden="true" />
+        ) : (
+          <Eye className="size-4" aria-hidden="true" />
+        )}
+      </button>
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────
 
 export default function AuthFlow() {
@@ -164,6 +232,10 @@ export default function AuthFlow() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  // Task 89 (USER MANDATE): the password is typed twice (register + reset) and
+  // both password views can be toggled visible so the user can review them.
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [ref, setRef] = useState("");
   const [code, setCode] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -175,6 +247,12 @@ export default function AuthFlow() {
   // True after a reset request that ran in console mode (no email provider) —
   // the UI then uses honest sandbox wording instead of "we emailed you".
   const [noEmailProvider, setNoEmailProvider] = useState(false);
+
+  // Task 89: live mismatch feedback (only once the user typed something in the
+  // confirmation field — never a red error for an empty box they haven't reached).
+  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
+  const mismatchText = t("auth.err.passwordMismatch");
+  const toggleShowPassword = useCallback(() => setShowPassword((s) => !s), []);
 
   const reportError = useCallback(
     (err: unknown) => {
@@ -221,6 +299,13 @@ export default function AuthFlow() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Task 89 (USER MANDATE): client-side confirmation gate — the two typed
+    // passwords must match BEFORE anything is sent (no captcha burn, no API call).
+    if (password !== confirmPassword) {
+      setFormError(mismatchText);
+      toast({ title: mismatchText, variant: "destructive" });
+      return;
+    }
     setBusy(true);
     setFormError("");
     try {
@@ -243,6 +328,8 @@ export default function AuthFlow() {
         setDevCode("");
       }
       setView("verify");
+      setConfirmPassword("");
+      setShowPassword(false);
       toast({ title: t("auth.ok.registered") });
     } catch (err) {
       reportError(err);
@@ -265,6 +352,8 @@ export default function AuthFlow() {
       try {
         await doLogin(pendingEmail, password);
         setPassword("");
+        setConfirmPassword("");
+        setShowPassword(false);
         setCode("");
       } catch {
         setView("login");
@@ -331,6 +420,12 @@ export default function AuthFlow() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Task 89: same confirmation gate as registration (consistent UX).
+    if (password !== confirmPassword) {
+      setFormError(mismatchText);
+      toast({ title: mismatchText, variant: "destructive" });
+      return;
+    }
     setBusy(true);
     setFormError("");
     try {
@@ -343,6 +438,8 @@ export default function AuthFlow() {
       setDevToken("");
       setNoEmailProvider(false);
       setPassword("");
+      setConfirmPassword("");
+      setShowPassword(false);
       setView("login");
     } catch (err) {
       reportError(err);
@@ -411,7 +508,18 @@ export default function AuthFlow() {
 
   const authTabs =
     view === "login" || view === "register" ? (
-      <Tabs value={view} onValueChange={(v) => setView(v as View)} className="px-6">
+      <Tabs
+        value={view}
+        onValueChange={(v) => {
+          // Task 89: leaving a password form clears the confirmation + visibility
+          // state so the next view starts clean (no stale error either).
+          setFormError("");
+          setConfirmPassword("");
+          setShowPassword(false);
+          setView(v as View);
+        }}
+        className="px-6"
+      >
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">{t("auth.tab.login")}</TabsTrigger>
           <TabsTrigger value="register">{t("auth.tab.register")}</TabsTrigger>
@@ -427,6 +535,8 @@ export default function AuthFlow() {
       className="w-full text-muted-foreground hover:text-foreground"
       onClick={() => {
         setFormError("");
+        setConfirmPassword("");
+        setShowPassword(false);
         setView("login");
       }}
     >
@@ -469,14 +579,14 @@ export default function AuthFlow() {
             {t("auth.forgot.title")}
           </button>
         </div>
-        <Input
+        <PasswordInput
           id="login-password"
-          type="password"
           autoComplete="current-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          onChange={setPassword}
+          show={showPassword}
+          onToggle={toggleShowPassword}
         />
       </div>
       {formError && (
@@ -524,16 +634,40 @@ export default function AuthFlow() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-password">{t("auth.field.password")}</Label>
-        <Input
+        <PasswordInput
           id="reg-password"
-          type="password"
           autoComplete="new-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          onChange={setPassword}
+          show={showPassword}
+          onToggle={toggleShowPassword}
         />
         <PolicyList pw={password} />
+      </div>
+      {/* Task 89 (USER MANDATE): the password is typed twice so a typo never
+          locks the user out of a brand-new account. Live mismatch hint + a
+          hard client-side gate on submit + server keeps its own policy. */}
+      <div className="space-y-2">
+        <Label htmlFor="reg-confirm-password">{t("auth.field.confirmPassword")}</Label>
+        <PasswordInput
+          id="reg-confirm-password"
+          autoComplete="new-password"
+          placeholder={t("auth.placeholder.confirmPassword")}
+          value={confirmPassword}
+          onChange={(v) => {
+            setConfirmPassword(v);
+            if (formError) setFormError("");
+          }}
+          show={showPassword}
+          onToggle={toggleShowPassword}
+          invalid={passwordMismatch}
+        />
+        {passwordMismatch && (
+          <p className="text-xs text-destructive" role="alert">
+            {mismatchText}
+          </p>
+        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-ref">
@@ -694,16 +828,39 @@ export default function AuthFlow() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="reset-password">{t("auth.field.newPassword")}</Label>
-        <Input
+        <PasswordInput
           id="reset-password"
-          type="password"
           autoComplete="new-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
+          onChange={setPassword}
+          show={showPassword}
+          onToggle={toggleShowPassword}
         />
         <PolicyList pw={password} />
+      </div>
+      {/* Task 89: confirmation repeated on password reset too (same rule as
+          registration — a typo here would lock the user out immediately). */}
+      <div className="space-y-2">
+        <Label htmlFor="reset-confirm-password">{t("auth.field.confirmPassword")}</Label>
+        <PasswordInput
+          id="reset-confirm-password"
+          autoComplete="new-password"
+          placeholder={t("auth.placeholder.confirmPassword")}
+          value={confirmPassword}
+          onChange={(v) => {
+            setConfirmPassword(v);
+            if (formError) setFormError("");
+          }}
+          show={showPassword}
+          onToggle={toggleShowPassword}
+          invalid={passwordMismatch}
+        />
+        {passwordMismatch && (
+          <p className="text-xs text-destructive" role="alert">
+            {mismatchText}
+          </p>
+        )}
       </div>
       {formError && (
         <p className="text-sm text-destructive" role="alert">

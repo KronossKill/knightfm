@@ -55,6 +55,6 @@ Historial completo de tareas. El detalle técnico de cada una está en `worklog.
 - **40** **Análisis competitivo** con 13 rivales (ver 08-competencia.md)
 - **41** **Regla de 30 días**: 2 cuentas en la misma IP → bloqueo automático de todas; desbloqueo SOLO del admin (Moderación en el Centro de Control); evidencia IpLink + auditoría
 - **42** **Exención total de admins**: nunca se bloquean y son los ÚNICOS que pueden compartir IP (login, detección y registro)
-- **43** Cuenta de administrador por defecto configurable vía `ADMIN_BOOTSTRAP_EMAIL` (seed promote-if-exists + config + migración de DB; placeholder admin@knight.fm eliminado)
-- **44** Segunda cuenta del propietario promovida a ADMIN (registrationIp liberado, audit ADMIN_GRANTED)
+- **43** Cuenta de administrador por defecto = **kronoss2803@gmail.com** (seed promote-if-exists + config + migración de DB; placeholder admin@knight.fm eliminado)
+- **44** **libreventas581@gmail.com (Kronoss) promovida a ADMIN** (registrationIp liberado, audit ADMIN_GRANTED)
 - **45** **Documentación completa** (esta carpeta) + ZIP descargable desde la propia app

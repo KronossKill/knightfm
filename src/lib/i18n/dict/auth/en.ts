@@ -31,6 +31,8 @@ export const dict: Dict = {
   "auth.field.email": "Email address",
   "auth.field.username": "Username",
   "auth.field.password": "Password",
+  // Task 89 (USER MANDATE): password confirmation on registration.
+  "auth.field.confirmPassword": "Confirm password",
   "auth.field.referral": "Referral code",
   "auth.field.code": "Verification code",
   "auth.field.token": "Recovery token",
@@ -38,6 +40,7 @@ export const dict: Dict = {
   "auth.placeholder.email": "you@email.com",
   "auth.placeholder.username": "YourHandle",
   "auth.placeholder.password": "At least 12 characters",
+  "auth.placeholder.confirmPassword": "Repeat your password",
   "auth.placeholder.referral": "User who invited you (optional)",
   "auth.placeholder.code": "6 digits",
   "auth.placeholder.token": "Paste the received token",
@@ -78,6 +81,9 @@ export const dict: Dict = {
   // Actions / feedback
   "auth.action.backToLogin": "Back to sign in",
   "auth.action.working": "One moment…",
+  // Task 89 (USER MANDATE): show/hide the password to review it.
+  "auth.action.showPassword": "Show password",
+  "auth.action.hidePassword": "Hide password",
   "auth.ok.registered": "Account created. Check your email to verify it.",
   "auth.ok.verified": "Email verified. Signing you in…",
   "auth.ok.codeSent": "If the email is registered, a new code has been sent.",
@@ -90,6 +96,7 @@ export const dict: Dict = {
   // Errors (mapped by error.code from the API)
   "auth.err.captcha": "Anti-bot verification failed. Reload and try again.",
   "auth.err.captchaUnavailable": "The captcha could not load. Check your connection, disable ad blockers for this site and try again.",
+  "auth.err.captchaFailed": "Captcha error (code {code}). Usually caused by a wrong Site Key or a domain not allowed in Cloudflare. Try another browser and retry.",
   "auth.err.conflict": "Invalid credentials or account already registered.",
   "auth.err.invalidCredentials": "Invalid credentials.",
   "auth.err.emailNotVerified": "Your email is not verified yet. Check your inbox.",
@@ -105,6 +112,8 @@ export const dict: Dict = {
   "auth.err.passwordLower": "Add at least one lowercase letter.",
   "auth.err.passwordDigit": "Add at least one number.",
   "auth.err.passwordSymbol": "Add at least one symbol.",
+  // Task 89 (USER MANDATE): the two registration passwords must match.
+  "auth.err.passwordMismatch": "Passwords do not match.",
   "auth.err.generic": "The operation could not be completed. Please try again.",
   // Task 39 — anti-multi-account: exactly one account per IP.
   "auth.err.multiAccount": "Only one account per IP is allowed: multi-accounting is not permitted.",

@@ -16,8 +16,7 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { motion, useReducedMotion } from "framer-motion";
-import { Shirt, AlertTriangle, Eraser, Loader2, RotateCcw, Save, Sparkles } from "lucide-react";
-import CinemaHeader from "@/components/game/ui/cinema-header";
+import { AlertTriangle, Eraser, Loader2, RotateCcw, Save, Sparkles } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -362,14 +361,11 @@ function TacticsViewInner({ club, nextOpponent }: TacticsViewProps) {
 
   return (
     <div className="mx-auto w-full max-w-[1400px] p-3 sm:p-4 lg:p-6">
-      {/* Header — Task 56 cinematic scene (dark pitch photography) */}
-      <CinemaHeader
-        title={t("tactics.title")}
-        subtitle={resolvedClub.name}
-        image="/images/pitch-dark.jpg"
-        icon={Shirt}
-        className="mb-4"
-      />
+      {/* Header */}
+      <header className="mb-4">
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">{t("tactics.title")}</h1>
+        <p className="text-sm text-muted-foreground">{resolvedClub.name}</p>
+      </header>
 
       {/* Top controls */}
       <Card className="mb-4 border bg-card p-3">

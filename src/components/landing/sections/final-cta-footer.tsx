@@ -13,7 +13,6 @@ import { SectionTracker } from "../analytics-tracker";
 import { LanguageSelect, ThemeSelect } from "../controls";
 import { EV, track } from "../analytics";
 import { LEGAL_LINKS } from "./security-trust";
-import { DownloadsPanel } from "./downloads-panel";
 
 const NAV_LINKS = [
   { id: "how-it-works", key: "landing.nav.how" },
@@ -194,9 +193,6 @@ export function LandingFooter({ scrollTo }: { scrollTo?: (id: string) => void })
               {t("landing.footer.docsWord")}
             </a>
           </div>
-
-          {/* Task 81 — every published package, newest first, one click away */}
-          <DownloadsPanel />
         </div>
 
         <Separator className="my-8" />

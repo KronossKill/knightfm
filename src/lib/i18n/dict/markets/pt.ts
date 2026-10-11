@@ -198,7 +198,6 @@ export const dict: Dict = {
   // ── Treasury ─────────────────────────────────────────────────
   "markets.treasury.title": "Tesouraria do clube",
   "markets.treasury.subtitle": "Finanças, investimento e livro-caixa do clube",
-  "markets.treasury.payrollSchedule": "Os salários (jogadores, comissão técnica e gestor) são pagos automaticamente todos os domingos às 01:00 hora do servidor (UTC).",
   "markets.treasury.operatingFund": "Fundo de operação",
   "markets.treasury.debt": "Dívida",
   "markets.treasury.finState": "Estado financeiro",
@@ -235,6 +234,13 @@ export const dict: Dict = {
   "markets.wallet.priceAt": "Capturado",
   "markets.wallet.depositTitle": "Depositar $Knight",
   "markets.wallet.depositDesc": "Os depósitos vêm apenas da rede Solana: envie tokens para o endereço de depósito da plataforma e cole a assinatura da transação. Os depósitos não sofrem taxa.",
+  // Task 88 (USER MANDATE): endereço de depósito do sistema + QR.
+  "markets.wallet.depositDestTitle": "Endereço de depósito do sistema",
+  "markets.wallet.depositDestCopy": "Copiar endereço",
+  "markets.wallet.depositDestCopied": "Endereço copiado!",
+  "markets.wallet.depositDestMint": "Token oficial: {mint}. Enviar qualquer outro token faz o depósito ser rejeitado automaticamente.",
+  "markets.wallet.depositDestRules": "Envie APENAS para este endereço: transferências que não chegam à carteira do sistema são rejeitadas. Cada assinatura de transação só pode ser usada uma vez.",
+  "markets.wallet.depositDestUnavailable": "Depósitos ainda não disponíveis: o administrador não configurou o endereço de depósito do sistema.",
   "markets.wallet.depositSignature": "Assinatura da transação",
   "markets.wallet.depositSignatureHint": "Base58, 64–88 caracteres, exatamente como sua carteira retorna.",
   "markets.wallet.previewGross": "Bruto",

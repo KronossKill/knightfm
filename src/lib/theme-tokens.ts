@@ -1,0 +1,230 @@
+// Knight FM — canonical theme tokens (Task 91). GENERATED FROM the
+// [data-theme="…"] blocks in src/app/globals.css (single source of truth;
+// extraction script wrote docs/ui/themes/tokens/*.json and this module from
+// that file — do not hand-edit values). Components must consume tokens via
+// Tailwind semantic utilities (bg-background, text-foreground…) and NEVER
+// hardcode colors.
+
+export type ThemeTokenMap = Record<string, string>;
+
+export interface ThemeTokens {
+  id: string;
+  label: string;
+  mode: "dark" | "light";
+  direction: string;
+  tokens: ThemeTokenMap;
+}
+
+export const THEME_TOKENS: Record<string, ThemeTokens> = {
+  "knight-emerald": {
+    id: "knight-emerald",
+    label: "Esmeralda Caballero",
+    mode: "dark",
+    direction: "Premium dark / emerald / restrained metallic (DEFAULT)",
+    tokens: {
+      "accent": "oklch(0.27 0.025 230)",
+      "accent-foreground": "oklch(0.96 0.006 230)",
+      "background": "oklch(0.15 0.022 230)",
+      "border": "oklch(0.3 0.022 230)",
+      "card": "oklch(0.19 0.025 230)",
+      "card-foreground": "oklch(0.96 0.006 230)",
+      "chart-1": "oklch(0.74 0.15 163)",
+      "chart-2": "oklch(0.79 0.13 85)",
+      "chart-3": "oklch(0.68 0.14 250)",
+      "chart-4": "oklch(0.65 0.16 25)",
+      "chart-5": "oklch(0.72 0.13 300)",
+      "destructive": "oklch(0.62 0.2 25)",
+      "foreground": "oklch(0.96 0.006 230)",
+      "input": "oklch(0.3 0.022 230)",
+      "muted": "oklch(0.23 0.02 230)",
+      "muted-foreground": "oklch(0.72 0.018 230)",
+      "popover": "oklch(0.19 0.025 230)",
+      "popover-foreground": "oklch(0.96 0.006 230)",
+      "primary": "oklch(0.74 0.15 163)",
+      "primary-foreground": "oklch(0.16 0.04 165)",
+      "ring": "oklch(0.74 0.15 163)",
+      "secondary": "oklch(0.25 0.022 230)",
+      "secondary-foreground": "oklch(0.94 0.008 230)",
+      "sidebar": "oklch(0.17 0.022 230)",
+      "sidebar-accent": "oklch(0.25 0.022 230)",
+      "sidebar-accent-foreground": "oklch(0.96 0.006 230)",
+      "sidebar-border": "oklch(0.3 0.022 230)",
+      "sidebar-foreground": "oklch(0.96 0.006 230)",
+      "sidebar-primary": "oklch(0.74 0.15 163)",
+      "sidebar-primary-foreground": "oklch(0.16 0.04 165)",
+      "sidebar-ring": "oklch(0.74 0.15 163)",
+    },
+  },
+  "obsidian": {
+    id: "obsidian",
+    label: "Obsidiana Nocturna",
+    mode: "dark",
+    direction: "Near-black monochrome, high contrast, white/silver accents",
+    tokens: {
+      "accent": "oklch(0.22 0 0)",
+      "accent-foreground": "oklch(0.97 0 0)",
+      "background": "oklch(0.1 0 0)",
+      "border": "oklch(0.27 0 0)",
+      "card": "oklch(0.14 0 0)",
+      "card-foreground": "oklch(0.97 0 0)",
+      "chart-1": "oklch(0.85 0 0)",
+      "chart-2": "oklch(0.65 0 0)",
+      "chart-3": "oklch(0.45 0 0)",
+      "chart-4": "oklch(0.75 0 0)",
+      "chart-5": "oklch(0.55 0 0)",
+      "destructive": "oklch(0.65 0.2 25)",
+      "foreground": "oklch(0.97 0 0)",
+      "input": "oklch(0.27 0 0)",
+      "muted": "oklch(0.18 0 0)",
+      "muted-foreground": "oklch(0.72 0 0)",
+      "popover": "oklch(0.14 0 0)",
+      "popover-foreground": "oklch(0.97 0 0)",
+      "primary": "oklch(0.93 0 0)",
+      "primary-foreground": "oklch(0.12 0 0)",
+      "ring": "oklch(0.85 0 0)",
+      "secondary": "oklch(0.2 0 0)",
+      "secondary-foreground": "oklch(0.95 0 0)",
+      "sidebar": "oklch(0.12 0 0)",
+      "sidebar-accent": "oklch(0.2 0 0)",
+      "sidebar-accent-foreground": "oklch(0.97 0 0)",
+      "sidebar-border": "oklch(0.27 0 0)",
+      "sidebar-foreground": "oklch(0.97 0 0)",
+      "sidebar-primary": "oklch(0.93 0 0)",
+      "sidebar-primary-foreground": "oklch(0.12 0 0)",
+      "sidebar-ring": "oklch(0.85 0 0)",
+    },
+  },
+  "royal": {
+    id: "royal",
+    label: "Azul Real",
+    mode: "dark",
+    direction: "Deep navy with refined gold accents",
+    tokens: {
+      "accent": "oklch(0.28 0.04 268)",
+      "accent-foreground": "oklch(0.95 0.012 268)",
+      "background": "oklch(0.16 0.035 268)",
+      "border": "oklch(0.31 0.04 268)",
+      "card": "oklch(0.2 0.04 268)",
+      "card-foreground": "oklch(0.95 0.012 268)",
+      "chart-1": "oklch(0.8 0.13 87)",
+      "chart-2": "oklch(0.7 0.1 268)",
+      "chart-3": "oklch(0.65 0.14 160)",
+      "chart-4": "oklch(0.66 0.16 25)",
+      "chart-5": "oklch(0.72 0.12 310)",
+      "destructive": "oklch(0.62 0.2 25)",
+      "foreground": "oklch(0.95 0.012 268)",
+      "input": "oklch(0.31 0.04 268)",
+      "muted": "oklch(0.24 0.035 268)",
+      "muted-foreground": "oklch(0.73 0.025 268)",
+      "popover": "oklch(0.2 0.04 268)",
+      "popover-foreground": "oklch(0.95 0.012 268)",
+      "primary": "oklch(0.8 0.13 87)",
+      "primary-foreground": "oklch(0.19 0.05 268)",
+      "ring": "oklch(0.8 0.13 87)",
+      "secondary": "oklch(0.26 0.04 268)",
+      "secondary-foreground": "oklch(0.93 0.014 268)",
+      "sidebar": "oklch(0.18 0.04 268)",
+      "sidebar-accent": "oklch(0.26 0.04 268)",
+      "sidebar-accent-foreground": "oklch(0.95 0.012 268)",
+      "sidebar-border": "oklch(0.31 0.04 268)",
+      "sidebar-foreground": "oklch(0.95 0.012 268)",
+      "sidebar-primary": "oklch(0.8 0.13 87)",
+      "sidebar-primary-foreground": "oklch(0.19 0.05 268)",
+      "sidebar-ring": "oklch(0.8 0.13 87)",
+    },
+  },
+  "aurora": {
+    id: "aurora",
+    label: "Aurora Boreal",
+    mode: "dark",
+    direction: "Dark graphite with cool luminous gradients",
+    tokens: {
+      "accent": "oklch(0.29 0.025 300)",
+      "accent-foreground": "oklch(0.96 0.008 255)",
+      "background": "oklch(0.17 0.015 255)",
+      "border": "oklch(0.32 0.02 255)",
+      "card": "oklch(0.21 0.018 255)",
+      "card-foreground": "oklch(0.96 0.008 255)",
+      "chart-1": "oklch(0.82 0.13 178)",
+      "chart-2": "oklch(0.75 0.12 300)",
+      "chart-3": "oklch(0.7 0.14 255)",
+      "chart-4": "oklch(0.8 0.13 87)",
+      "chart-5": "oklch(0.66 0.16 25)",
+      "destructive": "oklch(0.62 0.2 25)",
+      "foreground": "oklch(0.96 0.008 255)",
+      "input": "oklch(0.32 0.02 255)",
+      "muted": "oklch(0.25 0.018 255)",
+      "muted-foreground": "oklch(0.73 0.015 255)",
+      "popover": "oklch(0.21 0.018 255)",
+      "popover-foreground": "oklch(0.96 0.008 255)",
+      "primary": "oklch(0.82 0.13 178)",
+      "primary-foreground": "oklch(0.18 0.04 178)",
+      "ring": "oklch(0.82 0.13 178)",
+      "secondary": "oklch(0.27 0.02 255)",
+      "secondary-foreground": "oklch(0.94 0.01 255)",
+      "sidebar": "oklch(0.19 0.018 255)",
+      "sidebar-accent": "oklch(0.27 0.02 255)",
+      "sidebar-accent-foreground": "oklch(0.96 0.008 255)",
+      "sidebar-border": "oklch(0.32 0.02 255)",
+      "sidebar-foreground": "oklch(0.96 0.008 255)",
+      "sidebar-primary": "oklch(0.82 0.13 178)",
+      "sidebar-primary-foreground": "oklch(0.18 0.04 178)",
+      "sidebar-ring": "oklch(0.82 0.13 178)",
+    },
+  },
+  "classic": {
+    id: "classic",
+    label: "Verde Clásico",
+    mode: "light",
+    direction: "Elegant deep green with traditional football-club cues",
+    tokens: {
+      "accent": "oklch(0.28 0.032 152)",
+      "accent-foreground": "oklch(0.95 0.01 152)",
+      "background": "oklch(0.16 0.028 152)",
+      "border": "oklch(0.31 0.03 152)",
+      "card": "oklch(0.2 0.032 152)",
+      "card-foreground": "oklch(0.95 0.01 152)",
+      "chart-1": "oklch(0.63 0.14 150)",
+      "chart-2": "oklch(0.78 0.12 90)",
+      "chart-3": "oklch(0.68 0.1 152)",
+      "chart-4": "oklch(0.64 0.15 28)",
+      "chart-5": "oklch(0.7 0.12 300)",
+      "destructive": "oklch(0.6 0.2 25)",
+      "foreground": "oklch(0.95 0.01 152)",
+      "input": "oklch(0.31 0.03 152)",
+      "muted": "oklch(0.24 0.028 152)",
+      "muted-foreground": "oklch(0.73 0.022 152)",
+      "popover": "oklch(0.2 0.032 152)",
+      "popover-foreground": "oklch(0.95 0.01 152)",
+      "primary": "oklch(0.63 0.14 150)",
+      "primary-foreground": "oklch(0.98 0.01 152)",
+      "ring": "oklch(0.63 0.14 150)",
+      "secondary": "oklch(0.26 0.03 152)",
+      "secondary-foreground": "oklch(0.93 0.012 152)",
+      "sidebar": "oklch(0.18 0.03 152)",
+      "sidebar-accent": "oklch(0.26 0.03 152)",
+      "sidebar-accent-foreground": "oklch(0.95 0.01 152)",
+      "sidebar-border": "oklch(0.31 0.03 152)",
+      "sidebar-foreground": "oklch(0.95 0.01 152)",
+      "sidebar-primary": "oklch(0.63 0.14 150)",
+      "sidebar-primary-foreground": "oklch(0.98 0.01 152)",
+      "sidebar-ring": "oklch(0.63 0.14 150)",
+    },
+  },
+};
+
+/** All semantic token names every theme must define (parity contract). */
+export const REQUIRED_TOKEN_NAMES = Object.keys(THEME_TOKENS["knight-emerald"].tokens);
+
+/**
+ * Generate a CSS block for a theme (tooling/preview helper; production themes
+ * live in globals.css so tokens exist before hydration).
+ */
+export function themeToCss(id: string): string {
+  const th = THEME_TOKENS[id];
+  if (!th) return "";
+  const lines = Object.entries(th.tokens)
+    .map(([k, v]) => `  --${k}: ${v};`)
+    .join("\n");
+  return `[data-theme="${id}"] {\n${lines}\n}`;
+}

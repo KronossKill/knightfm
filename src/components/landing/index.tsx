@@ -24,6 +24,7 @@ import { Economy } from "./sections/economy";
 import { SocialProof } from "./sections/social-proof";
 import { SecurityTrust } from "./sections/security-trust";
 import { FinalCta, LandingFooter } from "./sections/final-cta-footer";
+import { DownloadsPanel } from "./sections/downloads-panel";
 
 export interface LandingProps {
   /** Opens the register flow (wired by page.tsx later). */
@@ -76,6 +77,7 @@ export default function Landing({ onPrimaryCta, onSecondaryCta }: LandingProps) 
         <SocialProof />
         <SecurityTrust />
         <FinalCta onPrimaryCta={onPrimaryCta} scrollTo={scrollTo} />
+        <DownloadsPanel />
       </main>
       <LandingFooter scrollTo={scrollTo} />
     </div>

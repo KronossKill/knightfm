@@ -71,7 +71,7 @@ Todas las claves viven en `ConfigKey` (`defaultValue` + `currentValue` + min/max
 ## Admin access / Operations
 | Clave | Default |
 |---|---|
-| `admin.bootstrapEmail` | Valor de `ADMIN_BOOTSTRAP_EMAIL` (emails que nacen ADMIN al registrarse) |
+| `admin.bootstrapEmail` | **kronoss2803@gmail.com** (emails que nacen ADMIN al registrarse) |
 | `ops.maintenanceMode` / `ops.maintenanceMessage` | false / "Knight FM is under maintenance…" |
 
 ## Facilities

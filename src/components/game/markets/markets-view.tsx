@@ -7,8 +7,7 @@ import "@/lib/i18n/dict/markets";
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Handshake, Landmark } from "lucide-react";
-import CinemaHeader from "@/components/game/ui/cinema-header";
+import { Handshake } from "lucide-react";
 import { useI18n } from "@/lib/i18n/index";
 import { EnsureQueryProvider } from "./club-context";
 import { DirectTab } from "./tabs/direct-tab";
@@ -24,12 +23,10 @@ function MarketsHub({ club }: { club: ClubLite }) {
   const { t } = useI18n();
   return (
     <section aria-label={t("markets.title")} className="space-y-4">
-      <CinemaHeader
-        title={t("markets.title")}
-        subtitle={t("markets.hub.subtitle")}
-        image="/images/stadium-night.jpg"
-        icon={Landmark}
-      />
+      <header>
+        <h2 className="text-lg font-bold tracking-tight">{t("markets.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("markets.hub.subtitle")}</p>
+      </header>
 
       <Tabs defaultValue="direct" className="w-full">
         <TabsList

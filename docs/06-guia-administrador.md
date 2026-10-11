@@ -4,10 +4,10 @@
 
 | Cuenta | Usuario | Rol |
 |---|---|---|
-| Valor de `ADMIN_BOOTSTRAP_EMAIL` | kronoss2803 | ADMIN (cuenta por defecto de la plataforma) |
-| (segunda cuenta del propietario) | Kronoss | ADMIN (promovida a petición del usuario) |
+| `kronoss2803@gmail.com` | kronoss2803 | ADMIN (cuenta por defecto de la plataforma) |
+| `libreventas581@gmail.com` | Kronoss | ADMIN (promovida a petición del usuario) |
 
-- Contraseña bootstrap: la define `ADMIN_BOOTSTRAP_PASSWORD` en el `.env` del servidor — **nunca** en código ni en documentación pública. Cámbiala tras el primer login.
+- Contraseña bootstrap de `kronoss2803@gmail.com`: **`KnightAdmin!2025`** — cámbiala tras el primer login.
 - Quien se registre con un email de `admin.bootstrapEmail` nace ADMIN (sin sello de IP).
 - Promover/revocar: Centro de Control → Usuarios y fondos (o `POST /api/admin/promote`). Al conceder ADMIN se limpia `registrationIp` (exención total de la regla 1-cuenta/IP).
 - Los admins **nunca** se bloquean (ni auto ni manual) y son los únicos autorizados a compartir IP.

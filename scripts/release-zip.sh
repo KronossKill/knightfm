@@ -11,8 +11,6 @@
 # Includes: src, public, prisma, db (SQLite world incl.), scripts, docs (md +
 # Word), tests, examples, .zscripts, upload, every root config, worklog.md and
 # the Word documentation at the root.
-# SECURITY (Task 59): .env REAL is NEVER included — it carries AUTH_SECRET and
-# the admin bootstrap credentials. Only the .env.example template travels.
 # Excludes: node_modules, .next, dev logs, tsbuildinfo, nested release ZIPs,
 # agent working folders (download/, tool-results/, agent-ctx/, skills/).
 
@@ -40,7 +38,7 @@ zip -r -q download/knight-fm-proyecto-completo.zip \
   src public prisma db scripts docs tests examples .zscripts upload \
   package.json bun.lock tsconfig.json next.config.ts next-env.d.ts \
   eslint.config.mjs postcss.config.mjs tailwind.config.ts components.json \
-  Caddyfile .env.example .gitattributes .gitignore README.md worklog.md INVENTARIO_MAESTRO.md "$ROOT_DOC" \
+  Caddyfile .env .gitignore worklog.md "$ROOT_DOC" \
   t16-funds-dialog.png t16-wallet-live-transition.png t16-wallet-mobile.png t16-wallet-mode.png \
   -x "public/downloads/*.zip" "*/node_modules/*" "node_modules/*" \
      "*.tsbuildinfo" "dev.log*" ".next/*" ".zscripts/dev.pid" \

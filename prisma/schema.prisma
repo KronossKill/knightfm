@@ -1,7 +1,5 @@
 // Knight FM — Master data model (spec §40)
-// PRODUCCIÓN (PostgreSQL — Supabase). AUTO-GENERADO por scripts/gen-production-schema.mjs — NO EDITAR A MANO.
-// Editar prisma/schema.prisma (desarrollo) y regenerar este archivo. Sin enums (no soportados en el modelo):
-// todos los enums son String con uniones validadas en src/lib/types.ts
+// SQLite + Prisma. No enums (SQLite): all enums are String with validated union types in src/lib/types.ts
 // All money is integer $Knight (no floats). JSON payloads are stored in String fields.
 
 generator client {
@@ -66,6 +64,22 @@ model User {
   assistantLog  AssistantEntry[]
   presence      Presence?
   ipLinks       IpLink[]
+  dashboardLayout DashboardLayout?
+}
+
+// Task 91 (UI/UX master mandate): the Dashboard is a fully customizable
+// widget hub. One row per user: the ACTIVE widget layout and the user's saved
+// PRESETS (each preset = a full layout snapshot with a name). Both are JSON
+// blobs validated by zod at the API boundary — the DB only guarantees
+// per-user uniqueness and cascade deletion. Role-specific DEFAULT layouts are
+// code-owned (widget-registry) so a user without a row gets the correct
+// MANAGER/OWNER defaults; a row exists only after the first customization.
+model DashboardLayout {
+  userId    String   @unique
+  layout    String   @default("{}") // JSON: { widgets: [{ id, w, h }] } — array order = display order
+  presets   String   @default("[]") // JSON: [{ name, widgets: [{ id, w, h }] }]
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Task 41 (anti-multicuenta evidence table): one row per (account, IP) pair.

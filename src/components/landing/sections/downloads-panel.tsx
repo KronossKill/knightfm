@@ -1,190 +1,177 @@
 "use client";
-// Downloads panel (Task 81) — dynamic index of every deliverable published in
-// /public/downloads. Rendered inside the landing footer docs box. The newest
-// ZIP is highlighted as the current package; every other file sits in a
-// scrollable history below. Any file dropped into public/downloads appears
-// here automatically — no code changes, no manual URLs, ever.
+// Knight FM — Downloads panel (Task 87, rebuilt Task 90). Public delivery
+// panel on the landing: lists EVERY file in public/downloads via /api/downloads
+// (newest first) and hands each one a hardened download link:
+//   - server sends `Content-Disposition: attachment` for /downloads/* (config)
+//   - the anchor also carries `download` + `target="_blank"` + rel noopener
+// so the file ALWAYS downloads — normal click, "open in new tab", middle
+// click, pasted URL — and the app tab is never navigated away.
 
-import * as React from "react";
-import {
-  Download,
-  FileArchive,
-  FileText,
-  PackageOpen,
-  RefreshCw,
-  Sparkles,
-  Table2,
-} from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Download, FileArchive, FileText, Loader2, RefreshCw } from "lucide-react";
+
 import { useI18n } from "@/lib/i18n";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { SectionTracker } from "../analytics-tracker";
 import { EV, track } from "../analytics";
+import { Reveal } from "../reveal";
 
 interface DownloadEntry {
   name: string;
   size: number;
-  modifiedAt: string;
+  mtime: string;
+  newest: boolean;
 }
 
-function iconFor(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.endsWith(".zip")) return FileArchive;
-  if (lower.endsWith(".sql")) return Table2;
-  return FileText;
+function humanSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
 }
 
-function sizeLabel(
-  bytes: number,
-  formatNumber: (n: number, opts?: Intl.NumberFormatOptions) => string,
-): string {
-  if (bytes >= 1024 * 1024) {
-    return `${formatNumber(bytes / (1024 * 1024), { maximumFractionDigits: 1 })} MB`;
-  }
-  if (bytes >= 1024) {
-    return `${formatNumber(bytes / 1024, { maximumFractionDigits: 0 })} KB`;
-  }
-  return `${formatNumber(bytes)} B`;
-}
+type Phase = "loading" | "ready" | "error" | "empty";
 
 export function DownloadsPanel() {
-  const { t, formatDate, formatNumber } = useI18n();
-  const [files, setFiles] = React.useState<DownloadEntry[] | null>(null);
-  const [failed, setFailed] = React.useState(false);
+  const { t } = useI18n();
+  const [files, setFiles] = useState<DownloadEntry[]>([]);
+  const [phase, setPhase] = useState<Phase>("loading");
 
-  const load = React.useCallback(() => {
-    setFailed(false);
-    setFiles(null);
-    fetch("/api/downloads", { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { files?: DownloadEntry[] };
-        setFiles(Array.isArray(data.files) ? data.files : []);
-      })
-      .catch(() => setFailed(true));
+  const load = useCallback(async () => {
+    setPhase("loading");
+    try {
+      const res = await fetch("/api/downloads", { cache: "no-store" });
+      if (!res.ok) throw new String(res.status);
+      // The API wraps payloads: { ok: true, data: { files: [...] } } — read
+      // through the envelope with a tolerant fallback for a bare array.
+      const payload = (await res.json()) as { data?: { files?: DownloadEntry[] }; files?: DownloadEntry[] };
+      const list = Array.isArray(payload.data?.files) ? payload.data!.files! : Array.isArray(payload.files) ? payload.files : [];
+      setFiles(list);
+      setPhase(list.length === 0 ? "empty" : "ready");
+    } catch {
+      setPhase("error");
+    }
   }, []);
 
-  React.useEffect(() => {
-    load();
+  useEffect(() => {
+    void load();
   }, [load]);
 
-  // Newest ZIP = current package (LEEME .txt siblings share the moment but the
-  // zip is what the user must download).
-  const latest = React.useMemo(
-    () => files?.find((f) => f.name.toLowerCase().endsWith(".zip")) ?? null,
-    [files],
-  );
-  const rest = React.useMemo(
-    () => (files ? files.filter((f) => f.name !== latest?.name) : []),
-    [files, latest],
-  );
-
-  if (failed) {
-    return (
-      <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">{t("landing.footer.updatesError")}</p>
-        <Button type="button" size="sm" variant="outline" onClick={load}>
-          <RefreshCw aria-hidden="true" className="size-4" />
-          {t("landing.footer.retry")}
-        </Button>
-      </div>
-    );
-  }
-
-  if (files === null) {
-    return (
-      <div className="mt-4 space-y-2" aria-hidden="true">
-        <div className="h-16 animate-pulse rounded-md bg-muted/60" />
-        <div className="h-10 animate-pulse rounded-md bg-muted/40" />
-        <div className="h-10 animate-pulse rounded-md bg-muted/40" />
-      </div>
-    );
-  }
-
-  if (files.length === 0) {
-    return (
-      <p className="mt-4 text-sm text-muted-foreground">{t("landing.footer.updatesEmpty")}</p>
-    );
-  }
-
   return (
-    <div className="mt-5">
-      <div className="flex items-center gap-2">
-        <PackageOpen aria-hidden="true" className="size-4 text-primary" />
-        <h4 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">
-          {t("landing.footer.updates")}
-        </h4>
-      </div>
-      <p className="mt-1 text-xs text-muted-foreground">{t("landing.footer.updatesHint")}</p>
-
-      {latest && (
-        <div className="mt-3 rounded-lg border-2 border-primary/40 bg-primary/5 p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-start gap-3">
-              <span
-                className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary"
-                aria-hidden="true"
-              >
-                <FileArchive className="size-5" />
-              </span>
-              <div className="min-w-0">
-                <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-                  <Sparkles className="size-3" aria-hidden="true" />
-                  {t("landing.footer.latestBadge")}
-                </span>
-                <p className="mt-1 truncate text-sm font-semibold" title={latest.name}>
-                  {latest.name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {sizeLabel(latest.size, formatNumber)} ·{" "}
-                  {formatDate(latest.modifiedAt, { dateStyle: "medium" })}
-                </p>
-              </div>
-            </div>
-            <a
-              href={`/downloads/${encodeURIComponent(latest.name)}`}
-              download
-              onClick={() => track(EV.footerClick, { link: `dl:${latest.name}` })}
-              className="group flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-            >
-              <Download className="size-4" aria-hidden="true" />
-              {t("landing.footer.download")}
-            </a>
+    <SectionTracker
+      event={EV.finalView}
+      id="downloads"
+      labelledBy="downloads-title"
+      className="border-t border-border/60 py-16 sm:py-24"
+    >
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+        <Reveal>
+          <div className="text-center">
+            <h2 id="downloads-title" className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+              {t("landing.downloads.title")}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-pretty text-muted-foreground sm:text-lg">
+              {t("landing.downloads.subtitle")}
+            </p>
           </div>
-        </div>
-      )}
+        </Reveal>
 
-      {rest.length > 0 && (
-        <ul className="mt-3 max-h-72 space-y-1.5 overflow-y-auto pr-1">
-          {rest.map((f) => {
-            const Icon = iconFor(f.name);
-            return (
-              <li key={f.name}>
-                <a
-                  href={`/downloads/${encodeURIComponent(f.name)}`}
-                  download
-                  onClick={() => track(EV.footerClick, { link: `dl:${f.name}` })}
-                  className="group flex items-center gap-3 rounded-md border border-border/50 bg-background/40 px-3 py-2 transition-colors hover:border-primary/40 hover:bg-primary/5"
-                >
-                  <Icon
-                    aria-hidden="true"
-                    className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-                  />
-                  <span className="min-w-0 flex-1 truncate text-xs font-medium" title={f.name}>
-                    {f.name}
-                  </span>
-                  <span className="hidden shrink-0 text-[11px] text-muted-foreground sm:inline">
-                    {sizeLabel(f.size, formatNumber)} ·{" "}
-                    {formatDate(f.modifiedAt, { dateStyle: "medium" })}
-                  </span>
-                  <Download
-                    aria-hidden="true"
-                    className="size-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-                  />
-                </a>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+        <div className="mt-8">
+          {phase === "loading" && (
+            <p className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground" role="status">
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              {t("landing.downloads.loading")}
+            </p>
+          )}
+
+          {phase === "error" && (
+            <div className="flex flex-col items-center gap-3 py-8 text-center">
+              <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
+                <AlertTriangle className="size-4" aria-hidden="true" />
+                {t("landing.downloads.error")}
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={() => void load()}>
+                <RefreshCw className="size-4" aria-hidden="true" />
+                {t("landing.downloads.retry")}
+              </Button>
+            </div>
+          )}
+
+          {phase === "empty" && (
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("landing.downloads.empty")}</p>
+          )}
+
+          {phase === "ready" && (
+            <ul className="space-y-3">
+              {files.map((f) => {
+                const isZip = f.name.toLowerCase().endsWith(".zip");
+                const isDoc = /\.(txt|docx|md|pdf)$/i.test(f.name);
+                return (
+                  <li key={f.name}>
+                    <Card className={f.newest ? "border-primary/40" : undefined}>
+                      <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:gap-4">
+                        <span
+                          className={`flex size-11 shrink-0 items-center justify-center rounded-md ${
+                            f.newest ? "bg-primary/15 text-primary" : "bg-muted/60 text-muted-foreground"
+                          }`}
+                          aria-hidden="true"
+                        >
+                          {isZip ? (
+                            <FileArchive className="size-5" />
+                          ) : isDoc ? (
+                            <FileText className="size-5" />
+                          ) : (
+                            <Download className="size-5" />
+                          )}
+                        </span>
+
+                        <span className="min-w-0 flex-1">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="block break-all text-sm font-semibold">{f.name}</span>
+                            {f.newest && (
+                              <Badge className="bg-primary/15 text-primary hover:bg-primary/15">
+                                {t("landing.downloads.newest")}
+                              </Badge>
+                            )}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {humanSize(f.size)} ·{" "}
+                            {new Date(f.mtime).toLocaleDateString(undefined, {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </span>
+
+                        {/* Hardened link: `download` forces same-origin saving;
+                            target=_blank guards any context that ignores it. The
+                            server ALSO sends Content-Disposition: attachment. */}
+                        <a
+                          href={`/downloads/${encodeURIComponent(f.name)}`}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => track("landing_download_click", { file: f.name, newest: f.newest })}
+                          className={`inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition-colors ${
+                            f.newest
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "border border-primary/30 bg-primary/5 hover:bg-primary/15"
+                          }`}
+                        >
+                          <Download className="size-4" aria-hidden="true" />
+                          {t("landing.downloads.open")}
+                        </a>
+                      </CardContent>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+    </SectionTracker>
   );
 }

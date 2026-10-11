@@ -31,6 +31,8 @@ export const dict: Dict = {
   "auth.field.email": "Adresse e-mail",
   "auth.field.username": "Nom d'utilisateur",
   "auth.field.password": "Mot de passe",
+  // Task 89 (USER MANDATE) : confirmation du mot de passe à l'inscription.
+  "auth.field.confirmPassword": "Confirmer le mot de passe",
   "auth.field.referral": "Code de parrainage",
   "auth.field.code": "Code de vérification",
   "auth.field.token": "Jeton de récupération",
@@ -38,6 +40,7 @@ export const dict: Dict = {
   "auth.placeholder.email": "vous@email.com",
   "auth.placeholder.username": "VotrePseudo",
   "auth.placeholder.password": "12 caractères minimum",
+  "auth.placeholder.confirmPassword": "Répétez le mot de passe",
   "auth.placeholder.referral": "Utilisateur qui vous a invité (facultatif)",
   "auth.placeholder.code": "6 chiffres",
   "auth.placeholder.token": "Collez le jeton reçu",
@@ -78,6 +81,9 @@ export const dict: Dict = {
   // Actions / feedback
   "auth.action.backToLogin": "Retour à la connexion",
   "auth.action.working": "Un instant…",
+  // Task 89 (USER MANDATE) : afficher/masquer le mot de passe pour le vérifier.
+  "auth.action.showPassword": "Afficher le mot de passe",
+  "auth.action.hidePassword": "Masquer le mot de passe",
   "auth.ok.registered": "Compte créé. Consultez votre e-mail pour le vérifier.",
   "auth.ok.verified": "E-mail vérifié. Connexion en cours…",
   "auth.ok.codeSent": "Si l'e-mail est enregistré, un nouveau code a été envoyé.",
@@ -89,7 +95,8 @@ export const dict: Dict = {
 
   // Errors (mapped by error.code from the API)
   "auth.err.captcha": "Échec de la vérification anti-robot. Rechargez et réessayez.",
-  "auth.err.captchaUnavailable": "Le captcha n'a pas pu se charger. Vérifiez votre connexion, désactivez les bloqueurs de publicités pour ce site puis réessayez.",
+  "auth.err.captchaUnavailable": "Le captcha n'a pas pu se charger. Vérifiez votre connexion, désactivez les bloqueurs de publicités pour ce site et réessayez.",
+  "auth.err.captchaFailed": "Erreur du captcha (code {code}). Généralement causée par une Site Key incorrecte ou un domaine non autorisé dans Cloudflare. Essayez un autre navigateur et réessayez.",
   "auth.err.conflict": "Identifiants invalides ou compte déjà enregistré.",
   "auth.err.invalidCredentials": "Identifiants invalides.",
   "auth.err.emailNotVerified": "Votre e-mail n'est pas encore vérifié. Consultez votre boîte de réception.",
@@ -105,6 +112,8 @@ export const dict: Dict = {
   "auth.err.passwordLower": "Ajoutez au moins une lettre minuscule.",
   "auth.err.passwordDigit": "Ajoutez au moins un chiffre.",
   "auth.err.passwordSymbol": "Ajoutez au moins un symbole.",
+  // Task 89 (USER MANDATE) : les deux mots de passe doivent correspondre.
+  "auth.err.passwordMismatch": "Les mots de passe ne correspondent pas.",
   "auth.err.generic": "Impossible de terminer l'opération. Veuillez réessayer.",
   // Task 39 — anti-multi-comptes : un seul compte par IP.
   "auth.err.multiAccount": "Un seul compte par IP est autorisé : les multi-comptes ne sont pas admis.",

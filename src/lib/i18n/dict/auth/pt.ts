@@ -31,6 +31,8 @@ export const dict: Dict = {
   "auth.field.email": "Endereço de e-mail",
   "auth.field.username": "Nome de usuário",
   "auth.field.password": "Senha",
+  // Task 89 (USER MANDATE): confirmação de senha no registro.
+  "auth.field.confirmPassword": "Confirmar senha",
   "auth.field.referral": "Código de convite",
   "auth.field.code": "Código de verificação",
   "auth.field.token": "Token de recuperação",
@@ -38,6 +40,7 @@ export const dict: Dict = {
   "auth.placeholder.email": "voce@email.com",
   "auth.placeholder.username": "SeuApelido",
   "auth.placeholder.password": "Mínimo 12 caracteres",
+  "auth.placeholder.confirmPassword": "Repita a senha",
   "auth.placeholder.referral": "Usuário que convidou você (opcional)",
   "auth.placeholder.code": "6 dígitos",
   "auth.placeholder.token": "Cole o token recebido",
@@ -78,6 +81,9 @@ export const dict: Dict = {
   // Actions / feedback
   "auth.action.backToLogin": "Voltar ao login",
   "auth.action.working": "Um momento…",
+  // Task 89 (USER MANDATE): mostrar/ocultar a senha para conferir.
+  "auth.action.showPassword": "Mostrar senha",
+  "auth.action.hidePassword": "Ocultar senha",
   "auth.ok.registered": "Conta criada. Verifique seu e-mail para ativá-la.",
   "auth.ok.verified": "E-mail verificado. Entrando…",
   "auth.ok.codeSent": "Se o e-mail estiver registrado, um novo código foi enviado.",
@@ -90,6 +96,7 @@ export const dict: Dict = {
   // Errors (mapped by error.code from the API)
   "auth.err.captcha": "Falha na verificação anti-bot. Recarregue e tente novamente.",
   "auth.err.captchaUnavailable": "O captcha não pôde ser carregado. Verifique sua conexão, desative bloqueadores de anúncios para este site e tente novamente.",
+  "auth.err.captchaFailed": "Erro do captcha (código {code}). Geralmente causado por uma Site Key incorreta ou um domínio não autorizado no Cloudflare. Tente em outro navegador e tente novamente.",
   "auth.err.conflict": "Credenciais inválidas ou conta já registrada.",
   "auth.err.invalidCredentials": "Credenciais inválidas.",
   "auth.err.emailNotVerified": "Seu e-mail ainda não foi verificado. Confira sua caixa de entrada.",
@@ -105,6 +112,8 @@ export const dict: Dict = {
   "auth.err.passwordLower": "Adicione pelo menos uma letra minúscula.",
   "auth.err.passwordDigit": "Adicione pelo menos um número.",
   "auth.err.passwordSymbol": "Adicione pelo menos um símbolo.",
+  // Task 89 (USER MANDATE): as duas senhas devem coincidir.
+  "auth.err.passwordMismatch": "As senhas não coincidem.",
   "auth.err.generic": "Não foi possível concluir a operação. Tente novamente.",
   // Task 39 — antimulticontas: apenas uma conta por IP.
   "auth.err.multiAccount": "É permitida apenas uma conta por IP: não são admitidas multicontas.",

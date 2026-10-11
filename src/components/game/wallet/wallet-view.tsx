@@ -10,6 +10,7 @@ import "@/lib/i18n/dict/markets";
 
 import React, { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  ArrowDownToLine, ArrowUpFromLine, Info, Loader2, ShieldAlert, TrendingUp, Wallet,
+  ArrowDownToLine, ArrowUpFromLine, Check, Copy, Info, Loader2, ShieldAlert, TrendingUp, Wallet,
 } from "lucide-react";
 import { apiFetch } from "@/components/auth/store";
 import { getCaptchaToken } from "@/components/auth/captcha";
@@ -110,7 +111,11 @@ function WalletInner() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <DepositCard onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })} />
+        <DepositCard
+          depositAddress={wallet.data?.depositAddress ?? null}
+          depositMint={wallet.data?.depositMint ?? null}
+          onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })}
+        />
         <WithdrawCard
           onWalletChanged={() => queryClient.invalidateQueries({ queryKey: ["wallet"] })}
           minWithdraw={wallet.data?.minWithdraw ?? 50}
@@ -198,12 +203,35 @@ function PersonalLedgerRow({ row }: { row: LedgerRow }) {
 
 // ─── Deposit card ─────────────────────────────────────────────────
 
-function DepositCard({ onWalletChanged }: { onWalletChanged: () => void }) {
+function DepositCard({
+  depositAddress,
+  depositMint,
+  onWalletChanged,
+}: {
+  depositAddress: string | null;
+  depositMint: string | null;
+  onWalletChanged: () => void;
+}) {
   const { t, formatCurrency } = useI18n();
   const { toast } = useToast();
   const describeError = useMarketError();
   const [signature, setSignature] = useState("");
   const [attempts, setAttempts] = useState<DepositAttempt[]>([]);
+  // Task 88 (USER MANDATE): "Copiar dirección" feedback state.
+  const [copied, setCopied] = useState(false);
+
+  const copyAddress = async () => {
+    if (!depositAddress) return;
+    try {
+      await navigator.clipboard.writeText(depositAddress);
+      setCopied(true);
+      toast({ description: t("markets.wallet.depositDestCopied") });
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard blocked (permissions/insecure context): the address is fully
+      // visible and selectable right above the button, nothing else to do.
+    }
+  };
 
   const [previewAmount, setPreviewAmount] = useState("");
   const previewGross = Math.max(0, Math.floor(Number(previewAmount) || 0));
@@ -262,6 +290,58 @@ function DepositCard({ onWalletChanged }: { onWalletChanged: () => void }) {
           <h3 className="text-sm font-bold">{t("markets.wallet.depositTitle")}</h3>
         </div>
         <p className="text-xs text-muted-foreground">{t("markets.wallet.depositDesc")}</p>
+
+        {/* Task 88 (USER MANDATE): SYSTEM DEPOSIT ADDRESS + QR so users can
+            actually invest: scan the QR or copy the address, send $Knight
+            (official mint ONLY) from any wallet, paste the signature below.
+            The server independently REJECTS any transfer whose destination is
+            not the system wallet, and each signature works exactly once. */}
+        {depositAddress ? (
+          <div className="space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3">
+            <p className="text-xs font-semibold">{t("markets.wallet.depositDestTitle")}</p>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-md bg-white p-1.5">
+                <QRCodeSVG
+                  value={depositAddress}
+                  size={88}
+                  level="M"
+                  role="img"
+                  aria-label={t("markets.wallet.depositDestTitle")}
+                />
+              </div>
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="break-all font-mono text-[11px] leading-relaxed text-muted-foreground">
+                  {depositAddress}
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 border-primary/40"
+                  onClick={copyAddress}
+                >
+                  {copied ? (
+                    <Check className="size-3.5 text-primary" aria-hidden="true" />
+                  ) : (
+                    <Copy className="size-3.5" aria-hidden="true" />
+                  )}
+                  {t("markets.wallet.depositDestCopy")}
+                </Button>
+              </div>
+            </div>
+            {depositMint && (
+              <p className="break-all text-[11px] text-muted-foreground">
+                {t("markets.wallet.depositDestMint", { mint: depositMint })}
+              </p>
+            )}
+            <p className="text-[11px] text-muted-foreground">{t("markets.wallet.depositDestRules")}</p>
+          </div>
+        ) : (
+          <Alert className="border-amber-500/40 bg-amber-500/10 py-2">
+            <Info className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            <AlertDescription className="text-xs">{t("markets.wallet.depositDestUnavailable")}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Levy preview */}
         <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">

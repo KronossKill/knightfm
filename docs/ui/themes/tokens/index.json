@@ -1,0 +1,41 @@
+{
+  "system": "Knight FM design tokens (extracted verbatim from src/app/globals.css — single source of truth)",
+  "rootTokens": 32,
+  "themes": {
+    "knight-emerald": {
+      "file": "themes/tokens/knight-emerald.json",
+      "tokenCount": 31,
+      "label": "Esmeralda Caballero",
+      "mode": "dark",
+      "direction": "Premium dark / emerald / restrained metallic (DEFAULT)"
+    },
+    "obsidian": {
+      "file": "themes/tokens/obsidian.json",
+      "tokenCount": 31,
+      "label": "Obsidiana Nocturna",
+      "mode": "dark",
+      "direction": "Near-black monochrome, high contrast, white/silver accents"
+    },
+    "royal": {
+      "file": "themes/tokens/royal.json",
+      "tokenCount": 31,
+      "label": "Azul Real",
+      "mode": "dark",
+      "direction": "Deep navy with refined gold accents"
+    },
+    "aurora": {
+      "file": "themes/tokens/aurora.json",
+      "tokenCount": 31,
+      "label": "Aurora Boreal",
+      "mode": "dark",
+      "direction": "Dark graphite with cool luminous gradients"
+    },
+    "classic": {
+      "file": "themes/tokens/classic.json",
+      "tokenCount": 31,
+      "label": "Verde Clásico",
+      "mode": "light",
+      "direction": "Elegant deep green with traditional football-club cues"
+    }
+  }
+}

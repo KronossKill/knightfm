@@ -211,12 +211,10 @@ export interface WalletState {
   balance: number;
   ledger: LedgerRow[];
   depositAddressConfigured: boolean;
-  /** Task 57: public deposit destination (system wallet) — null when unset/invalid. */
+  /** Task 88 (USER MANDATE): the system deposit destination — null until the admin configures solana.systemWallet. */
   depositAddress: string | null;
-  /** $Knight SPL mint (mainnet, public). */
-  mint: string | null;
-  /** Solana Pay transfer-request URI encoded in the deposit QR. */
-  solanaPayUri: string | null;
+  /** Official $Knight SPL mint — transfers of any other token are rejected on-chain. */
+  depositMint: string | null;
   priceAvailable: boolean;
   /** Admin-configured minimum for Solana withdrawals ($Knight, server-enforced). */
   minWithdraw: number;
