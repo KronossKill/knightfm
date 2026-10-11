@@ -24,7 +24,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Landmark, Loader2, Scale, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowDownLeft, ArrowUpRight, CalendarClock, Landmark, Loader2, Scale, Wallet } from "lucide-react";
 import { apiFetch, ApiError } from "@/components/auth/store";
 import { getCaptchaToken } from "@/components/auth/captcha";
 import { useViewStore } from "@/components/game/view-store";
@@ -134,6 +134,12 @@ function TreasuryInner({ club }: { club: ClubLite }) {
               </CardContent>
             </Card>
           </div>
+
+          {/* Task 77 (user mandate): fixed weekly payroll schedule */}
+          <p className="flex items-start gap-2 text-xs text-muted-foreground" role="note">
+            <CalendarClock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span>{t("markets.treasury.payrollSchedule")}</span>
+          </p>
 
           {/* Honest warnings */}
           {data.unpaidDays > 0 && (

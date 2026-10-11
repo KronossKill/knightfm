@@ -1,18 +1,22 @@
 // Knight FM — Markets shared library (Task 3-b).
 // Auction lazy-close, atomic player transfers, ownership/capacity checks.
 // All money integer $Knight. All finance via engine/finance (idempotent ledger).
+// Task 78 consolidation: the transfer core and the auction closer now live in
+// engine/auctions.ts (single source of truth — the scheduler tick uses the SAME
+// implementations); this module re-exports them for the market endpoints.
 
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getInt } from "@/lib/config";
 import { fail } from "@/lib/api";
-import { currentGameDay } from "@/lib/engine/clock";
-import {
-  creditClub, creditFund, debitClub, allocateRevenue, FinanceError,
-} from "@/lib/engine/finance";
+import { FinanceError } from "@/lib/engine/finance";
 import { computeCapacity } from "@/lib/engine/capacity";
 import { FACILITY_TYPES } from "@/lib/types";
+
+// Single settlement path (engine) — re-exported so every existing import from
+// "markets-lib" keeps working unchanged.
+export { closeDueAuctions, executePlayerTransfer } from "@/lib/engine/auctions";
+export type { TransferOpts, AuctionCloseResult } from "@/lib/engine/auctions";
 
 // ─── Ownership helpers ─────────────────────────────────────────────
 
@@ -75,97 +79,16 @@ export async function assertCapacity(clubId: string): Promise<void> {
   }
 }
 
-// ─── Atomic player transfer core ───────────────────────────────────
-
-export interface TransferOpts {
-  player: { id: string; clubId: string | null };
-  toClubId: string;
-  amount: number;
-  fee?: number;
-  type: "DIRECT" | "AUCTION" | "FREE_AGENT" | "RELEASE_CLAUSE";
-  idemBase: string; // unique per economic operation
-  /** Explicit ledger idem keys (spec-mandated, e.g. TXBUY:<listingId>). Defaults derive from idemBase. */
-  buyKey?: string;
-  sellKey?: string;
-  allocBase?: string;
-  memo: string;
-  seasonId: string;
-  day: number;
-}
-
-/**
- * Execute an atomic player transfer inside a transaction:
- * buyer debit → seller credit (SYSTEM fund if system-owned) → 5%+5% revenue allocation →
- * TransferRecord → player reassignment. Idempotent via deterministic ledger keys.
- */
-export async function executePlayerTransfer(
-  tx: Prisma.TransactionClient,
-  opts: TransferOpts
-): Promise<void> {
-  const sellerClubId = opts.player.clubId;
-  // SECURITY (pentest fix — money printer): a transfer whose seller equals the
-  // buyer skipped the debit but STILL credited the seller, minting `amount`
-  // out of thin air (live-verified attack path via auction self-bids).
-  // Self-transfers are now impossible.
-  if (sellerClubId === opts.toClubId) {
-    throw new FinanceError("SELF_TRANSFER", "A player cannot be transferred to the selling club");
-  }
-  if (sellerClubId !== null) {
-    await debitClub(tx, opts.toClubId, opts.amount, "PURCHASE", opts.buyKey ?? `${opts.idemBase}:BUY`, `${opts.memo} (purchase)`);
-  }
-
-  if (sellerClubId) {
-    const seller = await tx.club.findUnique({ where: { id: sellerClubId }, select: { regionId: true, systemOwned: true } });
-    if (seller) {
-      if (seller.systemOwned) {
-        // System-club proceeds flow to the SYSTEM fund, never enrich the virtual club (documented decision).
-        await creditFund(tx, "SYSTEM", opts.amount, opts.sellKey ?? `${opts.idemBase}:SELL`, "TRANSFER_IN", `${opts.memo} (system club sale)`);
-      } else {
-        await creditClub(tx, sellerClubId, opts.amount, "PLAYER_SALE", opts.sellKey ?? `${opts.idemBase}:SELL`, `${opts.memo} (sale)`); // Task 25-b: taxable club income (was TRANSFER_IN)
-        if (opts.amount > 0 && sellerClubId !== opts.toClubId) {
-          await allocateRevenue(tx, {
-            clubId: sellerClubId, regionId: seller.regionId, gross: opts.amount,
-            idemBase: opts.allocBase ?? `${opts.idemBase}:ALLOC`, memo: opts.memo,
-          });
-        }
-      }
-    }
-  }
-
-  await tx.transferRecord.create({
-    data: {
-      playerId: opts.player.id,
-      clubFromId: sellerClubId,
-      clubToId: opts.toClubId,
-      amount: opts.amount,
-      fee: opts.fee ?? 0,
-      levy: 0,
-      type: opts.type,
-      seasonId: opts.seasonId,
-      day: opts.day,
-    },
-  });
-
-  // SECURITY (pentest fix — stale-player race): the reassignment is CONDITIONAL
-  // on the player still being at the seller club. If a concurrent transaction
-  // already moved him, count===0 and the whole transfer rolls back — the buyer
-  // can never pay for a player who left, and the old seller can never be
-  // credited twice for the same departure.
-  const moved = await tx.player.updateMany({
-    where: { id: opts.player.id, clubId: sellerClubId, retired: false },
-    data: { clubId: opts.toClubId, isFreeAgent: false, loanedUntilDay: null, loanOriginClubId: null },
-  });
-  if (moved.count === 0) {
-    throw new FinanceError("PLAYER_MOVED", "Player changed club concurrently; transfer aborted");
-  }
-}
-
-// ─── FinanceError → HTTP mapping (402 insufficient / 403 capacity / 409 conflicts) ──
+// ─── FinanceError → HTTP mapping (402 insufficient / 403 frozen·capacity / 409 conflicts) ──
 
 export function financeErrorResponse(e: unknown): NextResponse | null {
   if (!(e instanceof FinanceError)) return null;
   if (e.code === "INSUFFICIENT_CLUB_FUNDS" || e.code === "INSUFFICIENT_PERSONAL_FUNDS") {
     return fail("INSUFFICIENT_FUNDS", e.message, 402);
+  }
+  // Task 78 (user mandate): frozen system clubs cannot move money.
+  if (e.code === "CLUB_FROZEN") {
+    return fail("CLUB_FROZEN", e.message, 403);
   }
   if (e.code === "CAPACITY_FULL") {
     return fail("CAPACITY_FULL", e.message, 403);
@@ -180,114 +103,6 @@ export function parsePage(url: URL, defaultSize = 20): { page: number; size: num
   const raw = parseInt(url.searchParams.get("page") ?? "1", 10);
   const page = Number.isFinite(raw) && raw > 0 ? raw : 1;
   return { page, size: defaultSize, skip: (page - 1) * defaultSize };
-}
-
-// ─── Auction lazy close (spec §25, decision in worklog) ────────────
-
-export interface AuctionCloseResult { closed: number; sold: number; expired: number; skipped: number }
-
-/**
- * Lazy-close every AUCTION listing past expiry. Called opportunistically from
- * market read/write endpoints AND by /api/scheduler/tick.
- * Settlement honesty: bids are NOT escrowed at bid time (documented decision) — at
- * settlement the closing handler walks bids from highest to lowest and completes the
- * transfer with the first bidder whose club can actually cover the amount; insolvent
- * or capacity-blocked bidders are skipped (bid marked refunded, club never charged).
- */
-export async function closeDueAuctions(): Promise<AuctionCloseResult> {
-  const now = new Date();
-  const expired = await db.listing.findMany({
-    where: { type: "AUCTION", state: "OPEN", expiresAt: { lte: now } },
-    orderBy: { expiresAt: "asc" },
-    take: 50,
-  });
-  const result: AuctionCloseResult = { closed: 0, sold: 0, expired: 0, skipped: 0 };
-
-  for (const listing of expired) {
-    // Claim the listing exclusively (idempotent guard): only the closer that flips OPEN→SETTLING proceeds.
-    const claimed = await db.listing.updateMany({ where: { id: listing.id, state: "OPEN" }, data: { state: "SETTLING" } });
-    if (claimed.count === 0) continue;
-    try {
-      const player = listing.playerId ? await db.player.findUnique({ where: { id: listing.playerId } }) : null;
-      if (!player || !player.clubId) {
-        // Player gone or no longer attached to a club → nothing to settle.
-        await db.listing.update({ where: { id: listing.id }, data: { state: "CANCELLED" } });
-        result.closed++; result.skipped++;
-        continue;
-      }
-      const bids = await db.bid.findMany({ where: { auctionId: listing.id }, orderBy: [{ amount: "desc" }, { createdAt: "asc" }] });
-
-      const day = await currentGameDay();
-      const seasons = await db.season.findMany({ orderBy: { number: "desc" }, take: 1 });
-      const seasonId = seasons[0]?.id ?? "season-0";
-
-      let settled = false;
-      for (const bid of bids) {
-        // SECURITY (pentest fix — money printer): bids from the player's own
-        // club must never settle. executePlayerTransfer now throws on
-        // self-transfers, so refund these proactively instead of failing the
-        // whole close (which would leave the auction stuck in SETTLING).
-        if (player.clubId && bid.clubId === player.clubId) {
-          await db.bid.update({ where: { id: bid.id }, data: { refunded: true } });
-          result.skipped++;
-          continue;
-        }
-        const bidderClub = await db.club.findUnique({ where: { id: bid.clubId }, select: { operatingFund: true } });
-        if (!bidderClub) { await db.bid.update({ where: { id: bid.id }, data: { refunded: true } }); continue; }
-        const { capacity, current } = await capacityForClub(bid.clubId);
-        const insolvent = bidderClub.operatingFund < bid.amount;
-        const full = current >= capacity;
-        if (insolvent || full) {
-          // Honest settlement: skip bidder who cannot pay or cannot register the player.
-          await db.bid.update({ where: { id: bid.id }, data: { refunded: true } });
-          await db.auditEvent.create({
-            data: {
-              type: "AUCTION_BID_SKIPPED", actorId: null,
-              payload: JSON.stringify({ listingId: listing.id, bidId: bid.id, clubId: bid.clubId, amount: bid.amount, reason: insolvent ? "INSUFFICIENT_FUNDS" : "CAPACITY_FULL" }),
-            },
-          });
-          result.skipped++;
-          continue;
-        }
-        await db.$transaction(async (tx) => {
-          await executePlayerTransfer(tx, {
-            player: { id: player.id, clubId: player.clubId },
-            toClubId: bid.clubId,
-            amount: bid.amount,
-            type: "AUCTION",
-            idemBase: `AUCTION:${listing.id}`,
-            memo: `Auction settlement ${listing.id}`,
-            seasonId,
-            day,
-          });
-          await tx.listing.update({ where: { id: listing.id }, data: { state: "SOLD", buyerId: bid.clubId, price: bid.amount } });
-          await tx.bid.update({ where: { id: bid.id }, data: { refunded: false } });
-        });
-        await db.bid.updateMany({ where: { auctionId: listing.id, id: { not: bid.id }, refunded: false }, data: { refunded: true } });
-        await db.auditEvent.create({
-          data: {
-            type: "AUCTION_SETTLED", actorId: null,
-            payload: JSON.stringify({ listingId: listing.id, playerId: player.id, buyerClubId: bid.clubId, amount: bid.amount }),
-          },
-        });
-        settled = true;
-        result.sold++;
-        break;
-      }
-      if (!settled) {
-        await db.listing.update({ where: { id: listing.id }, data: { state: "EXPIRED" } });
-        result.expired++;
-      }
-      result.closed++;
-    } catch (e) {
-      // Roll the claim back so a transient failure can be retried by the next tick.
-      await db.listing.updateMany({ where: { id: listing.id, state: "SETTLING" }, data: { state: "OPEN" } }).catch(() => undefined);
-      await db.auditEvent.create({
-        data: { type: "AUCTION_CLOSE_FAILED", actorId: null, payload: JSON.stringify({ listingId: listing.id, error: String(e) }) },
-      }).catch(() => undefined);
-    }
-  }
-  return result;
 }
 
 // ─── Player projection ─────────────────────────────────────────────

@@ -1,0 +1,64 @@
+════════════════════════════════════════════════════════════════════
+ KNIGHT FM — FIX: "npm run dev" EN WINDOWS
+ Error que tenías:  '"tee" no se reconoce como un comando interno
+                    o externo, programa o archivo por lotes...'
+════════════════════════════════════════════════════════════════════
+
+QUÉ PASÓ (explicación en una frase)
+────────────────────────────────────
+El script "dev" de tu package.json usaba "tee" (un comando de
+Linux/Mac que guarda un registro de lo que sale en pantalla) y
+Windows NO tiene ese comando. npm en Windows ejecuta los scripts
+con cmd.exe, y ahí "tee" no existe → se detiene todo.
+
+LA SOLUCIÓN: un package.json idéntico al tuyo cambiando UNA sola
+línea (el script dev, que ahora es "next dev -p 3000").
+✗ NO necesitas instalar nada (ni "npm install").
+✗ NO cambia dependencias, ni la base de datos, ni Vercel.
+✗ NO afecta a producción (Vercel usa su propio comando de build).
+
+PASOS (en orden, sin saltarte ninguno)
+──────────────────────────────────────
+PASO 1 — Descarga el paquete
+   knightfm-fix-npm-run-dev-windows.zip  (bájalo a Escritorio)
+
+PASO 2 — Extrae ENCIMA de tu proyecto
+   1. Clic derecho sobre el zip → "Extraer todo..."
+   2. Destino EXACTO:  D:\Programacion\knightfm
+   3. Marca "Reemplazar los archivos en el destino".
+   DEBES VER: 2 archivos extraídos (package.json + este LEEME).
+
+PASO 3 — Arranca de nuevo
+   En PowerShell, dentro de D:\Programacion\knightfm:
+        npm run dev
+   DEBES VER (algo parecido):
+        > next dev -p 3000
+        ✓ Ready in 3.2s
+        - Local:  http://localhost:3000
+   (que aparezca "Local: http://localhost:3000" y el tick verde
+    significa que YA ARRANCÓ — el error de "tee" desapareció.)
+
+PASO 4 — Sigue la guía de producción (Fase A5)
+   Abre http://localhost:3000 en el navegador y continúa con las
+   comprobaciones de la Fase A5 de LEEME-PRODUCCION.txt.
+
+ALTERNATIVA RÁPIDA (sin descargar nada, solo por hoy)
+──────────────────────────────────────────────────────
+   En PowerShell, dentro de D:\Programacion\knightfm:
+        npx next dev -p 3000
+   (hace lo mismo, pero lo permanente es el Paso 1-3: así
+    "npm run dev" vuelve a funcionar para siempre).
+
+NO HAGAS ESTO
+─────────────
+✗ No cambies nada más del package.json.
+✗ No hagas "npm install" (no hace falta: cero dependencias nuevas).
+✗ No uses "npm start" en tu PC (ese comando no es para Windows ni
+  para tu flujo: producción se despliega sola desde Vercel).
+✗ No toques el script "build" (lo usa Vercel en Linux, donde los
+  comandos que contiene sí existen).
+
+SI ALGO FALLA
+─────────────
+Captura de pantalla de lo que muestre PowerShell y me la envías.
+════════════════════════════════════════════════════════════════════

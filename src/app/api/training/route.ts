@@ -175,14 +175,14 @@ export async function POST(req: NextRequest) {
       }
       const res = await runGeneralSession(clubId, focus, gameDay);
       await audit("TRAINING_SESSION_GENERAL", auth.userId, { clubId, day: gameDay, ...res });
+      // Task 78 (user mandate): the response carries ONLY the improved areas
+      // and quantities (attribute-family point totals). No formula factors.
       return ok({
         ran: "general",
         focus,
         players: res.players,
-        pct: res.pct,
         attrsGained: res.attrsGained,
-        breakdown: res.breakdown,
-        finalPct: res.finalPct,
+        familyGains: res.familyGains,
         usage: await getTrainingUsage(clubId, gameDay),
       });
     }
@@ -204,14 +204,14 @@ export async function POST(req: NextRequest) {
     }
     const res = await runSpecialSession(clubId, specialType, playerId, gameDay);
     await audit("TRAINING_SESSION_SPECIAL", auth.userId, { clubId, type: specialType, playerId, day: gameDay });
+    // Task 78 (user mandate): the response lists ONLY the attributes that
+    // improved and by how many points. No formula factors, no percentages.
     return ok({
       ran: "special",
       type: res.type,
       playerId: res.playerId,
-      pct: res.pct,
       attrsGained: res.attrsGained,
-      breakdown: res.breakdown,
-      finalPct: res.finalPct,
+      gains: res.gains,
       usage: await getTrainingUsage(clubId, gameDay),
     });
   } catch (e) {

@@ -127,7 +127,7 @@ export const dict: Dict = {
 
   // Temas
   "landing.themes.kicker": "Personalização",
-  "landing.themes.title": "Seis temas, seu uniforme visual",
+  "landing.themes.title": "Cinco temas, seu uniforme visual",
   "landing.themes.subtitle": "Toque neles: são aplicados na hora. Sua escolha nunca altera o estado do jogo.",
   "landing.themes.cta": "Experimentar tema",
   "landing.themes.active": "Ativo",
@@ -137,7 +137,6 @@ export const dict: Dict = {
   "themes.royal": "Real",
   "themes.aurora": "Aurora",
   "themes.classic": "Clássico",
-  "themes.onyx": "Onyx Elite",
 
   // Assistente
   "landing.assistant.kicker": "Knight Assistant",
@@ -231,6 +230,13 @@ export const dict: Dict = {
   "landing.footer.docsHint": "ZIP · 10 documentos técnicos: arquitetura, API, segurança, economia, guia do administrador e análise competitiva",
   "landing.footer.docsZip": "ZIP do projeto — código-fonte + documentação",
   "landing.footer.docsWord": "Documento Word — documentação técnica (.docx)",
+  "landing.footer.updates": "Pacotes de atualização",
+  "landing.footer.updatesHint": "Todas as correções e melhorias entregues. O pacote destacado é o mais recente: baixe-o e extraia o conteúdo sobre a pasta do seu projeto.",
+  "landing.footer.latestBadge": "Mais recente",
+  "landing.footer.download": "Baixar",
+  "landing.footer.updatesError": "Não foi possível carregar a lista de pacotes.",
+  "landing.footer.retry": "Tentar novamente",
+  "landing.footer.updatesEmpty": "Nenhum pacote publicado ainda.",
   "landing.footer.navTitle": "Explorar",
   "landing.footer.legalTitle": "Jurídico",
   "landing.footer.settingsTitle": "Ajustes",

@@ -126,7 +126,7 @@ export const dict: Dict = {
 
   // Themes
   "landing.themes.kicker": "Personalization",
-  "landing.themes.title": "Six themes, your visual kit",
+  "landing.themes.title": "Five themes, your visual kit",
   "landing.themes.subtitle": "Tap them: they apply instantly. Your choice never alters game state.",
   "landing.themes.cta": "Try theme",
   "landing.themes.active": "Active",
@@ -136,7 +136,6 @@ export const dict: Dict = {
   "themes.royal": "Royal",
   "themes.aurora": "Aurora",
   "themes.classic": "Classic",
-  "themes.onyx": "Onyx Elite",
 
   // Assistant
   "landing.assistant.kicker": "Knight Assistant",
@@ -226,6 +225,13 @@ export const dict: Dict = {
   "landing.footer.docsHint": "ZIP · 10 technical docs: architecture, API, security, economy, admin guide and competitive analysis",
   "landing.footer.docsZip": "Project ZIP — source code + documentation",
   "landing.footer.docsWord": "Word document — technical documentation (.docx)",
+  "landing.footer.updates": "Update packages",
+  "landing.footer.updatesHint": "Every delivered patch and improvement. The highlighted package is the newest: download it and extract its contents over your project folder.",
+  "landing.footer.latestBadge": "Newest",
+  "landing.footer.download": "Download",
+  "landing.footer.updatesError": "Could not load the package list.",
+  "landing.footer.retry": "Retry",
+  "landing.footer.updatesEmpty": "No packages published yet.",
   "landing.footer.navTitle": "Explore",
   "landing.footer.legalTitle": "Legal",
   "landing.footer.settingsTitle": "Settings",

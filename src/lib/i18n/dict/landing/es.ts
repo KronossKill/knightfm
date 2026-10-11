@@ -127,7 +127,7 @@ export const dict: Dict = {
 
   // Temas
   "landing.themes.kicker": "Personalización",
-  "landing.themes.title": "Seis temas, tu vestuario visual",
+  "landing.themes.title": "Cinco temas, tu vestuario visual",
   "landing.themes.subtitle": "Púlsalos: se aplican al instante. Tu elección nunca altera el estado del juego.",
   "landing.themes.cta": "Probar tema",
   "landing.themes.active": "Activo",
@@ -137,7 +137,6 @@ export const dict: Dict = {
   "themes.royal": "Real",
   "themes.aurora": "Aurora",
   "themes.classic": "Clásico",
-  "themes.onyx": "Onyx Élite",
 
   // Asistente
   "landing.assistant.kicker": "Knight Assistant",
@@ -231,6 +230,13 @@ export const dict: Dict = {
   "landing.footer.docsHint": "ZIP · 10 docs técnicos: arquitectura, API, seguridad, economía, guía de administrador y análisis competitivo",
   "landing.footer.docsZip": "ZIP del proyecto — código fuente + documentación",
   "landing.footer.docsWord": "Documento Word — documentación técnica (.docx)",
+  "landing.footer.updates": "Paquetes de actualización",
+  "landing.footer.updatesHint": "Todos los parches y mejoras entregados. El paquete destacado es el más reciente: descárgalo y extrae su contenido sobre tu carpeta del proyecto.",
+  "landing.footer.latestBadge": "Más reciente",
+  "landing.footer.download": "Descargar",
+  "landing.footer.updatesError": "No se pudo cargar la lista de paquetes.",
+  "landing.footer.retry": "Reintentar",
+  "landing.footer.updatesEmpty": "Todavía no hay paquetes publicados.",
   "landing.footer.navTitle": "Explora",
   "landing.footer.legalTitle": "Legal",
   "landing.footer.settingsTitle": "Ajustes",

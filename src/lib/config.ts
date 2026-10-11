@@ -67,7 +67,8 @@ export const CONFIG_DEFAULTS: ConfigEntry[] = [
   // Markets
   { key: "market.directSaleFloorPct", group: "markets", valueType: "int", defaultValue: "100", minValue: 1, maxValue: 500 },
   { key: "market.auctionFloorPct", group: "markets", valueType: "int", defaultValue: "20", minValue: 1, maxValue: 200 },
-  { key: "finance.salaryIntervalDays", group: "economy", valueType: "int", defaultValue: "7", minValue: 1, maxValue: 30, description: "Salaries (players + staff + manager) are paid every N game days. The payout equals the daily rate multiplied by N (weekly by default)." },
+  // (finance.salaryIntervalDays retired in Task 77 — payroll is FIXED to every
+  // Sunday 01:00 server time (UTC) per user mandate; see src/lib/engine/salary.ts)
   { key: "market.freeAgentPoolSize", group: "markets", valueType: "int", defaultValue: "40", minValue: 0, maxValue: 500 },
   { key: "market.playerValueMultiplier", group: "markets", valueType: "int", defaultValue: "3", minValue: 1, maxValue: 100, description: "Player MARKET VALUE = system calculation x this multiplier (default 3). Applied at player creation and via one-time backfill. Salaries still derive from the BASE value so wage bills remain sustainable; transfer prices, clauses and listing floors follow the multiplied value." },
   { key: "market.managerOfferDays", group: "markets", valueType: "int", defaultValue: "7", minValue: 1, maxValue: 30 },
@@ -112,6 +113,11 @@ export const CONFIG_DEFAULTS: ConfigEntry[] = [
   { key: "training.specialAttrPct", group: "training", valueType: "int", defaultValue: "3", minValue: 1, maxValue: 30, description: "Special session: percent applied to the trained attribute family of the trained player." },
   { key: "training.paceGeneral", group: "training", valueType: "int", defaultValue: "30", minValue: 1, maxValue: 500, description: "General session growth PACE (absolute-pace model): attribute points x0.001 gained per attribute per session (30 = 0.030 pts). Calibrated so a 5-star prospect with optimal coach/facility reaches his ceiling around age 29." },
   { key: "training.paceSpecial", group: "training", valueType: "int", defaultValue: "42", minValue: 1, maxValue: 500, description: "Special session growth PACE (absolute-pace model): attribute points x0.001 gained per trained attribute per session (42 = 0.042 pts)." },
+  { key: "training.talent.star1", group: "training", valueType: "int", defaultValue: "60", minValue: 0, maxValue: 400, description: "Task 79 TALENT FACTOR (%): multiplier applied to every training gain of 1-star players (potential < 40). 60 = they acquire skills at 60% speed." },
+  { key: "training.talent.star2", group: "training", valueType: "int", defaultValue: "80", minValue: 0, maxValue: 400, description: "Task 79 TALENT FACTOR (%): multiplier for 2-star players (potential 40-54)." },
+  { key: "training.talent.star3", group: "training", valueType: "int", defaultValue: "100", minValue: 0, maxValue: 400, description: "Task 79 TALENT FACTOR (%): multiplier for 3-star players (potential 55-69)." },
+  { key: "training.talent.star4", group: "training", valueType: "int", defaultValue: "120", minValue: 0, maxValue: 400, description: "Task 79 TALENT FACTOR (%): multiplier for 4-star players (potential 70-84)." },
+  { key: "training.talent.star5", group: "training", valueType: "int", defaultValue: "150", minValue: 0, maxValue: 400, description: "Task 79 TALENT FACTOR (%): multiplier for 5-star players (potential >= 85) - elite talents acquire skills 50% faster." },
 
   // Staff
   { key: "staff.maxPerRole", group: "staff", valueType: "int", defaultValue: "3", minValue: 1, maxValue: 8, description: "Max hired staff members per area/role per club." },

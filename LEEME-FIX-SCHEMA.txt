@@ -1,0 +1,95 @@
+================================================================
+KNIGHT FM — FIX SCHEMA PRODUCCIÓN (Task 76)
+Causa REAL de los errores 500 (login, world/state, presence)
+================================================================
+
+QUÉ PASÓ (con pruebas, sin excusas)
+-----------------------------------
+El ZIP de banderas v3 que te entregué incluía el archivo
+prisma/schema.prisma en su versión de DESARROLLO (motor SQLite)
+en lugar de la versión de PRODUCCIÓN (motor PostgreSQL, el que
+usa tu base de Supabase).
+
+Al extraer ese ZIP sobre tu proyecto, el archivo sobrescribió
+el bueno. Cuando subiste los cambios, Vercel construyó la web
+con el motor equivocado: tu base es PostgreSQL (postgresql://…)
+pero el schema decía SQLite (file:…). Resultado: CUALQUIER
+consulta a la base devuelve 500:
+
+    "the URL must start with the protocol `file:`"
+
+Por eso falla el login ("No se pudo completar la operación"),
+el estado del mundo (/api/world/state), la presencia y verás
+también "auto-genesis FAILED" en los logs de Vercel.
+
+El fix anterior (fijar next en 16.1.3) atacaba otra causa
+posible que NO era la real. Ese cambio es inofensivo: déjalo.
+Lo que faltaba es restaurar ESTE archivo.
+
+ARCHIVO INCLUIDO (1)
+--------------------
+  prisma/schema.prisma → tu schema COMPLETO actual (los 51
+      modelos, incluidas las columnas "country" de las banderas)
+      pero con el motor CORRECTO: provider = "postgresql".
+      Validado con "prisma validate" antes de enviártelo.
+
+PASOS (Windows, en este orden)
+------------------------------
+  PASO 1 — Extrae este ZIP directamente sobre D:\Programacion\knightfm
+           (clic derecho → "Extraer todo…" → elegir esa carpeta).
+           Si Windows pregunta si quieres reemplazar el archivo:
+           SÍ, REEMPLAZAR.
+           DEBES VER: D:\Programacion\knightfm\prisma\schema.prisma
+           con la fecha de hoy.
+
+  PASO 2 — Comprobación rápida (recomendada). En PowerShell,
+           dentro de D:\Programacion\knightfm:
+                npx prisma generate
+           DEBES VER al final:  "Generated Prisma Client"
+           Si muestra otro error, PARA ahí y mándame captura.
+
+  PASO 3 — Sube a producción:
+                git add prisma/schema.prisma
+                git commit -m "fix: schema PostgreSQL de produccion (Task 76)"
+                git push
+           Espera el deploy de Vercel (1-2 min).
+
+  PASO 4 — Entra a https://knightfm.vercel.app (Ctrl+F5 si hace
+           falta) e inicia sesión.
+           DEBES VER: entras al juego sin "No se pudo completar
+           la operación", el contador de conectados y las banderas
+           funcionan. En Vercel → Logs ya NO aparecen los
+           PrismaClientInitializationError.
+
+QUÉ NO HACER (importante)
+-------------------------
+  ✗ NO ejecutes "prisma db push" ni "prisma migrate": tu base de
+    Supabase ya está bien; solo faltaba este archivo de código.
+  ✗ NO vuelvas a extraer ZIPs antiguos (knightfm-banderas-pais v1
+    o v2, knight-fm-project, knightfm-fix-captcha-v2, etc.) sobre
+    el proyecto: fueron ellos los que arrastraron el error.
+    (El ZIP v3 ya lo parcheé internamente con el schema correcto,
+    por si algún día necesitas re-extraerlo.)
+  ✗ NO toques las variables de entorno de Vercel: DATABASE_URL
+    está bien tal como está.
+
+SI ALGO FALLARA
+---------------
+  Vercel → tu proyecto → Deployments → clic en el deploy más
+  nuevo → Runtime Logs → captura y mándamela. Pero este error
+  concreto ("protocol file:") se elimina con este archivo: es el
+  mismo mensaje, palabra por palabra, el que aparecía en tus logs.
+
+POR QUÉ ESTA VEZ SÍ ESTÁ VERIFICADO
+-----------------------------------
+  · El error de tus logs de Vercel nombra literalmente
+    schema.prisma líneas 10-11 con provider = "sqlite": es
+    EXACTAMENTE el archivo que v3 incluyó por error. Causa y
+    efecto coinciden al 100%.
+  · El schema incluido aquí es tu mismo modelo (876 líneas,
+    51 modelos) solo cambiando el motor, y pasó
+    "prisma validate" con provider postgresql.
+  · Blindaje añadido para que esto no pueda repetirse: a partir
+    de ahora, TODO ZIP que te entregue pasa por un script que
+    convierte el schema al motor de producción y lo valida antes
+    de empaquetar.

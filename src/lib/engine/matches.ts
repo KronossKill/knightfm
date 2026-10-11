@@ -307,13 +307,20 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
     { maxWait: 15_000, timeout: 30_000 },
   );
 
-  // Revenues outside the state tx (idempotent via ledger keys)
+  // Revenues outside the state tx (idempotent via ledger keys).
+  // Task 78 (user mandate): if the HOME club is a frozen system club (no owner,
+  // no manager), the matchday generates NO revenue at all — neither the club
+  // credit nor the regional/system allocations materialise.
   try {
-    const gross = 60 + Math.floor(Math.random() * 40);
-    await db.$transaction(async (tx) => {
-      await creditClub(tx, fixture.homeId, Math.floor(gross * 0.7), "MATCH_REVENUE", `REVENUE:${fixture.id}`, "Matchday revenue (home)"); // Task 25-b: taxable club income (was TRANSFER_IN)
-      await allocateRevenue(tx, { regionId: fixture.home.regionId, gross: Math.floor(gross * 0.3), idemBase: `REVENUE-ALLOC:${fixture.id}`, memo: "Matchday allocation" });
-    });
+    const homeCtl = await db.club.findUnique({ where: { id: fixture.homeId }, select: { ownerId: true, managerId: true } });
+    const frozenHome = !homeCtl || (!homeCtl.ownerId && !homeCtl.managerId);
+    if (!frozenHome) {
+      const gross = 60 + Math.floor(Math.random() * 40);
+      await db.$transaction(async (tx) => {
+        await creditClub(tx, fixture.homeId, Math.floor(gross * 0.7), "MATCH_REVENUE", `REVENUE:${fixture.id}`, "Matchday revenue (home)"); // Task 25-b: taxable club income (was TRANSFER_IN)
+        await allocateRevenue(tx, { regionId: fixture.home.regionId, gross: Math.floor(gross * 0.3), idemBase: `REVENUE-ALLOC:${fixture.id}`, memo: "Matchday allocation" });
+      });
+    }
   } catch {
     // revenue is best-effort; ledger idempotency protects duplicates
   }

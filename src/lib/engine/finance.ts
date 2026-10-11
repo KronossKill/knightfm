@@ -45,6 +45,26 @@ async function ledgerExists(tx: Tx, idemKey: string): Promise<boolean> {
   return !!found;
 }
 
+// Task 78 (user mandate): a SYSTEM club with NEITHER an owner NOR a manager has
+// a FROZEN economy — it is exempt from every payment and every income (no
+// wages, no matchday revenue, no prizes, no transfer money: nothing moves).
+// The moment the club gains a manager or an owner, the normal written rules
+// apply again. Invariants that keep this predicate exact:
+//   • purchase/claim always sets ownerId (systemOwned → false),
+//   • manager contracts always set managerId,
+//   • inactivity revert clears ownerId+managerId together (systemOwned → true),
+// so "no owner && no manager" ⇔ the club belongs to the system and nobody can
+// act for it.
+export function clubEconomyIsFrozen(club: { ownerId: string | null; managerId: string | null }): boolean {
+  return !club.ownerId && !club.managerId;
+}
+
+export class ClubFrozenError extends FinanceError {
+  constructor() {
+    super("CLUB_FROZEN", "This club is system-owned and has no manager or owner yet: its economy is frozen (no payments, no income)");
+  }
+}
+
 // Task 25-b: club-income categories subject to the SYSTEM-fund gravamen
 // (economy.clubIncomeTaxPct, default 10). INVEST (owner deposits), auction
 // refunds (TRANSFER_IN) and admin grants are exempt — club income only.
@@ -55,8 +75,12 @@ export async function creditClub(
 ): Promise<boolean> {
   if (amount <= 0) return false;
   if (await ledgerExists(tx, idemKey)) return false;
-  const club = await tx.club.findUnique({ where: { id: clubId }, select: { operatingFund: true } });
+  const club = await tx.club.findUnique({ where: { id: clubId }, select: { operatingFund: true, ownerId: true, managerId: true } });
   if (!club) throw new FinanceError("CLUB_NOT_FOUND", "Club not found");
+  // Task 78 (user mandate): frozen system clubs receive NO income of any kind
+  // (prizes, matchday revenue, sales, grants…). Silent skip — background income
+  // is best-effort everywhere; the money simply never materialises.
+  if (clubEconomyIsFrozen(club)) return false;
 
   // Task 25-b: gravamen on club income — the club receives the NET and the levy
   // goes to the SYSTEM fund INSIDE the same transaction, under the derived
@@ -93,8 +117,14 @@ export async function debitClub(
 ): Promise<boolean> {
   if (amount <= 0) return false;
   if (await ledgerExists(tx, idemKey)) return false;
-  const club = await tx.club.findUnique({ where: { id: clubId }, select: { operatingFund: true } });
+  const club = await tx.club.findUnique({ where: { id: clubId }, select: { operatingFund: true, ownerId: true, managerId: true } });
   if (!club) throw new FinanceError("CLUB_NOT_FOUND", "Club not found");
+  // Task 78 (user mandate): frozen system clubs pay NOTHING. Unlike credits,
+  // a skipped debit could let an effect land for free (e.g. a transfer), so
+  // this fails LOUDLY and rolls the transaction back. Normal operation can
+  // never reach this: every spending route requires an owner/manager session,
+  // and the weekly payroll skips frozen clubs explicitly.
+  if (clubEconomyIsFrozen(club)) throw new ClubFrozenError();
   if (!opts.allowNegative && club.operatingFund < amount) {
     throw new FinanceError("INSUFFICIENT_CLUB_FUNDS", `Insufficient club funds (need ${amount}, have ${club.operatingFund})`);
   }

@@ -42,7 +42,6 @@ import {
   type TrainingSpecialType,
 } from "@/components/game/api";
 import { ErrorState, PositionBadge, posGroupOf } from "@/components/game/ui/bits";
-import CinemaHeader from "@/components/game/ui/cinema-header";
 import { useViewStore } from "@/components/game/view-store";
 
 const SPECIAL_RUN_TYPES: TrainingSpecialType[] = [
@@ -65,43 +64,44 @@ const TYPE_ICONS: Record<TrainingSpecialType, LucideIcon> = {
   set_pieces: Flag,
 };
 
-// ── Task 25-c: multi-factor breakdown shown in session toasts ────
+// ── Task 78 (user mandate): training results show ONLY the improved areas and
+// quantities — never the internal formula. Individual sessions list each
+// attribute that improved with its whole-point gain; the squad-wide general
+// session shows per-family totals.
 
-type TrainingFactorWeights = Record<"condition" | "age" | "quality" | "coach" | "facility", number>;
-
-interface TrainingBreakdown {
-  fCondition: number;
-  fAge: number;
-  fQuality: number;
-  fCoach: number;
-  fFacility: number;
-  weights: TrainingFactorWeights;
-  eff: TrainingFactorWeights;
-  finalPct: number;
+interface TrainingGain {
+  key: string;
+  family: string;
+  delta: number;
 }
 
-/**
- * "+2.0% · condición ×0.78 · edad ×0.92 · calidad ×1.01 · entrenador ×1.00 ·
- * instalaciones ×0.90" — shows the APPLIED (randomized) pct plus the effective
- * (weighted) factor multipliers that were actually applied; at default weights
- * (100) the effective multipliers equal the raw factors.
- */
-function breakdownText(
-  bd: TrainingBreakdown | undefined,
-  appliedPct: number | undefined,
+interface FamilyGains {
+  technical: number;
+  physical: number;
+  mental: number;
+}
+
+/** "Pase +1 · Decisiones +2 · Trabajo +1" — attribute names + real gains. */
+function gainsText(
+  gains: TrainingGain[] | undefined,
   t: (key: string, vars?: Record<string, string | number>) => string
 ): string | undefined {
-  if (!bd) return undefined;
-  const x = (v: number) => `×${(Number.isFinite(v) ? v : 1).toFixed(2)}`;
-  const factors = [
-    `${t("game.training.fCond")} ${x(bd.eff?.condition ?? 1)}`,
-    `${t("game.training.fAge")} ${x(bd.eff?.age ?? 1)}`,
-    `${t("game.training.fQuality")} ${x(bd.eff?.quality ?? 1)}`,
-    `${t("game.training.fCoach")} ${x(bd.eff?.coach ?? 1)}`,
-    `${t("game.training.fFacility")} ${x(bd.eff?.facility ?? 1)}`,
-  ].join(" · ");
-  const pct = appliedPct ?? bd.finalPct ?? 0;
-  return t("game.training.breakdown", { pct: pct.toFixed(1), factors });
+  if (!gains || gains.length === 0) return undefined;
+  return gains.map((g) => `${t(`attr.${g.key}`)} +${g.delta}`).join(" · ");
+}
+
+/** "Técnica +12 · Física +8 · Mental +10" — per-family point totals. */
+function familyGainsText(
+  fg: FamilyGains | undefined,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string | undefined {
+  if (!fg) return undefined;
+  const parts: string[] = [];
+  for (const fam of ["technical", "physical", "mental"] as const) {
+    const v = fg[fam] ?? 0;
+    if (v > 0) parts.push(`${t(`game.training.family.${fam}`)} +${v}`);
+  }
+  return parts.length > 0 ? parts.join(" · ") : undefined;
 }
 
 function UsageChip({ label, used, limit }: { label?: string; used: number; limit: number }) {
@@ -251,7 +251,7 @@ export default function TrainingView() {
 
   const runGeneralMutation = useMutation({
     mutationFn: () =>
-      apiFetch<{ ran: "general"; players: number; pct: number; attrsGained: number; breakdown?: TrainingBreakdown; finalPct?: number }>(
+      apiFetch<{ ran: "general"; players: number; attrsGained: number; familyGains?: FamilyGains }>(
         "/api/training",
         {
           method: "POST",
@@ -261,9 +261,10 @@ export default function TrainingView() {
         }
       ),
     onSuccess: (res) => {
+      // Task 78: title = completion, description = improved areas + quantities.
       toast({
-        title: t("game.training.ranGeneral", { players: res.players, pct: res.pct }),
-        description: breakdownText(res.breakdown, res.finalPct, t),
+        title: t("game.training.ranGeneralTitle", { players: res.players }),
+        description: familyGainsText(res.familyGains, t) ?? t("game.training.noGains"),
       });
       // Attributes/fatigue changed → refresh usage + squad views.
       void queryClient.invalidateQueries({ queryKey: qk.training(clubId) });
@@ -284,18 +285,17 @@ export default function TrainingView() {
         ran: "special";
         type: TrainingSpecialType;
         playerId: string;
-        pct: number;
         attrsGained: number;
-        breakdown?: TrainingBreakdown;
-        finalPct?: number;
+        gains?: TrainingGain[];
       }>("/api/training", {
         method: "POST",
         body: { clubId, session: "special", specialType: vars.type, playerId: vars.playerId },
       }),
     onSuccess: (res) => {
+      // Task 78: title = completion, description = improved attributes + amounts.
       toast({
-        title: t("game.training.ranSpecial", { pct: res.pct }),
-        description: breakdownText(res.breakdown, res.finalPct, t),
+        title: t("game.training.ranSpecialTitle"),
+        description: gainsText(res.gains, t) ?? t("game.training.noGains"),
       });
       void queryClient.invalidateQueries({ queryKey: qk.training(clubId) });
       void queryClient.invalidateQueries({ queryKey: qk.players(clubId) });
@@ -342,12 +342,13 @@ export default function TrainingView() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <CinemaHeader
-        title={t("game.training.title")}
-        subtitle={t("game.training.subtitle")}
-        image="/images/training-dusk.jpg"
-        icon={Dumbbell}
-      />
+      <header>
+        <h1 className="flex items-center gap-2 text-xl font-semibold">
+          <Dumbbell aria-hidden="true" className="size-5 text-primary" />
+          {t("game.training.title")}
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t("game.training.subtitle")}</p>
+      </header>
 
       <Alert>
         <Info aria-hidden="true" className="size-4" />

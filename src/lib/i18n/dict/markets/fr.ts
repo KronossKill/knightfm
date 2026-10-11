@@ -198,6 +198,7 @@ export const dict: Dict = {
   // ── Treasury ─────────────────────────────────────────────────
   "markets.treasury.title": "Trésorerie du club",
   "markets.treasury.subtitle": "Finances, investissement et grand livre du club",
+  "markets.treasury.payrollSchedule": "Les salaires (joueurs, personnel et gérant) sont payés automatiquement chaque dimanche à 01:00 heure du serveur (UTC).",
   "markets.treasury.operatingFund": "Fonds d'exploitation",
   "markets.treasury.debt": "Dette",
   "markets.treasury.finState": "État financier",

@@ -98,6 +98,11 @@ export const dict: Record<string, string> = {
   "cfg.training.growthFactor.label": "Facteur de croissance (%)",
   "cfg.training.generalAttrPct.label": "Séance générale : % par attribut",
   "cfg.training.specialAttrPct.label": "Séance spéciale : % par attribut",
+  "cfg.training.talent.star1.label": "Facteur de talent : joueurs 1★ (%)",
+  "cfg.training.talent.star2.label": "Facteur de talent : joueurs 2★ (%)",
+  "cfg.training.talent.star3.label": "Facteur de talent : joueurs 3★ (%)",
+  "cfg.training.talent.star4.label": "Facteur de talent : joueurs 4★ (%)",
+  "cfg.training.talent.star5.label": "Facteur de talent : joueurs 5★ (%)",
 
   // Staff
   "cfg.staff.maxPerRole.label": "Personnel maximum par zone",
@@ -127,7 +132,6 @@ export const dict: Record<string, string> = {
   "cfg.solana.finalityMinutes.label": "Finalité des dépôts (minutes)",
   "cfg.users.inactiveAfterDays.label": "Jours sans accès avant de marquer le compte INACTIF",
   "cfg.users.deleteAfterDays.label": "Jours sans accès avant de SUPPRIMER le compte (les admins n'expirent jamais)",
-  "cfg.finance.salaryIntervalDays.label": "Intervalle de paiement des salaires (jours de jeu)",
   "cfg.economy.clubIncomeTaxPct.label": "Taxe sur les revenus du club (%)",
   "cfg.training.weight.condition.label": "Poids : condition du joueur (%)",
   "cfg.training.weight.age.label": "Poids : âge du joueur (%)",

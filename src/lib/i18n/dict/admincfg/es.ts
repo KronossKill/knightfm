@@ -100,6 +100,11 @@ export const dict: Record<string, string> = {
   "cfg.training.growthFactor.label": "Factor de crecimiento (%)",
   "cfg.training.generalAttrPct.label": "Entrenamiento general: % por atributo",
   "cfg.training.specialAttrPct.label": "Entrenamiento especial: % por atributo",
+  "cfg.training.talent.star1.label": "Factor de talento: jugadores 1★ (%)",
+  "cfg.training.talent.star2.label": "Factor de talento: jugadores 2★ (%)",
+  "cfg.training.talent.star3.label": "Factor de talento: jugadores 3★ (%)",
+  "cfg.training.talent.star4.label": "Factor de talento: jugadores 4★ (%)",
+  "cfg.training.talent.star5.label": "Factor de talento: jugadores 5★ (%)",
 
   // Staff
   "cfg.staff.maxPerRole.label": "Personal máximo por área",
@@ -129,7 +134,6 @@ export const dict: Record<string, string> = {
   "cfg.solana.finalityMinutes.label": "Minutos de finalidad para depósitos",
   "cfg.users.inactiveAfterDays.label": "Días sin acceder para marcar INACTIVO una cuenta",
   "cfg.users.deleteAfterDays.label": "Días sin acceder para BORRAR la cuenta (los admins no caducan)",
-  "cfg.finance.salaryIntervalDays.label": "Intervalo de pago de salarios (días de juego)",
   "cfg.economy.clubIncomeTaxPct.label": "Gravamen sobre los ingresos del club (%)",
   "cfg.training.weight.condition.label": "Peso: condición del jugador (%)",
   "cfg.training.weight.age.label": "Peso: edad del jugador (%)",

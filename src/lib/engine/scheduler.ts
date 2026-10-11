@@ -18,6 +18,16 @@ import { getYouthCapacity } from "@/lib/engine/training";
 import { divisionPrizeFactorPct } from "@/lib/engine/prizes";
 import { computeBaseMarketValue, applyValueMultiplier, computeSalary, computeReleaseClause, starsFromOvr } from "@/lib/engine/ovr";
 import { mulberry32, seedFromString } from "@/lib/engine/kmie";
+import { runWeeklySalaries } from "@/lib/engine/salary";
+// Task 78 consolidation: the auction settlement is the SAME honest closer the
+// market endpoints use (engine/auctions.ts). The old local closeExpiredAuctions
+// credited sellers and "refunded" losing bids without ever debiting the winner
+// (money from nothing) and ignored the systemOwned seller routing — deleted.
+import { closeDueAuctions } from "@/lib/engine/auctions";
+
+// Task 77 (user mandate): paySalaries lives in @/lib/engine/salary.ts now —
+// re-exported here so existing verification scripts keep their import path.
+export { paySalaries } from "@/lib/engine/salary";
 
 let running = false;
 let lastRunAt = 0;
@@ -47,10 +57,11 @@ async function endJob(idemKey: string, outcome: "OK" | "FAILED" | "SKIPPED", err
 // picked up by the next trigger (JobRun is idempotent, nothing is lost).
 const MAX_DAYS_PER_RUN = 7;
 
-export async function processDueJobs(): Promise<{ processedDays: number; matches: number }> {
-  if (running) return { processedDays: 0, matches: 0 };
+export async function processDueJobs(): Promise<{ processedDays: number; matches: number; payrolls: number }> {
+  if (running) return { processedDays: 0, matches: 0, payrolls: 0 };
   running = true;
   let matches = 0;
+  let payrolls = 0;
   try {
     const epoch = await getWorldEpochMs();
     const today = 1 + Math.floor((Date.now() - epoch) / 86400000);
@@ -72,6 +83,18 @@ export async function processDueJobs(): Promise<{ processedDays: number; matches
     // Lazy loan returns: players whose loan has ended rejoin their origin club
     // immediately on any tick (self-idempotent: rows only match while due).
     await returnLoanedPlayers(today).catch(() => undefined);
+
+    // Weekly payroll (Task 77, user mandate): every SUNDAY at 01:00 server
+    // time (UTC). Lazy + idempotent — pays every due Sunday since the last
+    // recorded payday exactly once (JobRun + ledger idempotency keys), so any
+    // number of ticks/instances can call it safely. A FAILED Sunday is
+    // retried by the next tick; the exception is swallowed here because the
+    // JobRun row already records the failure and /api/cron/salary surfaces it.
+    try {
+      payrolls = (await runWeeklySalaries()).paid;
+    } catch {
+      // retry on the next tick (JobRun FAILED row is cleared there)
+    }
 
     // Due matches (event-timestamp driven, any UTC instant)
     const due = await db.fixture.findMany({
@@ -96,8 +119,10 @@ export async function processDueJobs(): Promise<{ processedDays: number; matches
       }
     }
 
-    // Expired auctions
-    await closeExpiredAuctions();
+    // Expired auctions — single honest settlement path (engine/auctions.ts):
+    // winner is debited at settlement, insolvent/frozen/self-dealing bidders are
+    // skipped, system-club sale proceeds flow to the SYSTEM fund.
+    await closeDueAuctions();
 
     // World Cup qualification on the configured final day. USER MANDATE: the
     // Club World Cup is NOT played in Season 1 (no qualified clubs exist yet —
@@ -117,7 +142,7 @@ export async function processDueJobs(): Promise<{ processedDays: number; matches
     }
 
     lastRunAt = Date.now();
-    return { processedDays, matches };
+    return { processedDays, matches, payrolls };
   } finally {
     running = false;
   }
@@ -132,16 +157,12 @@ async function runDayJobs(day: number, epochMs: number) {
     await endJob(`ROLLOVER:${day}`, "OK");
   }
 
-  // 00:01 — salaries (Task 25-a: WEEKLY — paid only when the absolute game day is a
-  // multiple of finance.salaryIntervalDays; the payout equals the daily rate × interval)
-  if (await beginJob(`SALARY:${day}`, "SALARY", new Date(dayStart))) {
-    try {
-      await paySalaries(day, season?.id ?? null);
-      await endJob(`SALARY:${day}`, "OK");
-    } catch (e) {
-      await endJob(`SALARY:${day}`, "FAILED", String(e));
-    }
-  }
+  // Salaries: MOVED OUT of the per-day timeline (Task 77, user mandate).
+  // Payroll now runs on a FIXED calendar schedule — every SUNDAY at 01:00
+  // server time (UTC) — via the lazy, idempotent trigger runWeeklySalaries()
+  // in processDueJobs() and the /api/cron/salary Vercel Cron endpoint.
+  // (Legacy JobRun rows jobType="SALARY" remain as audit history; the new
+  // migration treats the last one as the coverage baseline, never double-pays.)
 
   // 00:30 — daily recovery: rest rooms + physio/medic/analyst staff effects.
   if (await beginJob(`RECOVERY:${day}`, "DAILY_RECOVERY", new Date(dayStart + 1800000))) {
@@ -298,73 +319,9 @@ async function runDayJobs(day: number, epochMs: number) {
   }
 }
 
-// ─── Salary payment (spec §20, §14) ───────────────────────────────
-
-/**
- * 00:01 job (Task 25-a): salaries are WEEKLY. The payout happens only when the
- * absolute game day is a multiple of finance.salaryIntervalDays (default 7 →
- * days 7, 14, 21…) and equals the daily rate × interval (players, staff and the
- * manager's wage all multiply by N; the manager's gross still runs through
- * applyUserFundsLevy). Idempotency keys keep their :day suffix, so each payday
- * is recorded exactly once — off-days simply pay nothing.
- * (Exported for verification scripts only; the scheduler is the sole caller.)
- */
-export async function paySalaries(day: number, _seasonId: string | null, clubFilter?: string[]) {
-  const interval = Math.max(1, await getInt("finance.salaryIntervalDays", 7));
-  if (day % interval !== 0) return; // not a payday
-  const clubs = await db.club.findMany({
-    // clubFilter: test/verification hook (Task 27) — narrows the payroll run to
-    // specific sandbox clubs; production callers never pass it.
-    where: clubFilter && clubFilter.length > 0 ? { id: { in: clubFilter } } : undefined,
-    include: {
-      players: { where: { retired: false, isFreeAgent: false } },
-      staff: true,
-      contracts: { where: { state: "ACTIVE" } },
-    },
-  });
-  for (const club of clubs) {
-    const playerWages = club.players.reduce((sum, p) => sum + p.salary, 0) * interval;
-    const staffWages = club.staff.reduce((sum, s) => sum + s.salary, 0) * interval;
-    const absoluteDay = day; // contracts use absolute epoch days
-    const contract = club.contracts[0];
-    let managerDaily = 0;
-    if (contract && absoluteDay >= contract.startDay && absoluteDay <= contract.endDay) {
-      managerDaily = contract.dailySalary + (absoluteDay === contract.startDay ? contract.totalAmount - contract.dailySalary * contract.durationDays : 0);
-    }
-    const managerWage = managerDaily * interval;
-    const due = playerWages + staffWages + managerWage;
-    const available = club.operatingFund;
-    const paid = Math.min(available, due);
-    const unpaid = due - paid;
-
-    await db.$transaction(async (tx) => {
-      if (paid > 0) {
-        const okDebit = await debitClub(tx, club.id, paid, "SALARY_PLAYER", `SALARY:${club.id}:${day}`, `Weekly salaries (${interval} game days)`);
-        if (!okDebit) throw new Error("salary ledger idempotency conflict");
-      }
-      // The manager's wage reaches their PERSONAL wallet net of the income levy
-      // (platform incomes are taxed; investments are levy-free).
-      const managerPaid = Math.min(managerWage, Math.max(0, paid - playerWages - staffWages));
-      if (managerPaid > 0 && contract) {
-        const levy = await applyUserFundsLevy(managerPaid);
-        await creditPersonal(tx, contract.managerId, levy.net, "SALARY_MANAGER", `SALARYMGR:${club.id}:${day}`, `Manager salary from ${club.name} (${interval} game days)`, { gross: levy.gross, levy: levy.levy, net: levy.net });
-      }
-      if (unpaid > 0) {
-        await tx.club.update({ where: { id: club.id }, data: { debt: { increment: unpaid }, unpaidDays: { increment: 1 } } });
-      } else if (club.debt > 0) {
-        // Repay debt from surplus
-        const repay = Math.min(club.operatingFund - paid, club.debt);
-        if (repay > 0) {
-          const mult = club.finState === "POSSIBLE_BANKRUPTCY" ? 2 : 1;
-          const owed = Math.min(repay, club.debt * mult);
-          await tx.club.update({ where: { id: club.id }, data: { debt: { decrement: Math.min(owed, club.debt) }, unpaidDays: 0, finState: club.debt - owed <= 0 ? "HEALTHY" : club.finState } });
-        } else if (club.unpaidDays > 0 && club.debt === 0) {
-          await tx.club.update({ where: { id: club.id }, data: { unpaidDays: 0, finState: "HEALTHY" } });
-        }
-      }
-    });
-  }
-}
+// ─── Salary payment → moved to @/lib/engine/salary.ts (Task 77) ──
+// Weekly payroll, every SUNDAY 01:00 server time (UTC). See salary.ts for the
+// payout core (paySalaries, re-exported above) and the lazy orchestration.
 
 // ─── Daily recovery (rest rooms + technical staff effects) ────────
 
@@ -674,48 +631,6 @@ async function freeAgentRefresh(day: number) {
         birthDay: gameDay, nextAgeDay: gameDay + 30,
       },
     });
-  }
-}
-
-// ─── Auctions ─────────────────────────────────────────────────────
-
-async function closeExpiredAuctions() {
-  const expired = await db.listing.findMany({ where: { type: "AUCTION", state: "OPEN", expiresAt: { lte: new Date() } } });
-  for (const listing of expired) {
-    const topBid = await db.bid.findFirst({ where: { auctionId: listing.id, refunded: false }, orderBy: { amount: "desc" } });
-    if (!topBid) {
-      await db.listing.update({ where: { id: listing.id }, data: { state: "EXPIRED" } });
-      continue;
-    }
-    const player = listing.playerId ? await db.player.findUnique({ where: { id: listing.playerId } }) : null;
-    if (!player) {
-      await db.listing.update({ where: { id: listing.id }, data: { state: "CANCELLED" } });
-      continue;
-    }
-    const clubTo = await db.club.findUnique({ where: { id: topBid.clubId }, select: { regionId: true } });
-    await db.$transaction(async (tx) => {
-      // Winner pays (escrowed at bid time → consume), seller credited
-      const sellerClub = player.clubId;
-      await tx.player.update({ where: { id: player.id }, data: { clubId: topBid.clubId, isFreeAgent: false } });
-      await tx.listing.update({ where: { id: listing.id }, data: { state: "SOLD", buyerId: topBid.clubId } });
-      if (sellerClub) {
-        // Task 25-b: auction sales are TAXABLE club income — routed through
-        // creditClub so the configured economy.clubIncomeTaxPct applies (the
-        // old hardcoded 10% raw-levy block ignored the admin setting).
-        await creditClub(tx, sellerClub, topBid.amount, "AUCTION_SALE", `AUCTION-SALE:${listing.id}`, "Auction sale").catch(() => undefined);
-      }
-      await tx.transferRecord.create({
-        data: { playerId: player.id, clubFromId: player.clubId, clubToId: topBid.clubId, amount: topBid.amount, type: "AUCTION", seasonId: "current", day: 0 },
-      }).catch(() => undefined);
-    });
-    // Refund losing bids
-    const losing = await db.bid.findMany({ where: { auctionId: listing.id, refunded: false, id: { not: topBid.id } } });
-    for (const bid of losing) {
-      await db.$transaction(async (tx) => {
-        await creditClub(tx, bid.clubId, bid.amount, "TRANSFER_IN", `AUCTION-REFUND:${bid.id}`, "Auction refund");
-        await tx.bid.update({ where: { id: bid.id }, data: { refunded: true } });
-      }).catch(() => undefined);
-    }
   }
 }
 

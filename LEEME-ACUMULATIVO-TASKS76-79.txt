@@ -1,0 +1,162 @@
+════════════════════════════════════════════════════════════════════
+ KNIGHT FM — PAQUETE ACUMULATIVO (Task 76 + 77 + 78 + 79 + 81)
+ TODO lo entregado desde "knightfm-fix-login-500" en UN SOLO ZIP
+════════════════════════════════════════════════════════════════════
+ Este paquete reemplaza y engloba a estos 4 zips anteriores
+ (si ya los aplicaste, no pasa nada: extraer este encima deja
+ tu proyecto con las versiones finales de TODO):
+
+   ✔ knightfm-fix-schema-postgres.zip      (Task 76)
+   ✔ knightfm-salario-domingos.zip         (Task 77)
+   ✔ knightfm-economia-entrenamiento.zip   (Task 78)
+   ✔ knightfm-talento-estrellas.zip        (Task 79)
+
+QUÉ INCLUYE (resumen de las 4 mejoras)
+──────────────────────────────────────
+1) TASK 76 — SCHEMA DE PRODUCCIÓN POSTGRESQL (CRÍTICO)
+   prisma/schema.prisma ya viene como variante PostgreSQL
+   (Supabase), validada. Esto fue lo que arregló los errores 500
+   de Vercel ("the URL must start with the protocol file:").
+
+2) TASK 77 — SALARIO AUTOMÁTICO DE LOS DOMINGOS
+   La nómina se paga SOLO cada DOMINGO a las 01:00 hora del
+   servidor (UTC), automáticamente, con vercel.json (cron) +
+   endpoint protegido. Paga jugadores + personal + mánager una
+   sola vez por domingo, nunca doble pago, y si Vercel se salta
+   un domingo lo recupera solo. En Tesorería hay un aviso fijo
+   con el horario.
+
+3) TASK 78 — ECONOMÍA CONGELADA + ENTRENAMIENTO SIN FÓRMULA
+   • Clubes del sistema SIN mánager y SIN propietario: economía
+     INMÓVIL (no pagan ni cobran nada, ni acumulan deuda). En
+     cuanto consiguen mánager o propietario, rigen las reglas
+     escritas normales.
+   • El entrenamiento muestra SOLO las áreas mejoradas y su
+     cantidad (ej.: "Técnica +12 · Física +8"). Sin fórmulas.
+   • Extra: un camino viejo del cierre de subastas que acreditaba
+     dinero sin que nadie pagara fue eliminado (un solo camino
+     honesto: el ganador PAGA).
+
+4) TASK 79 — FACTOR DE TALENTO POR ESTRELLAS
+   Las estrellas definen lo RÁPIDO que se aprende:
+      1★ → 60%   ·  2★ → 80%   ·  3★ → 100%
+      4★ → 120%  ·  5★ → 150%
+   Un 5★ adquiere habilidades 2.5× más rápido que un 1★ con la
+   misma sesión y el mismo club. Los techos no cambian. Los 5
+   factores son configurables en Panel de Control → Configuración
+   (grupo training: training.talent.star1 ... star5).
+
+5) TASK 81 — PANEL DE DESCARGAS EN LA PÁGINA PRINCIPAL
+   Al pie de la página principal (cierra sesión si hace falta)
+   hay ahora una sección "Paquetes de actualización" que lista
+   AUTOMÁTICAMENTE todos los zips entregados, el más reciente
+   destacado arriba con la etiqueta "Más reciente". Desde ahí
+   se descarga cualquier paquete con UN CLIC — ya no hace falta
+   escribir direcciones a mano. Cada zip nuevo que publiques
+   aparecerá ahí solo.
+
+¿NECESITO INSTALAR ALGO NUEVO?
+──────────────────────────────
+NO. Cero dependencias nuevas. No hay que hacer "npm install".
+
+PASOS (en orden, sin saltarte ninguno)
+──────────────────────────────────────
+PASO 1 — Descarga el paquete
+   Descarga: knightfm-acumulativo-fixlogin500-tasks76-79.zip
+   (bájalo a tu PC, por ejemplo a Escritorio).
+
+PASO 2 — Detén el servidor local si está corriendo
+   En la ventana de terminal del proyecto (PowerShell en
+   D:\Programacion\knightfm), pulsa Ctrl+C si el servidor está
+   corriendo. No hace falta cerrar la ventana.
+
+PASO 3 — Extrae el ZIP ENCIMA de tu proyecto
+   1. Clic derecho sobre el zip → "Extraer todo..."
+   2. Como destino escribe EXACTAMENTE:
+        D:\Programacion\knightfm
+   3. Marca "Reemplazar los archivos en el destino" si Windows
+      lo pregunta. Debe extraer 37 archivos en sus carpetas.
+
+PASO 4 — Regenera el cliente de Prisma
+   En la terminal del proyecto:
+        npx prisma generate
+   DEBES VER al final:
+        ✔ Generated Prisma Client (v...)
+   (El schema incluido es el de PRODUCCIÓN PostgreSQL YA
+    VALIDADO. NO ejecutes prisma db push ni prisma migrate.)
+
+PASO 5 — (OPCIONAL) Limpieza en Supabase
+   En el SQL Editor de Supabase, ejecuta la línea que está en
+   supabase-salario-domingos.sql (borra una configuración vieja
+   que ya no se usa). Es IDEMPOTENTE: si ya la ejecutaste o
+   nunca existió, no pasa nada. Si nunca tocaste Supabase a
+   mano, puedes saltarte este paso.
+
+PASO 6 — Prueba en local
+        npm run dev
+   Entra con tu mánager y comprueba:
+   • ENTRENAMIENTO → ejecuta una sesión → el aviso muestra solo
+     áreas + cantidades (los jugadores con más estrellas suben
+     más por sesión).
+   • TESORERÍA → aparece el aviso del horario de nómina
+     ("cada domingo a las 01:00 hora del servidor (UTC)").
+   • PÁGINA PRINCIPAL (sin iniciar sesión) → baja al pie → la
+     sección "Paquetes de actualización" lista todos los zips,
+     con el más reciente destacado como "Más reciente".
+
+PASO 7 — Sube TODO a GitHub para que Vercel despliegue
+   En la terminal del proyecto, uno por uno:
+        git add .
+        git commit -m "Tasks 76-81: schema postgres, salario de domingos, economia congelada, talento por estrellas, panel de descargas"
+        git push
+   Espera el deploy de Vercel (1-3 min) y prueba en producción
+   con Ctrl+F5.
+
+   IMPORTANTE — vercel.json: este paquete lo incluye. Si en tu
+   repositorio ya existía un vercel.json con otros cron jobs,
+   este lo reemplaza (ahora tiene SOLO el cron del salario de
+   los domingos, "0 1 * * 0").
+
+QUÉ CONTIENE EL ZIP (37 archivos)
+─────────────────────────────────
+   prisma/schema.prisma                        (PostgreSQL validado)
+   vercel.json                                 (cron salario domingos)
+   supabase-salario-domingos.sql               (limpieza opcional)
+   src/lib/engine/salary.ts                    (Task 77)
+   src/app/api/cron/salary/route.ts            (Task 77)
+   src/components/game/treasury/treasury-view.tsx  (Task 77)
+   src/lib/engine/finance.ts                   (Task 78)
+   src/lib/engine/matches.ts                   (Task 78)
+   src/lib/engine/auctions.ts                  (Task 78)
+   src/lib/engine/scheduler.ts                 (Task 78)
+   src/app/api/_lib/markets-lib.ts             (Task 78)
+   src/app/api/training/route.ts               (Task 78)
+   src/components/game/training/training-view.tsx  (Task 78)
+   src/lib/engine/training.ts                  (Tasks 78+79)
+   src/lib/config.ts                           (Tasks 77+79)
+   src/lib/i18n/dict/game/{en,es,fr,pt}.ts     (Task 78)
+   src/lib/i18n/dict/markets/{en,es,fr,pt}.ts  (Task 77)
+   src/lib/i18n/dict/admincfg/{en,es,fr,pt}.ts (Task 79)
+   src/app/api/downloads/route.ts                       (Task 81)
+   src/components/landing/sections/downloads-panel.tsx  (Task 81)
+   src/components/landing/sections/final-cta-footer.tsx (Task 81)
+   src/lib/i18n/dict/landing/{en,es,fr,pt}.ts           (Task 81)
+   scripts/task79-verify-talent.ts             (verificación, opcional)
+   scripts/gen-production-schema.mjs           (herramienta anti-regresión)
+
+NO HAGAS ESTO
+─────────────
+   ✗ No ejecutes "prisma db push" ni "prisma migrate" (la base de
+     datos de producción NO cambia; el schema solo se valida).
+   ✗ No toques las variables de entorno en Vercel.
+   ✗ No re-extraigas zips viejos de carpetas antiguas: con este
+     paquete tienes TODO al día; usa SIEMPRE el último.
+
+VERIFICACIÓN INCLUIDA (OPCIONAL)
+────────────────────────────────
+   bun scripts/task79-verify-talent.ts
+   (o) npx tsx scripts/task79-verify-talent.ts
+Debe terminar con "ALL CHECKS PASSED" (34 comprobaciones del
+factor de talento; es el script que se ejecutó antes de
+empaquetar).
+════════════════════════════════════════════════════════════════════
