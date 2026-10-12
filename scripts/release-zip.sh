@@ -1,12 +1,11 @@
 #!/bin/bash
-# Knight FM — release ZIP builder (user mandate: after EVERY project update,
-# regenerate the complete project ZIP with documentation and expose it for
-# download from the web footer).
+# Knight FM — release ZIP builder (Task 107: after every project update, the
+# delivery ZIP is written to the LOCAL delivery/ folder — never served, never
+# committed; the site ships zero downloadable files).
 #
 # Usage: bash scripts/release-zip.sh
 # Output:
-#   download/knight-fm-proyecto-completo.zip   (master copy)
-#   public/downloads/knight-fm-project.zip     (served by the app footer)
+#   delivery/knight-fm-project.zip             (local delivery, gitignored)
 #
 # Includes: src, public, prisma, db (SQLite world incl.), scripts, docs (md +
 # Word), tests, examples, .zscripts, upload, every root config, worklog.md and
@@ -31,8 +30,8 @@ db.exec('PRAGMA wal_checkpoint(TRUNCATE);');
 db.close();
 " 2>/dev/null || echo "(aviso: checkpoint WAL omitido — BD en uso)"
 
-rm -f download/knight-fm-proyecto-completo.zip
-mkdir -p download
+rm -f download/knight-fm-proyecto-completo.zip delivery/knight-fm-project.zip
+mkdir -p download delivery
 
 zip -r -q download/knight-fm-proyecto-completo.zip \
   src public prisma db scripts docs tests examples .zscripts upload \
@@ -40,15 +39,14 @@ zip -r -q download/knight-fm-proyecto-completo.zip \
   eslint.config.mjs postcss.config.mjs tailwind.config.ts components.json \
   Caddyfile .env .gitignore worklog.md "$ROOT_DOC" \
   t16-funds-dialog.png t16-wallet-live-transition.png t16-wallet-mobile.png t16-wallet-mode.png \
-  -x "public/downloads/*.zip" "*/node_modules/*" "node_modules/*" \
+  -x "public/downloads/*" "public/download/*" "delivery/*" "*/node_modules/*" "node_modules/*" \
      "*.tsbuildinfo" "dev.log*" ".next/*" ".zscripts/dev.pid" \
      "db/*.db-wal" "db/*.db-shm" 2>/dev/null || true
 
-cp download/knight-fm-proyecto-completo.zip public/downloads/knight-fm-project.zip
+cp download/knight-fm-proyecto-completo.zip delivery/knight-fm-project.zip
 
 FILES=$(unzip -l download/knight-fm-proyecto-completo.zip | tail -1 | awk '{print $2}')
 MD5=$(md5sum download/knight-fm-proyecto-completo.zip | cut -d' ' -f1)
 echo "✅ ZIP regenerado: $(ls -lh download/knight-fm-proyecto-completo.zip | awk '{print $5}') · ${FILES} archivos · md5 ${MD5}"
 echo "   → download/knight-fm-proyecto-completo.zip (maestro)"
-echo "   → public/downloads/knight-fm-project.zip (servido por la web)"
-echo "   → public/downloads/knight-fm-documentacion.docx (documentación Word)"
+echo "   → delivery/knight-fm-project.zip (entrega local, NO servida — Task 107)"

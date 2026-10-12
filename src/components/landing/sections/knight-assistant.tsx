@@ -3,13 +3,14 @@
 // and can NEVER execute market/financial/ownership actions (hard guarantee),
 // with a static illustrative chat built on real rule facts.
 
-import { Bot, ShieldCheck, User } from "lucide-react";
+import { ShieldCheck, User } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Card, CardContent } from "@/components/ui/card";
 import { Reveal } from "../reveal";
 import { SectionHeader } from "../section-header";
 import { SectionTracker } from "../analytics-tracker";
 import { EV } from "../analytics";
+import { AssistantAvatar } from "@/components/game/assistant/assistant-avatar";
 
 export function KnightAssistant() {
   const { t } = useI18n();
@@ -73,12 +74,7 @@ export function KnightAssistant() {
                       </div>
                       {/* Assistant bubble */}
                       <div className="flex items-start gap-2">
-                        <span
-                          aria-hidden="true"
-                          className="grid size-7 shrink-0 place-items-center rounded-full border border-primary/30 bg-primary/10"
-                        >
-                          <Bot className="size-4 text-primary" />
-                        </span>
+                        <AssistantAvatar size="sm" className="size-7 rounded-full" />
                         <p className="max-w-[85%] rounded-2xl rounded-bl-sm bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
                           {turn.bot}
                         </p>
@@ -87,7 +83,7 @@ export function KnightAssistant() {
                   ))}
                 </div>
                 <p className="mt-5 flex items-center gap-1.5 border-t pt-4 text-xs text-muted-foreground">
-                  <Bot aria-hidden="true" className="size-3.5" />
+                  <AssistantAvatar size="sm" className="size-5 rounded-md" />
                   {t("landing.assistant.illustrative")}
                 </p>
               </CardContent>

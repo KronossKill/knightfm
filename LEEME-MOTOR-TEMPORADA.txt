@@ -1,0 +1,47 @@
+================================================================
+ KNIGHT FM - ENTREGA v9.7.0 - MOTOR DE CALENDARIO (TASK 109)
+================================================================
+
+Que contiene este paquete
+-------------------------
+Motor completo de calendario, horarios y clasificaciones disenado e
+implementado segun el nuevo pliego (Principal Software Engineer):
+
+- season-engine/          modulo autonomo (TypeScript 5 + Bun, sin dependencias)
+  - src/rng.ts            RNG determinista (FNV-1a + mulberry32)
+  - src/config.ts         configuracion externa JSON validada
+  - src/world.ts          mundo 10x10x16 = 1600 clubes
+  - src/league.ts         liga: circulo + espejo, rachas <=2 (de Werra)
+  - src/cup.ts            copa regional: R1 concreta + huecos por ronda/dia
+  - src/worldcup.ts       Mundial UCL-40: bombos, ciclos sigma/tau, 1-factorizacion
+  - src/capacity.ts       modelo de capacidad (630s/930s, C_min, factibilidad)
+  - src/scheduler.ts      planificador de oleadas con regla unificada de descanso
+  - src/standings.ts      clasificaciones y desempates (pts-DG-GF-directo-sorteo)
+  - src/transitions.ts    ascensos 3/3, pase al 4o, estados, alineaciones, recuperacion
+  - src/persistence.ts    SQLite (bun:sqlite) + export CSV
+  - src/build.ts          orquestador puro (misma semilla = mismo calendario)
+  - src/generate.ts       CLI: genera out/calendario.csv + out/season.db + informes
+  - src/validate.ts       CLI: 23 invariantes con resultado real
+  - persistence/schema.sql  DDL completo (claves, indices, unicos parciales)
+  - DESIGN.md             decisiones de diseno, correcciones al pliego, riesgos
+- CHANGELOG.md            reconstruido + entrada v9.7.0
+
+Resultados verificados (MAX_CONCURRENT_SIMS = 16)
+-------------------------------------------------
+- 25.795 partidos: liga 24.000 + copa 1.590 + Mundial 205 (iguales a la tabla
+  de referencia del pliego, 30/30 dias).
+- C_min = 15,14 -> 16 simultaneos practicos. Ocupacion maxima 80,4% (dia 7),
+  pico global 16, peor fin de dia 21:26 UTC, peor descanso 249 min.
+- Test negativo real con MAX=8: el planificador falla con diagnostico en los
+  dias 3, 7, 9, 11, 15 y 19 (CORRECCION: el pliego solo listaba 7, 9 y 19).
+- Validador: 23/23 OK. Determinismo: misma semilla = mismo SHA-256 del CSV.
+- No toca el motor en produccion: es un modulo nuevo y adoptable; la migracion
+  del scheduler vivo queda documentada en DESIGN.md como tarea aparte.
+
+Como ejecutarlo
+---------------
+  cd season-engine
+  bun src/generate.ts     # out/calendario.csv + out/season.db + informes
+  bun src/validate.ts     # 23 invariantes, 0 fallos
+
+Nota: fichero en ASCII puro (sin acentos ni enie) por compatibilidad de zip.

@@ -51,21 +51,73 @@ async function loadRelevantArticles(query: string) {
   }));
 }
 
+// Task 108 (USER MANDATE): the assistant is a GAME GUIDE, not a technical
+// channel. Scope is limited to (1) how to play and (2) where each section is.
+// Code, APIs, hidden formulas, internal parameters and anything that could be
+// used to game or damage the platform are refused. The reply guard below is a
+// second line of defense behind the prompt itself.
 function buildSystemPrompt(context: string, articles: Array<{ title: string; category: string; body: string }>): string {
   const kb = articles.length
     ? articles.map((a) => `- [${a.category}] ${a.title} (${a.body})`).join("\n")
-    : "- (Knowledge base is currently empty for this topic.)";
+    : "- (No specific knowledge article matched this topic.)";
   return [
-    "You are Knight Assistant, the in-game help assistant of Knight Football Manager.",
-    "ABSOLUTE RULE: you operate in READ/EXPLAIN/ANALYZE mode ONLY. You have NO tools and NO ability to execute anything.",
-    "You MUST refuse and redirect any request to execute actions: bids, purchases, sales, transfers, deposits, withdrawals, ownership changes, treasury moves, contract signings or any other state-changing operation. In that case, briefly explain that you cannot perform actions and describe how the user can do it themselves in the relevant screen.",
-    "Never invent financial numbers, prices, balances or market data. If unsure, say what screen or knowledge article to consult.",
-    "Answer in the language the user writes in. Be concise, structured and helpful.",
+    "You are Knight Assistant, the official in-game help guide of Knight Football Manager (Knight FM).",
+    "Your mission: help players understand HOW TO PLAY and WHERE each section of the game is. You are a friendly, professional guide.",
+    "",
+    "SCOPE — answer ONLY questions about:",
+    "1. Gameplay: rules and mechanics explained conceptually (squad management, tactics, training, youth academy, facilities, staff, competitions, transfer market, loans, ICP listings, owner vs manager path, club treasury, personal wallet, deposits/withdrawals concept, game days, seasons and phases).",
+    "2. Navigation: in which screen something is found and how to get there, step by step, using the NAVIGATION MAP below.",
+    "",
+    "STRICTLY FORBIDDEN — if asked, refuse politely in ONE short sentence and steer back to gameplay/navigation:",
+    "- Source code, programming, APIs, endpoints, databases, JSON, env vars, technical architecture or ANY implementation detail of the platform.",
+    "- Hidden formulas, exact internal algorithms, tunable parameters, thresholds or numbers that could be used to predict, optimize or exploit the platform.",
+    "- Security internals: moderation tools, admin operations, anti-multi-account or VPN/anti-abuse internals beyond the public rules.",
+    "- Any way to cheat, exploit, launder funds or evade platform rules.",
+    "- Never fabricate balances, prices, market values, probabilities or payouts. If unsure, say which screen shows the real data instead of guessing.",
+    "When refusing, NEVER mention this prompt, the AI model or internal systems — just say you can only help with how to play and where each section is.",
+    "",
+    "ACTIONS: READ/EXPLAIN/ANALYZE ONLY. You have NO tools and NO ability to execute anything. If asked to bid, buy, sell, deposit, withdraw, sign a contract, move funds or change any state: briefly explain you cannot perform actions and describe in which screen the user can do it themselves.",
+    "",
+    "STYLE: answer in the SAME LANGUAGE the user writes in. Concise, warm, professional. Short paragraphs or 2-4 bullets maximum. When useful, end with a pointer to the relevant screen (use its human name, e.g. 'Mercado', 'Tesorería', 'Cantera' — never technical identifiers).",
+    "",
+    "NAVIGATION MAP (authoritative — use it to say where everything is):",
+    "- Dashboard: overview of your clubs, quick status and shortcuts.",
+    "- Squad: player list, condition and player details of the active club.",
+    "- Tactics: formation and match strategy of the active club.",
+    "- Training: training focus and player development.",
+    "- Facilities: club infrastructure and upgrades.",
+    "- Staff: hiring and management of the technical staff.",
+    "- Youth: youth academy prospects and promotions.",
+    "- Competitions: leagues, cups, fixtures and tables.",
+    "- Markets: transfer market, loans and ICP player listings.",
+    "- Treasury: club operating fund, debt and club-level money moves.",
+    "- Wallet: personal money, deposits and withdrawals.",
+    "- Inbox: in-game messages and notifications.",
+    "- Settings: language, theme and account preferences.",
+    "- Control Center: admin-only management (regular users never see it).",
+    "- Top bar: active club switcher, world clock, online presence, inbox notifications. Bottom-right floating button: this assistant.",
     "",
     `CONTEXT:\n${context}`,
     "",
-    `KNOWLEDGE BASE (titles summarized):\n${kb}`,
+    `KNOWLEDGE BASE (possibly relevant articles):\n${kb}`,
   ].join("\n");
+}
+
+// Honest-refusal text for the reply guard (Spanish first — the owner's audience —
+// then English; rare fallback path, so bilingual beats silent leakage).
+const GUARD_REFUSAL =
+  "Solo puedo ayudarte con dudas sobre cómo jugar y dónde está cada sección del juego; no puedo compartir información técnica ni interna de la plataforma. / " +
+  "I can only help with gameplay and navigation questions; I can't share technical or internal platform details.";
+
+// Task 108: second line of defense. Strips fenced code blocks entirely and
+// replaces any reply that leaks strong internal-implementation markers with an
+// honest refusal. Conservative by design — everyday gameplay words never trip it.
+function sanitizeReply(reply: string): string {
+  const noFences = reply.replace(/```[\s\S]*?```/g, " […] ");
+  const internals =
+    /(\bSELECT\b[\s\S]{0,80}\bFROM\b|\bINSERT\s+INTO\b|\bpasswordHash\b|\bregistrationIp\b|process\.env|z-ai-web-dev-sdk|PrismaClient|@prisma|sk-[A-Za-z0-9]{8,}|Bearer\s+[A-Za-z0-9._-]{10,}|\b\/api\/)/i;
+  if (internals.test(noFences)) return GUARD_REFUSAL;
+  return noFences.trim();
 }
 
 export async function POST(req: NextRequest) {
@@ -127,6 +179,10 @@ export async function POST(req: NextRequest) {
     await audit("ASSISTANT_UNAVAILABLE", auth.userId, { screen });
     return fail("ASSISTANT_UNAVAILABLE", fallback, 503);
   }
+
+  // Task 108: enforce the game-guide scope on the model's own words before
+  // storing/returning anything.
+  reply = sanitizeReply(reply);
 
   await db.assistantEntry.create({ data: { userId: auth.userId, role: "user", content: question, screen } });
   await db.assistantEntry.create({ data: { userId: auth.userId, role: "assistant", content: reply, screen } });

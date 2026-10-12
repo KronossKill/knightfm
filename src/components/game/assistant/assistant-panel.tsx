@@ -13,10 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, CircleUser, Loader2, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { CircleUser, Loader2, Send, ShieldCheck } from "lucide-react";
 import { apiFetch, ApiError } from "@/components/auth/store";
 import { useI18n } from "@/lib/i18n/index";
 import { cn } from "@/lib/utils";
+import { AssistantAvatar } from "@/components/game/assistant/assistant-avatar";
 import type { AssistantHistoryItem } from "@/components/game/markets/types";
 
 interface ChatMessage {
@@ -115,12 +116,9 @@ function AssistantInner({ screen }: { screen: string }) {
 
   return (
     <Card className="flex h-full flex-col overflow-hidden border-primary/20 bg-gradient-to-b from-primary/5 via-card to-card shadow-lg">
-      {/* Header */}
-      <header className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-primary/15 to-transparent p-4">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20 text-primary">
-          <Bot className="h-5 w-5" aria-hidden="true" />
-          <Sparkles className="absolute -right-1 -top-1 h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
-        </div>
+      {/* Header — pr-12 keeps clear of the dialog close button */}
+      <header className="flex items-center gap-3 border-b border-border bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-4 pr-12">
+        <AssistantAvatar size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-bold">{t("markets.assistant.title")}</h3>
@@ -199,14 +197,14 @@ function Bubble({ role, content }: { role: "user" | "assistant"; content: string
   const isUser = role === "user";
   return (
     <div className={cn("flex items-start gap-2.5", isUser && "flex-row-reverse")}>
-      <div
-        aria-hidden="true"
-        className={cn(
-          "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border",
-          isUser ? "border-primary/40 bg-primary/15 text-primary" : "border-border bg-muted text-muted-foreground"
+      <div aria-hidden="true" className="flex shrink-0 items-center justify-center">
+        {isUser ? (
+          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-primary/40 bg-primary/15 text-primary">
+            <CircleUser className="h-4 w-4" />
+          </div>
+        ) : (
+          <AssistantAvatar size="sm" className="size-8 rounded-full" />
         )}
-      >
-        {isUser ? <CircleUser className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
       </div>
       <div
         className={cn(
@@ -226,9 +224,7 @@ function Bubble({ role, content }: { role: "user" | "assistant"; content: string
 function TypingIndicator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2.5" aria-label={label}>
-      <div aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-muted-foreground">
-        <Bot className="h-4 w-4" />
-      </div>
+      <AssistantAvatar size="sm" className="size-8 rounded-full" />
       <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-sm border border-border bg-muted/60 px-3.5 py-3">
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:0ms]" />
         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary [animation-delay:150ms]" />

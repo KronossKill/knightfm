@@ -9,7 +9,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   BadgeCheck,
-  Bot,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -24,11 +23,6 @@ import {
   Mail,
   Menu,
   MonitorCog,
-  MoreHorizontal,
-  PanelLeftClose,
-  PanelLeftOpen,
-  Pin,
-  PinOff,
   Settings as SettingsIcon,
   Shield,
   Shirt,
@@ -57,7 +51,6 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES } from "@/components/theme-provider";
@@ -67,6 +60,7 @@ import { useViewStore, type GameView } from "@/components/game/view-store";
 import { fetchMyClubs, fetchPresence, fetchWorldState, fetchNotifications, qk, type ClubMine } from "@/components/game/api";
 import { useHeartbeat } from "@/hooks/use-heartbeat";
 import { AssistantPanelSlot, ModuleSlot } from "@/components/game/lazy-modules";
+import { AssistantAvatar } from "@/components/game/assistant/assistant-avatar";
 import { BrandBadge, formatUtcClock, useNow } from "@/components/game/ui/bits";
 import { CountryFlag } from "@/components/game/ui/country-flag";
 import DashboardView from "@/components/game/dashboard/dashboard-view";
@@ -77,7 +71,6 @@ import FacilitiesView from "@/components/game/facilities/facilities-view";
 import StaffView from "@/components/game/staff/staff-view";
 import YouthView from "@/components/game/youth/youth-view";
 import SettingsView from "@/components/game/settings/settings-view";
-import { CommandPalette, PaletteTriggerButton, useCommandPaletteHotkey } from "@/components/game/command-palette";
 
 // ── Navigation model ────────────────────────────────────────────
 
@@ -108,39 +101,6 @@ const NAV_SYSTEM: NavItem[] = [
 ];
 
 const NAV_ADMIN: NavItem[] = [{ view: "control-center", labelKey: "game.nav.controlCenter", icon: MonitorCog }];
-
-// Task 91: mobile bottom bar (5 items max) — the 5 highest-frequency sections;
-// "Más" opens the full drawer (same NavList as the desktop sidebar).
-const NAV_BOTTOM: NavItem[] = [
-  { view: "dashboard", labelKey: "game.nav.dashboard", icon: LayoutDashboard },
-  { view: "squad", labelKey: "game.nav.squad", icon: Users },
-  { view: "tactics", labelKey: "game.nav.tactics", icon: Shirt },
-  { view: "competitions", labelKey: "game.nav.competitions", icon: Trophy },
-];
-
-// Task 91: sidebar collapse + pinned favorites persist in localStorage.
-const COLLAPSE_KEY = "kfm.shell.collapsed";
-const PINS_KEY = "kfm.shell.pins";
-const MAX_PINS = 5;
-
-function readCollapsed(): boolean {
-  try {
-    return window.localStorage.getItem(COLLAPSE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function readPins(): GameView[] {
-  try {
-    const raw = window.localStorage.getItem(PINS_KEY);
-    const arr = raw ? (JSON.parse(raw) as unknown) : [];
-    const all = [...NAV_MAIN, ...NAV_SYSTEM].map((n) => n.view);
-    return Array.isArray(arr) ? arr.filter((x): x is GameView => typeof x === "string" && all.includes(x as GameView)).slice(0, MAX_PINS) : [];
-  } catch {
-    return [];
-  }
-}
 
 // ── World clock widget ──────────────────────────────────────────
 
@@ -381,17 +341,25 @@ function UserMenu({ user }: { user: { username: string; role: string; path: stri
 
 function AssistantDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const { t } = useI18n();
+  // Task 108: the panel gets the CURRENT screen as context so the AI knows
+  // where the user is standing when it answers.
+  const view = useViewStore((s) => s.view);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot aria-hidden="true" className="size-5 text-primary" />
-            {t("game.shell.assistant")}
-          </DialogTitle>
-          <DialogDescription>{t("game.shell.assistantSoon")}</DialogDescription>
+      <DialogContent
+        className={cn(
+          "bottom-3 left-3 right-3 top-auto h-[min(72dvh,640px)] w-auto max-w-[400px] translate-x-0 translate-y-0 gap-0 overflow-hidden rounded-2xl p-0",
+          "sm:bottom-6 sm:left-auto sm:right-6 sm:h-[600px] sm:max-h-[calc(100vh-6rem)] sm:max-w-[400px]",
+          "origin-bottom-right border-primary/25 bg-card/95 shadow-2xl shadow-primary/10 ring-1 ring-primary/15 backdrop-blur-xl",
+          "duration-300 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-8 data-[state=closed]:zoom-out-95",
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-8 data-[state=open]:zoom-in-95"
+        )}
+      >
+        <DialogHeader className="sr-only">
+          <DialogTitle>{t("game.shell.assistant")}</DialogTitle>
+          <DialogDescription>{t("markets.assistant.trust")}</DialogDescription>
         </DialogHeader>
-        <AssistantPanelSlot />
+        <AssistantPanelSlot screen={view} />
       </DialogContent>
     </Dialog>
   );
@@ -399,152 +367,39 @@ function AssistantDialog({ open, onOpenChange }: { open: boolean; onOpenChange: 
 
 // ── Sidebar (desktop + mobile sheet share the item list) ────────
 
-function NavButton({
-  item,
-  active,
-  collapsed,
-  onClick,
-  pinned,
-  onTogglePin,
-}: {
-  item: NavItem;
-  active: boolean;
-  collapsed: boolean;
-  onClick: () => void;
-  pinned?: boolean;
-  onTogglePin?: () => void;
-}) {
-  const { t } = useI18n();
-  const Icon = item.icon;
-  const label = t(item.labelKey);
-  // Task 91: the pin uses a NATIVE click listener (ref) — during debugging we
-  // found React's delegated onClick can silently miss this absolutely-
-  // positioned sibling button in dev, while native listeners always fire.
-  // Keyboard still works: Enter/Space on a <button> synthesizes `click`.
-  const pinRef = React.useRef<HTMLButtonElement | null>(null);
-  React.useEffect(() => {
-    const el = pinRef.current;
-    if (!el || !onTogglePin) return;
-    const handler = (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onTogglePin();
-    };
-    el.addEventListener("click", handler);
-    return () => el.removeEventListener("click", handler);
-  }, [onTogglePin]);
-
-  // Task 106 (mandate §4): premium nav item — rounded lime side indicator on
-  // the active entry, subtle hover lift, uniform iconography and 44px touch
-  // targets. Collapsed mode gets a proper Radix tooltip (not just title=).
-  const button = (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-current={active ? "page" : undefined}
-      // Task 106: accessible name survives the collapsed rail (icon is
-      // aria-hidden and the label span is unmounted when collapsed).
-      aria-label={label}
-      className={cn(
-        "group relative flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm",
-        "transition-[background-color,color] duration-200 ease-out",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-        collapsed && "justify-center px-0",
-        active
-          ? "bg-sidebar-accent font-medium text-foreground"
-          : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
-      )}
-    >
-      {active && (
-        <span
-          aria-hidden="true"
-          className={cn(
-            "absolute left-0 rounded-r-full bg-primary transition-all",
-            collapsed ? "top-1/2 h-7 w-1 -translate-y-1/2 rounded-full" : "top-1/2 h-5 w-1 -translate-y-1/2"
-          )}
-        />
-      )}
-      <Icon
-        aria-hidden="true"
-        className={cn(
-          "size-4 shrink-0 transition-colors duration-200",
-          active ? "text-primary" : "text-muted-foreground/80 group-hover:text-foreground"
-        )}
-      />
-      {!collapsed && <span className="truncate">{label}</span>}
-    </button>
-  );
-
-  return (
-    <div className="relative">
-      {collapsed ? (
-        <Tooltip delayDuration={200}>
-          <TooltipTrigger asChild>{button}</TooltipTrigger>
-          <TooltipContent side="right" sideOffset={8}>
-            {label}
-          </TooltipContent>
-        </Tooltip>
-      ) : (
-        button
-      )}
-      {onTogglePin && !collapsed && (
-        <button
-          ref={pinRef}
-          type="button"
-          aria-label={pinned ? `${t("game.shell.unpin")} — ${label}` : `${t("game.shell.pin")} — ${label}`}
-          aria-pressed={!!pinned}
-          title={pinned ? t("game.shell.unpin") : t("game.shell.pin")}
-          className={cn(
-            "absolute right-1 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-md transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            pinned ? "text-primary hover:bg-accent" : "text-muted-foreground/40 hover:bg-accent hover:text-foreground"
-          )}
-        >
-          {pinned ? <Pin aria-hidden="true" className="size-3.5" /> : <PinOff aria-hidden="true" className="size-3.5" />}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function NavList({
-  onNavigate,
-  ccOnly = false,
-  walletOnly = false,
-  collapsed = false,
-  pins,
-  onTogglePin,
-}: {
-  onNavigate?: () => void;
-  ccOnly?: boolean;
-  walletOnly?: boolean;
-  collapsed?: boolean;
-  /** Task 91: pinned favorites (desktop sidebar only). */
-  pins?: GameView[];
-  onTogglePin?: (view: GameView) => void;
-}) {
+function NavList({ onNavigate, ccOnly = false, walletOnly = false }: { onNavigate?: () => void; ccOnly?: boolean; walletOnly?: boolean }) {
   const { t } = useI18n();
   const { user } = useAuth();
   const view = useViewStore((s) => s.view);
   const setView = useViewStore((s) => s.setView);
   const setDepositEscape = useViewStore((s) => s.setDepositEscape);
 
-  const navigate = (v: GameView) => {
-    setView(v);
-    onNavigate?.();
-  };
-
-  const renderItem = (item: NavItem) => (
-    <NavButton
-      key={item.view}
-      item={item}
-      active={view === item.view}
-      collapsed={collapsed}
-      onClick={() => navigate(item.view)}
-      pinned={pins?.includes(item.view)}
-      onTogglePin={() => onTogglePin?.(item.view)}
-    />
-  );
+  const renderItems = (items: NavItem[]) =>
+    items.map((item) => {
+      const Icon = item.icon;
+      const active = view === item.view;
+      return (
+        <button
+          key={item.view}
+          type="button"
+          onClick={() => {
+            setView(item.view);
+            onNavigate?.();
+          }}
+          aria-current={active ? "page" : undefined}
+          className={cn(
+            "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            active
+              ? "bg-primary/15 font-medium text-primary"
+              : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          )}
+        >
+          <Icon aria-hidden="true" className={cn("size-4 shrink-0", active && "text-primary")} />
+          <span className="truncate">{t(item.labelKey)}</span>
+        </button>
+      );
+    });
 
   // Restricted modes, both chosen via an explicit escape hatch on the onboarding
   // screen (admins: "Control Center only"; everyone: "Ir a depositar ahora"):
@@ -556,43 +411,17 @@ function NavList({
       : [
           { labelKey: "game.nav.main", items: NAV_MAIN },
           { labelKey: "game.nav.system", items: NAV_SYSTEM },
-          ...(user?.role === "ADMIN" ? [{ labelKey: "game.nav.admin", items: NAV_ADMIN }] : []),
+          ...(user?.role === "ADMIN" ? [{ labelKey: "game.nav.system", items: NAV_ADMIN }] : []),
         ];
-
-  // Task 91: pinned favorites render as their own group at the top.
-  const pinnedItems = !ccOnly && !walletOnly && pins && pins.length > 0
-    ? [...NAV_MAIN, ...NAV_SYSTEM].filter((n) => pins.includes(n.view))
-    : [];
 
   return (
     <nav aria-label="Knight FM" className="flex flex-col gap-4">
-      {pinnedItems.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {!collapsed && (
-            <span className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              {t("game.shell.pinned")}
-            </span>
-          )}
-          {pinnedItems.map(renderItem)}
-        </div>
-      )}
       {groups.map((g, gi) => (
-        <div
-          key={gi}
-          className={cn(
-            "flex flex-col gap-1",
-            // Task 106: crisp category separation — hairline rule above every
-            // group except the first.
-            gi > 0 && "border-t border-sidebar-border/50 pt-3"
-          )}
-        >
-          {!collapsed && (
-            <span className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-              {t(g.labelKey)}
-            </span>
-          )}
-          {collapsed && gi > 0 && <span aria-hidden="true" className="mx-auto h-px w-6 bg-sidebar-border/50" />}
-          {g.items.map(renderItem)}
+        <div key={gi} className="flex flex-col gap-1">
+          <span className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+            {t(g.labelKey)}
+          </span>
+          {renderItems(g.items)}
         </div>
       ))}
       {(ccOnly || walletOnly) && (
@@ -617,77 +446,28 @@ function NavList({
 }
 
 function Sidebar({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; walletOnly?: boolean }) {
-  const { t } = useI18n();
-  const [collapsed, setCollapsed] = React.useState<boolean>(() =>
-    typeof window === "undefined" ? false : readCollapsed()
-  );
-  const [pins, setPins] = React.useState<GameView[]>(() => (typeof window === "undefined" ? [] : readPins()));
-
-  const toggleCollapse = () => {
-    setCollapsed((c) => {
-      try {
-        window.localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1");
-      } catch {}
-      return !c;
-    });
-  };
-
-  const togglePin = (v: GameView) => {
-    if (!v) return; // defensive: never persist a non-view
-    setPins((prev) => {
-      const next = prev.includes(v)
-        ? prev.filter((p) => p !== v)
-        : [...prev, v].slice(0, MAX_PINS);
-      try {
-        window.localStorage.setItem(PINS_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
-  };
-
   return (
-    <aside
-      className={cn(
-        // Task 103 (spec "diseño definitivo" §2): sidebar 240–256 px expanded,
-        // 72–80 px compact, topbar 64 px → sticky offset 4rem.
-        "sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 overflow-y-auto border-r bg-card/30 p-3 transition-[width] duration-200 lg:block",
-        collapsed ? "w-20" : "w-60"
-      )}
-    >
-      <div className="mb-3 flex justify-end">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-8 text-muted-foreground hover:text-foreground"
-          aria-label={collapsed ? t("game.shell.expandSidebar") : t("game.shell.collapseSidebar")}
-          title={collapsed ? t("game.shell.expandSidebar") : t("game.shell.collapseSidebar")}
-          aria-pressed={collapsed}
-          onClick={toggleCollapse}
-        >
-          {collapsed ? <PanelLeftOpen aria-hidden="true" className="size-4" /> : <PanelLeftClose aria-hidden="true" className="size-4" />}
-        </Button>
-      </div>
-      <NavList ccOnly={ccOnly} walletOnly={walletOnly} collapsed={collapsed} pins={pins} onTogglePin={togglePin} />
+    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 overflow-y-auto border-r bg-card/30 p-3 lg:block">
+      <NavList ccOnly={ccOnly} walletOnly={walletOnly} />
     </aside>
   );
 }
 
-function MobileNav({
-  ccOnly = false,
-  walletOnly = false,
-  open,
-  onOpenChange,
-}: {
-  ccOnly?: boolean;
-  walletOnly?: boolean;
-  /** Sheet state lifted to the shell so the bottom bar "Más" can open it. */
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-}) {
+function MobileNav({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; walletOnly?: boolean }) {
   const { t } = useI18n();
+  const [open, setOpen] = React.useState(false);
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden"
+          aria-label={t("game.shell.openNav")}
+        >
+          <Menu aria-hidden="true" className="size-5" />
+        </Button>
+      </SheetTrigger>
       <SheetContent side="left" className="w-72 p-4">
         <SheetHeader className="sr-only">
           <SheetTitle>{t("game.shell.openNav")}</SheetTitle>
@@ -697,77 +477,16 @@ function MobileNav({
             <KnightLogo size={28} eager />
             <span className="text-sm font-semibold tracking-wide text-primary">KNIGHT FM</span>
           </span>
-          <Button variant="ghost" size="icon" aria-label={t("game.shell.closeNav")} onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" size="icon" aria-label={t("game.shell.closeNav")} onClick={() => setOpen(false)}>
             <X aria-hidden="true" className="size-4" />
           </Button>
         </div>
         <Separator className="my-3" />
         <div className="max-h-[calc(100vh-9rem)] overflow-y-auto pr-1">
-          <NavList onNavigate={() => onOpenChange(false)} ccOnly={ccOnly} walletOnly={walletOnly} />
+          <NavList onNavigate={() => setOpen(false)} ccOnly={ccOnly} walletOnly={walletOnly} />
         </div>
       </SheetContent>
     </Sheet>
-  );
-}
-
-// ── Mobile bottom navigation (Task 91, mandate: 5 items + full menu) ──
-
-function BottomNav({
-  ccOnly = false,
-  walletOnly = false,
-  onMore,
-}: {
-  ccOnly?: boolean;
-  walletOnly?: boolean;
-  onMore: () => void;
-}) {
-  const { t } = useI18n();
-  const view = useViewStore((s) => s.view);
-  const setView = useViewStore((s) => s.setView);
-  const { user } = useAuth();
-
-  if (ccOnly || walletOnly) return null;
-
-  const items = [...NAV_BOTTOM, ...(user?.role === "ADMIN" ? [{ view: "control-center" as GameView, labelKey: "game.nav.controlCenter", icon: MonitorCog }] : [])];
-
-  return (
-    <nav
-      aria-label={t("game.nav.main")}
-      className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/90 lg:hidden"
-    >
-      <ul className="mx-auto flex max-w-lg items-stretch justify-around">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const active = view === item.view;
-          return (
-            <li key={item.view} className="min-w-0 flex-1">
-              <button
-                type="button"
-                onClick={() => setView(item.view)}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "flex min-h-[3.5rem] w-full flex-col items-center justify-center gap-0.5 px-1 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
-                  active ? "font-medium text-primary" : "text-muted-foreground"
-                )}
-              >
-                <Icon aria-hidden="true" className="size-5" />
-                <span className="w-full truncate text-center">{t(item.labelKey)}</span>
-              </button>
-            </li>
-          );
-        })}
-        <li className="min-w-0 flex-1">
-          <button
-            type="button"
-            onClick={onMore}
-            className="flex min-h-[3.5rem] w-full flex-col items-center justify-center gap-0.5 px-1 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] text-[10px] text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-          >
-            <MoreHorizontal aria-hidden="true" className="size-5" />
-            <span className="w-full truncate text-center">{t("game.shell.more")}</span>
-          </button>
-        </li>
-      </ul>
-    </nav>
   );
 }
 
@@ -813,10 +532,10 @@ function ActiveView({ clubs }: { clubs: ClubMine[] }) {
       return (
         <div className="mx-auto max-w-2xl">
           <h1 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <Bot aria-hidden="true" className="size-5 text-primary" />
+            <AssistantAvatar size="sm" />
             <AssistantTitle />
           </h1>
-          <AssistantPanelSlot />
+          <AssistantPanelSlot screen={view} />
         </div>
       );
     case "settings":
@@ -840,33 +559,8 @@ export default function GameShell() {
   const { user } = useAuth();
   const nowMs = useNow(1000);
   const [assistantOpen, setAssistantOpen] = React.useState(false);
-  // Task 91: mobile drawer + global command palette (state lives here so the
-  // top bar, the bottom bar "Más" and Ctrl+K can all drive them).
-  const [sheetOpen, setSheetOpen] = React.useState(false);
-  const [paletteOpen, setPaletteOpen] = React.useState(false);
   const setView = useViewStore((s) => s.setView);
   const setActiveClub = useViewStore((s) => s.setActiveClub);
-
-  useCommandPaletteHotkey(React.useCallback(() => setPaletteOpen(true), []));
-
-  // Task 91: Ctrl/Cmd + 1..9 jumps straight to the Nth primary section
-  // (keyboard-first navigation mandate). Ignored while typing in inputs or
-  // when the restricted escape-hatch modes are active.
-  React.useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-      const n = Number.parseInt(e.key, 10);
-      if (!Number.isFinite(n) || n < 1 || n > 9) return;
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
-      const item = NAV_MAIN[n - 1];
-      if (!item) return;
-      e.preventDefault();
-      setView(item.view);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [setView]);
 
   const clubsQuery = useQuery({ queryKey: qk.myClubs, queryFn: fetchMyClubs, refetchInterval: 120_000 });
   const clubs = clubsQuery.data?.clubs ?? [];
@@ -955,16 +649,8 @@ export default function GameShell() {
 
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="min-h-11 min-w-11 lg:hidden"
-            aria-label={t("game.shell.openNav")}
-            onClick={() => setSheetOpen(true)}
-          >
-            <Menu aria-hidden="true" className="size-5" />
-          </Button>
+        <div className="flex h-14 items-center gap-2 px-3 sm:gap-3 sm:px-4">
+          <MobileNav ccOnly={ccOnly} walletOnly={walletOnly} />
           <KnightLogo size={30} priority className="shrink-0" />
           <span className="hidden select-none text-sm font-bold tracking-widest text-primary xl:inline">
             KNIGHT&nbsp;FM
@@ -974,7 +660,6 @@ export default function GameShell() {
           <ClubIdentity clubs={clubs} isLoading={clubsQuery.isLoading} />
 
           <div className="ml-auto flex items-center gap-2">
-            <PaletteTriggerButton onOpen={() => setPaletteOpen(true)} />
             <div className="hidden md:block"><WorldClock compact /></div>
             <PresenceGadget fallbackOnline={worldQuery.data?.presenceOnline ?? 0} />
 
@@ -1009,10 +694,10 @@ export default function GameShell() {
         )}
       </header>
 
-      {/* ── Body (4K: content centered, max 1920px per mandate) ── */}
-      <div className="mx-auto flex w-full max-w-[1920px] flex-1">
+      {/* ── Body ── */}
+      <div className="flex flex-1">
         <Sidebar ccOnly={ccOnly} walletOnly={walletOnly} />
-        <main id="game-main" className="min-w-0 flex-1 p-3 pb-24 sm:p-4 sm:pb-24 lg:p-6 lg:pb-6">
+        <main id="game-main" className="min-w-0 flex-1 p-3 sm:p-4 lg:p-6">
           {ccOnly ? (
             <div className="space-y-4">
               <div
@@ -1063,20 +748,13 @@ export default function GameShell() {
         </main>
       </div>
 
-      {/* ── Sticky footer (mt-auto keeps it down on short views; extra bottom
-          padding clears the mobile bottom nav) ── */}
-      <footer className="mt-auto border-t bg-card/40 px-4 pb-20 pt-3 lg:pb-3">
-        <p className="mx-auto flex max-w-[1920px] flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
+      {/* ── Sticky footer (mt-auto keeps it down on short views) ── */}
+      <footer className="mt-auto border-t bg-card/40 px-4 py-3">
+        <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-muted-foreground">
           <CalendarDays aria-hidden="true" className="size-3.5 text-primary/80" />
           {t("game.shell.footer", { clock: footerClock, day: gameDay ?? "—" })}
         </p>
       </footer>
-
-      {/* ── Task 91: mobile bottom navigation (5 items + "Más" drawer) ── */}
-      <BottomNav ccOnly={ccOnly} walletOnly={walletOnly} onMore={() => setSheetOpen(true)} />
-
-      {/* ── Task 91: global command palette (Ctrl/Cmd+K) ── */}
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
       {/* ── Assistant FAB ─────────────────────────────────────────
           Requirement: the assistant must be reachable from EVERY game module
@@ -1086,18 +764,15 @@ export default function GameShell() {
           at bottom-20 to keep clear of the thumb/nav zone. */}
       <Button
         size="icon"
-        className="fixed bottom-24 right-4 z-40 size-14 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 lg:bottom-6 lg:right-6"
+        className="fixed bottom-20 right-4 z-40 size-14 rounded-full p-0 sm:bottom-6 sm:right-6"
         onClick={() => setAssistantOpen(true)}
         aria-label={t("game.shell.assistant")}
         title={t("game.shell.assistant")}
       >
-        <Bot className="size-6" aria-hidden="true" />
+        <AssistantAvatar size="lg" glow className="rounded-full" />
       </Button>
 
       <AssistantDialog open={assistantOpen} onOpenChange={setAssistantOpen} />
-
-      {/* ── Mobile drawer (shared with the bottom bar "Más") ── */}
-      <MobileNav ccOnly={ccOnly} walletOnly={walletOnly} open={sheetOpen} onOpenChange={setSheetOpen} />
     </div>
   );
 }

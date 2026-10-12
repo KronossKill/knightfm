@@ -2,7 +2,7 @@
 // Section 12 — Final CTA + Footer: last registration call, footer navigation,
 // legal links, language/theme selectors and the responsible-use notice.
 
-import { ArrowRight, Download, FileText } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { KnightLogo } from "@/components/knight-logo";
 import { Button } from "@/components/ui/button";
@@ -159,39 +159,6 @@ export function LandingFooter({ scrollTo }: { scrollTo?: (id: string) => void })
               <LanguageSelect source="footer" />
               <ThemeSelect source="footer" />
             </div>
-          </div>
-        </div>
-
-        {/* Documentation + source download — Task 45/45-b */}
-        <div className="mt-10 rounded-lg border border-border/60 bg-background/40 p-4 sm:p-5">
-          <div className="flex items-center gap-4 sm:gap-5">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary" aria-hidden="true">
-              <FileText className="size-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold">{t("landing.footer.docs")}</span>
-              <span className="mt-0.5 block text-xs text-muted-foreground">{t("landing.footer.docsHint")}</span>
-            </span>
-          </div>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <a
-              href="/downloads/knight-fm-project.zip"
-              download
-              onClick={() => track(EV.footerClick, { link: "docs-zip" })}
-              className="group flex items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-primary/15"
-            >
-              <Download className="size-4 text-primary" aria-hidden="true" />
-              {t("landing.footer.docsZip")}
-            </a>
-            <a
-              href="/downloads/knight-fm-documentacion.docx"
-              download
-              onClick={() => track(EV.footerClick, { link: "docs-word" })}
-              className="group flex items-center justify-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-medium transition-colors hover:bg-primary/15"
-            >
-              <Download className="size-4 text-primary" aria-hidden="true" />
-              {t("landing.footer.docsWord")}
-            </a>
           </div>
         </div>
 

@@ -1,0 +1,41 @@
+KNIGHT FM - ENTREGA TASK 108: IA GUIA DEL JUEGO + ICONO MODERNO + CHAT ELEGANTE + REGISTRO CON COMPROBACION EN VIVO
+====================================================================================================================
+
+QUE CONTIENE (17 archivos, extraccion sobre la raiz del proyecto):
+  src/app/api/assistant/route.ts                  Prompt endurecido: solo juego y navegacion + guarda de respuesta
+  src/app/api/auth/availability/route.ts          NUEVO endpoint GET de disponibilidad en vivo (username/email)
+  src/components/auth/AuthFlow.tsx                Comprobacion mientras se escribe + bloqueo de envio
+  src/components/game/assistant/assistant-avatar.tsx   NUEVO icono IA moderno (degradado + destello)
+  src/components/game/assistant/assistant-panel.tsx    Panel con el nuevo icono (cabecera, burbujas, escritura)
+  src/components/game/dashboard/dashboard-view.tsx     Boton "Pregunta al Asistente" con el nuevo icono
+  src/components/game/lazy-modules.tsx            El panel recibe la pantalla actual como contexto
+  src/components/game/shell.tsx                   Chat anclado abajo-derecha con animacion elegante + FAB nuevo
+  src/components/landing/sections/knight-assistant.tsx  Landing con el nuevo icono
+  src/lib/i18n/dict/auth/{es,en,fr,pt}.ts         Textos de disponibilidad en 4 idiomas
+  src/lib/i18n/dict/markets/{es,en,fr,pt}.ts      Bienvenida y sugerencias del asistente en 4 idiomas
+
+PASOS (igual que siempre):
+  1) Extraer el zip sobre la raiz del proyecto (los archivos sobreescriben los existentes).
+  2) "npm install" NO hace falta: no hay dependencias nuevas.
+  3) Base de datos: SIN cambios (username y email ya eran @unique en Prisma).
+  4) git add . && git commit -m "..." && git push  ->  Ready en Vercel.
+
+QUE CAMBIA PARA EL USUARIO:
+  * Asistente IA: solo responde como jugar y donde esta cada seccion. Rechaza codigo, formulas,
+    datos internos y cualquier cosa que pueda perjudicar la plataforma (doble filtro: prompt + guarda).
+  * Sabe en que pantalla estas (le llega el contexto) y tiene mapa completo de navegacion de las 14 secciones.
+  * Icono nuevo: tesela circular degradada con destello AI (mas moderno y profesional) en el boton flotante,
+    la cabecera del chat, las burbujas, el panel, el dashboard y la landing.
+  * El chat se abre como panel elegante anclado abajo-derecha (en movil, hoja inferior) con animacion
+    suave de entrada; nada del cuadro centrado antiguo.
+  * Registro: mientras escribes nombre de usuario o correo, se comprueba la disponibilidad en vivo
+    (icono y borde verde = libre; rojo = en uso; mensaje claro debajo). El boton se desactiva si algo
+    esta en uso o mal escrito. Nunca hace falta pulsar el boton para descubrir un duplicado.
+
+PRUEBAS RAPIDAS EN PRODUCCION:
+  A) Registro: escribir un usuario existente -> borde rojo y "ya esta en uso" antes de enviar.
+  B) Chat: preguntar "donde esta el mercado de fichajes" -> respuesta de navegacion.
+     Preguntar por codigo o formulas -> rechaza educadamente y redirige a la seccion del juego.
+  C) Movil: el chat abre como hoja inferior a lo ancho.
+
+VOLVER ATRAS: los archivos anteriores estan en el historial de git (git checkout <commit> -- <ruta>).

@@ -6,25 +6,23 @@
 
 import "@/lib/i18n/dict/auth";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Check,
-  Eye,
-  EyeOff,
   Globe,
   Info,
   KeyRound,
   Loader2,
   MailCheck,
   Palette,
-  RefreshCw,
   ShieldCheck,
   X,
 } from "lucide-react";
 
 import { useI18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { KnightLogo } from "@/components/knight-logo";
 import { useTheme } from "@/components/theme-provider";
 import { LANGUAGES, THEMES, type Language, type ThemeId } from "@/lib/themes";
@@ -43,7 +41,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth, apiFetch, ApiError } from "./store";
-import { getCaptchaToken, resetCaptcha } from "./captcha";
+import { getCaptchaToken } from "./captcha";
 
 // Convenience re-exports for sibling modules.
 export { useAuth, apiFetch };
@@ -54,16 +52,6 @@ type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
 /** Maps typed API errors to translated, user-safe messages (never leaks enumeration). */
 function describeError(err: unknown, t: TFn): string {
-  // Captcha widget failures (script blocked by CSP/ad-blocker, timeout, widget
-  // error) surface as plain Errors with a TURNSTILE_ prefix — give them an
-  // actionable message instead of the generic one.
-  if (err instanceof Error && err.message.startsWith("TURNSTILE_")) {
-    // Task 70: Turnstile error-callback codes (e.g. TURNSTILE_ERROR_110200 =
-    // domain not allowed in the widget) are shown to pinpoint the cause.
-    const m = /^TURNSTILE_ERROR_(\d+|UNKNOWN)$/.exec(err.message);
-    if (m) return t("auth.err.captchaFailed", { code: m[1] });
-    return t("auth.err.captchaUnavailable");
-  }
   if (err instanceof ApiError) {
     const secs = typeof err.extra?.retryAfterSec === "number" ? (err.extra.retryAfterSec as number) : 60;
     switch (err.code) {
@@ -145,6 +133,91 @@ function PolicyList({ pw }: { pw: string }) {
   );
 }
 
+// ─── Live availability check (Task 108, USER MANDATE) ────────────
+// Fires a debounced request WHILE the user types (450 ms) so duplicates
+// surface before the submit click — never only on button press. Latest-wins:
+// stale responses never overwrite a newer state. "invalid" = format problem
+// detected locally; "taken" comes from the server (exact, case-insensitive).
+
+type AvailabilityState = "idle" | "checking" | "available" | "taken" | "invalid";
+
+const USERNAME_FORMAT = /^[A-Za-z0-9_-]{3,24}$/;
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function useAvailabilityCheck(
+  kind: "username" | "email",
+  value: string,
+  formatValid: boolean,
+  enabled: boolean
+): AvailabilityState {
+  // Derived-state design (no synchronous setState inside the effect): the
+  // effect only arms a debounced request and stores its async result; the
+  // visible state is computed during render from (value, format, result).
+  const trimmed = value.trim();
+  const key = trimmed.toLowerCase();
+  const [result, setResult] = useState<{ key: string; state: "available" | "taken" | "error" } | null>(null);
+  const latest = useRef(0);
+
+  useEffect(() => {
+    if (!enabled || !trimmed || !formatValid) return;
+    const id = ++latest.current;
+    const timer = setTimeout(() => {
+      apiFetch<{ available: boolean }>(`/api/auth/availability?${kind}=${encodeURIComponent(trimmed)}`)
+        .then((res) => {
+          if (latest.current === id) setResult({ key, state: res.available ? "available" : "taken" });
+        })
+        .catch(() => {
+          // Network hiccup or rate limit → no false block; the server is
+          // still the final arbiter when the form is submitted.
+          if (latest.current === id) setResult({ key, state: "error" });
+        });
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [kind, trimmed, key, formatValid, enabled]);
+
+  if (!enabled || !trimmed) return "idle";
+  if (!formatValid) return "invalid";
+  if (result && result.key === key) {
+    return result.state === "error" ? "idle" : result.state;
+  }
+  return "checking";
+}
+
+function AvailIcon({ state }: { state: AvailabilityState }) {
+  if (state === "checking") {
+    return <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />;
+  }
+  if (state === "available") {
+    return <Check className="size-4 text-emerald-500" aria-hidden="true" />;
+  }
+  if (state === "taken" || state === "invalid") {
+    return <X className="size-4 text-destructive" aria-hidden="true" />;
+  }
+  return null;
+}
+
+function AvailabilityHint({
+  state,
+  messages,
+}: {
+  state: AvailabilityState;
+  messages: Partial<Record<AvailabilityState, string>>;
+}) {
+  const text = messages[state];
+  if (!text) return null;
+  const tone =
+    state === "available"
+      ? "text-emerald-500"
+      : state === "taken" || state === "invalid"
+        ? "text-destructive"
+        : "text-muted-foreground";
+  return (
+    <p className={cn("flex items-center gap-1.5 text-xs", tone)} role="status" aria-live="polite">
+      {text}
+    </p>
+  );
+}
+
 // ─── Spinner button label ─────────────────────────────────────────
 
 function SubmitLabel({ busy, label }: { busy: boolean; label: string }) {
@@ -153,68 +226,6 @@ function SubmitLabel({ busy, label }: { busy: boolean; label: string }) {
       {busy && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
       {busy ? "" : label}
     </>
-  );
-}
-
-// ─── Password input with visibility toggle (Task 89, USER MANDATE) ──
-
-interface PasswordInputProps {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-  placeholder?: string;
-  show: boolean;
-  onToggle: () => void;
-  invalid?: boolean;
-}
-
-/**
- * Password field with an eye button to show/hide the typed value, so the user
- * can review exactly what they wrote before submitting (Task 89). The toggle
- * is keyboard accessible (real <button>, aria-label + aria-pressed) and the
- * field propagates aria-invalid for the destructive border when mismatched.
- */
-function PasswordInput({
-  id,
-  value,
-  onChange,
-  autoComplete,
-  placeholder,
-  show,
-  onToggle,
-  invalid,
-}: PasswordInputProps) {
-  const { t } = useI18n();
-  const label = show ? t("auth.action.hidePassword") : t("auth.action.showPassword");
-  return (
-    <div className="relative">
-      <Input
-        id={id}
-        type={show ? "text" : "password"}
-        autoComplete={autoComplete}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="pr-11"
-        aria-invalid={invalid || undefined}
-        required
-      />
-      <button
-        type="button"
-        onClick={onToggle}
-        className="absolute right-1.5 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        aria-label={label}
-        aria-pressed={show}
-        title={label}
-      >
-        {show ? (
-          <EyeOff className="size-4" aria-hidden="true" />
-        ) : (
-          <Eye className="size-4" aria-hidden="true" />
-        )}
-      </button>
-    </div>
   );
 }
 
@@ -233,10 +244,6 @@ export default function AuthFlow() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  // Task 89 (USER MANDATE): the password is typed twice (register + reset) and
-  // both password views can be toggled visible so the user can review them.
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [ref, setRef] = useState("");
   const [code, setCode] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -249,30 +256,39 @@ export default function AuthFlow() {
   // the UI then uses honest sandbox wording instead of "we emailed you".
   const [noEmailProvider, setNoEmailProvider] = useState(false);
 
-  // Task 89: live mismatch feedback (only once the user typed something in the
-  // confirmation field — never a red error for an empty box they haven't reached).
-  const passwordMismatch = confirmPassword.length > 0 && password !== confirmPassword;
-  const mismatchText = t("auth.err.passwordMismatch");
-  const toggleShowPassword = useCallback(() => setShowPassword((s) => !s), []);
-
-  // Task 103 (USER REPORT, PROD): when the captcha widget itself fails (CSP,
-  // ad-blocker, transient network), the user previously had NO in-place way to
-  // recover — they had to reload the page. We now track that state and render
-  // an explicit "retry verification" action that resets the cached captcha
-  // config/script and re-runs the flow without losing the typed form data.
-  const [captchaStale, setCaptchaStale] = useState(false);
-
   const reportError = useCallback(
     (err: unknown) => {
       const msg = describeError(err, t);
-      if (err instanceof Error && err.message.startsWith("TURNSTILE_")) {
-        setCaptchaStale(true);
-      }
       setFormError(msg);
       toast({ title: msg, variant: "destructive" });
     },
     [t, toast]
   );
+
+  // Task 108: live availability while typing (register view only — the same
+  // email field is shared with login/forgot, where the check makes no sense).
+  const usernameFormatOk = USERNAME_FORMAT.test(username.trim());
+  const emailFormatOk = EMAIL_FORMAT.test(email.trim());
+  const usernameAvail = useAvailabilityCheck("username", username, usernameFormatOk, view === "register");
+  const emailAvail = useAvailabilityCheck("email", email, emailFormatOk, view === "register");
+
+  // Empty string = free to submit; otherwise an honest, specific reason.
+  const registerBlockedMsg =
+    usernameAvail === "taken"
+      ? t("auth.avail.usernameTaken")
+      : emailAvail === "taken"
+        ? t("auth.avail.emailTaken")
+        : usernameAvail === "invalid"
+          ? t(
+              username.trim().length >= 3 && username.trim().length <= 24
+                ? "auth.err.usernameChars"
+                : "auth.err.usernameShort"
+            )
+          : emailAvail === "invalid"
+            ? t("auth.err.emailInvalid")
+            : usernameAvail === "checking" || emailAvail === "checking"
+              ? t("auth.avail.wait")
+              : "";
 
   const doLogin = useCallback(
     async (mail: string, pw: string) => {
@@ -288,8 +304,8 @@ export default function AuthFlow() {
 
   // ── Handlers ────────────────────────────────────────────────────
 
-  const runLogin = async () => {
-    setCaptchaStale(false);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setBusy(true);
     setFormError("");
     try {
@@ -308,23 +324,12 @@ export default function AuthFlow() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    await runLogin();
-  };
-
-  const retryLoginAfterCaptcha = () => {
-    resetCaptcha();
-    void runLogin();
-  };
-
-  const runRegister = async () => {
-    setCaptchaStale(false);
-    // Task 89 (USER MANDATE): client-side confirmation gate — the two typed
-    // passwords must match BEFORE anything is sent (no captcha burn, no API call).
-    if (password !== confirmPassword) {
-      setFormError(mismatchText);
-      toast({ title: mismatchText, variant: "destructive" });
+    // Live-check gate (Task 108): never even try the server while a field is
+    // taken/invalid/still being checked — the inline hint already explains why.
+    if (registerBlockedMsg) {
+      setFormError(registerBlockedMsg);
       return;
     }
     setBusy(true);
@@ -349,24 +354,12 @@ export default function AuthFlow() {
         setDevCode("");
       }
       setView("verify");
-      setConfirmPassword("");
-      setShowPassword(false);
       toast({ title: t("auth.ok.registered") });
     } catch (err) {
       reportError(err);
     } finally {
       setBusy(false);
     }
-  };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await runRegister();
-  };
-
-  const retryRegisterAfterCaptcha = () => {
-    resetCaptcha();
-    void runRegister();
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -383,8 +376,6 @@ export default function AuthFlow() {
       try {
         await doLogin(pendingEmail, password);
         setPassword("");
-        setConfirmPassword("");
-        setShowPassword(false);
         setCode("");
       } catch {
         setView("login");
@@ -451,12 +442,6 @@ export default function AuthFlow() {
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Task 89: same confirmation gate as registration (consistent UX).
-    if (password !== confirmPassword) {
-      setFormError(mismatchText);
-      toast({ title: mismatchText, variant: "destructive" });
-      return;
-    }
     setBusy(true);
     setFormError("");
     try {
@@ -469,8 +454,6 @@ export default function AuthFlow() {
       setDevToken("");
       setNoEmailProvider(false);
       setPassword("");
-      setConfirmPassword("");
-      setShowPassword(false);
       setView("login");
     } catch (err) {
       reportError(err);
@@ -539,18 +522,7 @@ export default function AuthFlow() {
 
   const authTabs =
     view === "login" || view === "register" ? (
-      <Tabs
-        value={view}
-        onValueChange={(v) => {
-          // Task 89: leaving a password form clears the confirmation + visibility
-          // state so the next view starts clean (no stale error either).
-          setFormError("");
-          setConfirmPassword("");
-          setShowPassword(false);
-          setView(v as View);
-        }}
-        className="px-6"
-      >
+      <Tabs value={view} onValueChange={(v) => setView(v as View)} className="px-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="login">{t("auth.tab.login")}</TabsTrigger>
           <TabsTrigger value="register">{t("auth.tab.register")}</TabsTrigger>
@@ -566,8 +538,6 @@ export default function AuthFlow() {
       className="w-full text-muted-foreground hover:text-foreground"
       onClick={() => {
         setFormError("");
-        setConfirmPassword("");
-        setShowPassword(false);
         setView("login");
       }}
     >
@@ -610,32 +580,20 @@ export default function AuthFlow() {
             {t("auth.forgot.title")}
           </button>
         </div>
-        <PasswordInput
+        <Input
           id="login-password"
+          type="password"
           autoComplete="current-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={setPassword}
-          show={showPassword}
-          onToggle={toggleShowPassword}
+          onChange={(e) => setPassword(e.target.value)}
+          required
         />
       </div>
       {formError && (
         <p className="text-sm text-destructive" role="alert">
           {formError}
         </p>
-      )}
-      {captchaStale && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full min-h-11"
-          onClick={retryLoginAfterCaptcha}
-          disabled={busy}
-        >
-          <RefreshCw className="size-4" aria-hidden="true" />
-          {t("auth.err.retryCaptcha")}
-        </Button>
       )}
       <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy}>
         <SubmitLabel busy={busy} label={t("auth.action.login")} />
@@ -651,66 +609,92 @@ export default function AuthFlow() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-email">{t("auth.field.email")}</Label>
-        <Input
-          id="reg-email"
-          type="email"
-          autoComplete="email"
-          placeholder={t("auth.placeholder.email")}
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="reg-email"
+            type="email"
+            autoComplete="email"
+            placeholder={t("auth.placeholder.email")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-invalid={emailAvail === "taken" || emailAvail === "invalid"}
+            aria-describedby={emailAvail !== "idle" ? "reg-email-status" : undefined}
+            className={cn(
+              emailAvail === "available" && "border-primary/60 focus-visible:ring-primary/40",
+              (emailAvail === "taken" || emailAvail === "invalid") &&
+                "border-destructive/60 focus-visible:ring-destructive/40"
+            )}
+            required
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <AvailIcon state={emailAvail} />
+          </span>
+        </div>
+        <span id="reg-email-status" className="block">
+          <AvailabilityHint
+            state={emailAvail}
+            messages={{
+              checking: t("auth.avail.checking"),
+              available: t("auth.avail.emailFree"),
+              taken: t("auth.avail.emailTaken"),
+              invalid: t("auth.err.emailInvalid"),
+            }}
+          />
+        </span>
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-username">{t("auth.field.username")}</Label>
-        <Input
-          id="reg-username"
-          type="text"
-          autoComplete="username"
-          placeholder={t("auth.placeholder.username")}
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          minLength={3}
-          maxLength={24}
-          required
-        />
+        <div className="relative">
+          <Input
+            id="reg-username"
+            type="text"
+            autoComplete="username"
+            placeholder={t("auth.placeholder.username")}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            minLength={3}
+            maxLength={24}
+            aria-invalid={usernameAvail === "taken" || usernameAvail === "invalid"}
+            aria-describedby={usernameAvail !== "idle" ? "reg-username-status" : undefined}
+            className={cn(
+              usernameAvail === "available" && "border-primary/60 focus-visible:ring-primary/40",
+              (usernameAvail === "taken" || usernameAvail === "invalid") &&
+                "border-destructive/60 focus-visible:ring-destructive/40"
+            )}
+            required
+          />
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+            <AvailIcon state={usernameAvail} />
+          </span>
+        </div>
+        <span id="reg-username-status" className="block">
+          <AvailabilityHint
+            state={usernameAvail}
+            messages={{
+              checking: t("auth.avail.checking"),
+              available: t("auth.avail.usernameFree"),
+              taken: t("auth.avail.usernameTaken"),
+              invalid: t(
+                username.trim().length >= 3 && username.trim().length <= 24
+                  ? "auth.err.usernameChars"
+                  : "auth.err.usernameShort"
+              ),
+            }}
+          />
+        </span>
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-password">{t("auth.field.password")}</Label>
-        <PasswordInput
+        <Input
           id="reg-password"
+          type="password"
           autoComplete="new-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={setPassword}
-          show={showPassword}
-          onToggle={toggleShowPassword}
+          onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <PolicyList pw={password} />
-      </div>
-      {/* Task 89 (USER MANDATE): the password is typed twice so a typo never
-          locks the user out of a brand-new account. Live mismatch hint + a
-          hard client-side gate on submit + server keeps its own policy. */}
-      <div className="space-y-2">
-        <Label htmlFor="reg-confirm-password">{t("auth.field.confirmPassword")}</Label>
-        <PasswordInput
-          id="reg-confirm-password"
-          autoComplete="new-password"
-          placeholder={t("auth.placeholder.confirmPassword")}
-          value={confirmPassword}
-          onChange={(v) => {
-            setConfirmPassword(v);
-            if (formError) setFormError("");
-          }}
-          show={showPassword}
-          onToggle={toggleShowPassword}
-          invalid={passwordMismatch}
-        />
-        {passwordMismatch && (
-          <p className="text-xs text-destructive" role="alert">
-            {mismatchText}
-          </p>
-        )}
       </div>
       <div className="space-y-2">
         <Label htmlFor="reg-ref">
@@ -730,19 +714,11 @@ export default function AuthFlow() {
           {formError}
         </p>
       )}
-      {captchaStale && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full min-h-11"
-          onClick={retryRegisterAfterCaptcha}
-          disabled={busy}
-        >
-          <RefreshCw className="size-4" aria-hidden="true" />
-          {t("auth.err.retryCaptcha")}
-        </Button>
-      )}
-      <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy}>
+      <Button
+        type="submit"
+        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+        disabled={busy || !!registerBlockedMsg}
+      >
         <SubmitLabel busy={busy} label={t("auth.action.register")} />
       </Button>
     </form>
@@ -883,39 +859,16 @@ export default function AuthFlow() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="reset-password">{t("auth.field.newPassword")}</Label>
-        <PasswordInput
+        <Input
           id="reset-password"
+          type="password"
           autoComplete="new-password"
           placeholder={t("auth.placeholder.password")}
           value={password}
-          onChange={setPassword}
-          show={showPassword}
-          onToggle={toggleShowPassword}
+          onChange={(e) => setPassword(e.target.value)}
+          required
         />
         <PolicyList pw={password} />
-      </div>
-      {/* Task 89: confirmation repeated on password reset too (same rule as
-          registration — a typo here would lock the user out immediately). */}
-      <div className="space-y-2">
-        <Label htmlFor="reset-confirm-password">{t("auth.field.confirmPassword")}</Label>
-        <PasswordInput
-          id="reset-confirm-password"
-          autoComplete="new-password"
-          placeholder={t("auth.placeholder.confirmPassword")}
-          value={confirmPassword}
-          onChange={(v) => {
-            setConfirmPassword(v);
-            if (formError) setFormError("");
-          }}
-          show={showPassword}
-          onToggle={toggleShowPassword}
-          invalid={passwordMismatch}
-        />
-        {passwordMismatch && (
-          <p className="text-xs text-destructive" role="alert">
-            {mismatchText}
-          </p>
-        )}
       </div>
       {formError && (
         <p className="text-sm text-destructive" role="alert">

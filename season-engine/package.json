@@ -1,0 +1,11 @@
+{
+  "name": "knightfm-season-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Knight FM — motor de calendario, horarios y clasificaciones (Task 109)",
+  "scripts": {
+    "generate": "bun src/generate.ts",
+    "validate": "bun src/validate.ts"
+  }
+}

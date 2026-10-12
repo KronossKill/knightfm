@@ -115,7 +115,9 @@ const doc = new Document({
   ],
 });
 
-const OUT = "/home/z/my-project/public/downloads/knight-fm-documentacion.docx";
+// Task 107: delivery artifacts live OUTSIDE public/ (never served to users).
+const OUT = "/home/z/my-project/delivery/knight-fm-documentacion.docx";
+fs.mkdirSync("/home/z/my-project/delivery", { recursive: true });
 Packer.toBuffer(doc).then((buf) => {
   fs.writeFileSync(OUT, buf);
   console.log("OK ->", OUT, buf.length, "bytes");

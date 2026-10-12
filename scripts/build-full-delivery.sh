@@ -32,12 +32,14 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ZIP_NAME="knightfm-sincronizacion-completa.zip"
-ZIP_PATH="public/downloads/$ZIP_NAME"
+# Task 107 (USER MANDATE — "los usuarios no tienen por qué descargar nada del sitio"):
+# los artefactos de entrega viven en delivery/ (raíz, gitignored, NUNCA servida).
+ZIP_PATH="delivery/$ZIP_NAME"
 DELIVERY_VERSION="v9.5.0"
 UPDATED_TS="${KFM_UPDATED_TS:-$(date -u +%Y%m%d_%H%M%S)}"
 UPDATED_NAME="knightfm_updated_${UPDATED_TS}_UTC_${DELIVERY_VERSION}.zip"
 STAGE="$(mktemp -d /tmp/kfm-stage-XXXXXX)"
-LEEME_SRC="public/downloads/LEEME-SINCRONIZACION-COMPLETA.txt"
+LEEME_SRC="delivery/LEEME-SINCRONIZACION-COMPLETA.txt"
 TMPDIR_ZIP="$(mktemp -d /tmp/kfm-zip-XXXXXX)"
 TMPZIP="$TMPDIR_ZIP/$ZIP_NAME"   # el .zip NO debe preexistir: este zip rechaza destinos vacíos
 
@@ -114,7 +116,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $manifest = Join-Path $root "MANIFIESTO-COMPLETO.txt"
 if (-not (Test-Path $manifest)) { Write-Host "FALTA MANIFIESTO-COMPLETO.txt" -ForegroundColor Red; exit 1 }
-$ignoreRel = @("node_modules", ".next", ".git", "public/downloads")
+$ignoreRel = @("node_modules", ".next", ".git", "public/downloads", "public/download", "delivery")
 $tools = @("MANIFIESTO-COMPLETO.txt", "VERIFICAR-INSTALACION.bat", "VERIFICAR-INSTALACION.ps1", "LEEME-SINCRONIZACION-COMPLETA.txt")
 $okCount = 0; $missing = 0; $diffSize = 0
 $extra = New-Object System.Collections.Generic.List[string]
@@ -401,30 +403,27 @@ if (broken.length) { console.error(broken.slice(0, 10).join("\n")); process.exit
 console.log(`KFM-OPS-016 cierre de imports internos OK — ${files.length} ts/tsx, ${checked} imports @/, 0 rotos`);
 ' "$STAGE"
 
-# ── 6/7 Publicando y verificando servible HTTP ────────────────────
-log "6/7 Publicando y verificando servible HTTP"
-mkdir -p public/downloads
+# ── 6/7 Publicando en delivery/ (NO servible) ─────────────────────
+log "6/7 Publicando en delivery/ (carpeta local, nunca servida)"
+mkdir -p delivery
 mv "$TMPZIP" "$ZIP_PATH"
 SIZE=$(stat -c%s "$ZIP_PATH")
-HTTP=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/downloads/$ZIP_NAME" || echo 000)
-[ "$HTTP" = "200" ] || die "el zip publicado no responde HTTP 200 (got $HTTP)"
-FIRST=$(curl -s "http://localhost:3000/api/downloads" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);console.log(j.data?.files?.[0]?.name||"")}catch{console.log("")}})')
-[ "$FIRST" = "$ZIP_NAME" ] || die "/api/downloads no lista el zip canónico primero (got '$FIRST')"
-log "Servible HTTP 200 · /api/downloads primero= $FIRST"
+SHA=$(sha256sum "$ZIP_PATH" | cut -d' ' -f1)
+log "Publicado en delivery/ · SHA-256 = $SHA"
 
 # ── 6b/7 KFM-OPS-023: copia fechada knightfm_updated_* ────────────
 # El Master Prompt Unificado exige un entregable fechado; es byte a byte el
 # mismo contenido que el canónico (mismo mecanismo, mismo manifiesto).
 log "6b/7 Copia fechada de entrega (Master Prompt Unificado)"
-rm -f public/downloads/knightfm_updated_*_UTC_*.zip
-cp "$ZIP_PATH" "public/downloads/$UPDATED_NAME"
+rm -f delivery/knightfm_updated_*_UTC_*.zip
+cp "$ZIP_PATH" "delivery/$UPDATED_NAME"
 log "Copia fechada publicada: $UPDATED_NAME"
 
 # ── 7/7 RESUMEN ───────────────────────────────────────────────────
 log "7/7 RESUMEN"
 NFIRSTZIP=$(unzip -Z1 "$ZIP_PATH" | wc -l)
 echo "  Paquete   : $ZIP_PATH"
-echo "  Fechado   : public/downloads/$UPDATED_NAME (mismo contenido)"
+echo "  Fechado   : delivery/$UPDATED_NAME (mismo contenido)"
 echo "  Archivos  : $NFIRSTZIP (incl. MANIFIESTO + verificador)"
 echo "  Tamaño    : $SIZE bytes"
 echo "  Mecanismo : mismo nombre SIEMPRE + MANIFIESTO + VERIFICAR-INSTALACION.bat"

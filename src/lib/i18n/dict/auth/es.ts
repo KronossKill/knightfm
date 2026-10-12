@@ -7,7 +7,6 @@ export const dict: Dict = {
   "auth.panelSubtitle": "Un mundo que nunca se detiene. Elige tu camino.",
   "auth.langLabel": "Idioma",
   "auth.themeLabel": "Tema",
-  "auth.theme.nexus": "Nexus (noche)",
   "auth.theme.knight-emerald": "Esmeralda",
   "auth.theme.obsidian": "Obsidiana",
   "auth.theme.royal": "Real",
@@ -32,8 +31,6 @@ export const dict: Dict = {
   "auth.field.email": "Correo electrónico",
   "auth.field.username": "Nombre de usuario",
   "auth.field.password": "Contraseña",
-  // Task 89 (USER MANDATE): confirmación de contraseña en el registro.
-  "auth.field.confirmPassword": "Confirmar contraseña",
   "auth.field.referral": "Código de referido",
   "auth.field.code": "Código de verificación",
   "auth.field.token": "Token de recuperación",
@@ -41,7 +38,6 @@ export const dict: Dict = {
   "auth.placeholder.email": "tu@correo.com",
   "auth.placeholder.username": "TuSeudonimo",
   "auth.placeholder.password": "Mínimo 12 caracteres",
-  "auth.placeholder.confirmPassword": "Repite la contraseña",
   "auth.placeholder.referral": "Usuario que te invitó (opcional)",
   "auth.placeholder.code": "6 dígitos",
   "auth.placeholder.token": "Pega el token recibido",
@@ -53,6 +49,14 @@ export const dict: Dict = {
   "auth.policy.lower": "Una letra minúscula",
   "auth.policy.digit": "Un número",
   "auth.policy.symbol": "Un símbolo (por ejemplo ! ? #)",
+
+  // Live availability (Task 108 — comprobación mientras se escribe)
+  "auth.avail.checking": "Comprobando disponibilidad…",
+  "auth.avail.wait": "Un instante: aún estamos comprobando tus datos.",
+  "auth.avail.usernameFree": "Nombre de usuario disponible.",
+  "auth.avail.usernameTaken": "Ese nombre de usuario ya está en uso. Prueba otro.",
+  "auth.avail.emailFree": "Correo disponible.",
+  "auth.avail.emailTaken": "Ese correo ya está registrado. Usa otro o inicia sesión.",
 
   // Verify email
   "auth.verify.title": "Verifica tu correo",
@@ -82,9 +86,6 @@ export const dict: Dict = {
   // Actions / feedback
   "auth.action.backToLogin": "Volver a iniciar sesión",
   "auth.action.working": "Un momento…",
-  // Task 89 (USER MANDATE): mostrar/ocultar la contraseña para revisarla.
-  "auth.action.showPassword": "Mostrar contraseña",
-  "auth.action.hidePassword": "Ocultar contraseña",
   "auth.ok.registered": "Cuenta creada. Revisa tu correo para verificarla.",
   "auth.ok.verified": "Correo verificado. Accediendo…",
   "auth.ok.codeSent": "Si el correo está registrado, se ha enviado un código nuevo.",
@@ -96,9 +97,6 @@ export const dict: Dict = {
 
   // Errors (mapped by error.code from the API)
   "auth.err.captcha": "Verificación anti-bot fallida. Recarga e inténtalo de nuevo.",
-  "auth.err.captchaUnavailable": "El captcha no se pudo cargar. Comprueba tu conexión, desactiva bloqueadores de anuncios para esta web y reintenta.",
-  "auth.err.captchaFailed": "Error del captcha (código {code}). Suele deberse a una Site Key incorrecta o a un dominio no autorizado en Cloudflare. Prueba en otro navegador y reintenta.",
-  "auth.err.retryCaptcha": "Reintentar verificación",
   "auth.err.conflict": "Credenciales no válidas o cuenta ya registrada.",
   "auth.err.invalidCredentials": "Credenciales no válidas.",
   "auth.err.emailNotVerified": "Tu correo aún no está verificado. Revisa tu bandeja.",
@@ -114,8 +112,6 @@ export const dict: Dict = {
   "auth.err.passwordLower": "Añade al menos una letra minúscula.",
   "auth.err.passwordDigit": "Añade al menos un número.",
   "auth.err.passwordSymbol": "Añade al menos un símbolo.",
-  // Task 89 (USER MANDATE): las dos contraseñas del registro deben coincidir.
-  "auth.err.passwordMismatch": "Las contraseñas no coinciden.",
   "auth.err.generic": "No se pudo completar la operación. Inténtalo de nuevo.",
   // Task 39 — anti-multicuentas: una sola cuenta por IP.
   "auth.err.multiAccount": "Solo se permite una cuenta por IP: no se admiten multicuentas.",

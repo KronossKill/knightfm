@@ -19,7 +19,7 @@ mkdir -p "$STAGE"
 # ── 1. Snapshot del árbol (excluye transitorios y pesados) ────────
 rsync -a ./ "$STAGE"/ \
   --exclude 'node_modules' --exclude '.next' --exclude '.git' \
-  --exclude 'backups' --exclude 'public/downloads' \
+  --exclude 'backups' --exclude 'public/downloads' --exclude 'public/download' --exclude 'delivery' \
   --exclude 'upload' --exclude 'tool-results' --exclude 'agent-ctx' \
   --exclude '/*.png' --exclude 'dev.log' --exclude 'dev.log.old' \
   --exclude 'server.log' --exclude '*.log' --exclude '.claude' \

@@ -124,6 +124,12 @@ export function ModuleSlot({ moduleKey, moduleProps, className }: ModuleSlotProp
   }
 }
 
-export function AssistantPanelSlot({ className }: { className?: string }) {
-  return <ModuleSlot moduleKey="assistant-panel" className={className} />;
+export function AssistantPanelSlot({
+  className,
+  screen,
+}: {
+  className?: string;
+  screen?: string;
+}) {
+  return <ModuleSlot moduleKey="assistant-panel" className={className} moduleProps={{ screen }} />;
 }

@@ -1,0 +1,74 @@
+KNIGHT FM - RETIRADA TOTAL DE DESCARGAS PUBLICAS (v9.5.1 - Task 107)
+=====================================================================
+
+MANDATO DEL USUARIO
+-------------------
+"Quitar las opciones de descargar la sincronizacion completa, el zip del
+proyecto y la documentacion tecnica de la plataforma que se sube a
+produccion. Eso no puede salir ahi para los usuarios. Los usuarios no
+tienen por que descargar nada del sitio. Quita todo lo que este disponible
+para descargar."
+
+RESULTADO
+---------
+La web ya NO expone NINGUN archivo descargable:
+
+1. Panel "Descargas del proyecto" de la landing: ELIMINADO
+   (src/components/landing/sections/downloads-panel.tsx borrado;
+   import y <DownloadsPanel /> quitados de landing/index.tsx).
+2. Bloque de descargas del footer (zip del proyecto + documentacion
+   tecnica .docx): ELIMINADO de final-cta-footer.tsx.
+3. API publica GET /api/downloads (listado de entregas): BORRADA -> 404.
+4. Carpeta public/downloads/ ENTERA (~49 archivos, 60 MB: zips de
+   sincronizacion completa, hotfixes, LEEMEs, SQLs, docx, project.zip,
+   world-sql.zip): BORRADA. Los 6 archivos trackeados en git quedan
+   eliminados del repositorio y dejan de desplegarse a produccion.
+5. Carpeta public/download/ (knight-fm-windows.zip 13.5 MB): BORRADA.
+6. next.config.ts: cabeceras Content-Disposition: attachment para
+   /downloads/* y redirects .zip/.txt -> /downloads/ ELIMINADOS.
+7. i18n: claves landing.downloads.* (8) y landing.footer.docs* (4)
+   eliminadas en es/en/fr/pt.
+
+NUEVA POLITICA DE ENTREGAS
+--------------------------
+Los artefactos de entrega viven SOLO en delivery/ (carpeta local en la
+raiz, fuera de public/, gitignored: NUNCA se sirve por web). Scripts
+reapuntados: build-full-delivery.sh, release-zip.sh, gen-docx.js,
+windows-zip.sh, task94-backup.sh. .gitignore ahora excluye delivery/,
+/public/downloads/ y /public/download/.
+
+ARCHIVOS MODIFICADOS EN ESTE PAQUETE
+------------------------------------
+  .gitignore                                          (M)
+  CHANGELOG.md                                        (M)
+  next.config.ts                                      (M)
+  scripts/build-full-delivery.sh                      (M)
+  scripts/gen-docx.js                                 (M)
+  scripts/release-zip.sh                              (M)
+  scripts/task94-backup.sh                            (M)
+  scripts/windows-zip.sh                              (M)
+  src/components/landing/index.tsx                    (M)
+  src/components/landing/sections/final-cta-footer.tsx (M)
+  src/lib/i18n/dict/landing/en.ts                     (M)
+  src/lib/i18n/dict/landing/es.ts                     (M)
+  src/lib/i18n/dict/landing/fr.ts                     (M)
+  src/lib/i18n/dict/landing/pt.ts                     (M)
+  LEEME-RETIRADA-DESCARGAS.txt                        (nuevo, este archivo)
+
+BORRADOS (no viajan en el zip, eliminar del despliegue):
+  public/downloads/**  (entera, incluidos los 6 trackeados)
+  public/download/**   (entera)
+
+VERIFICACION REALIZADA
+----------------------
+- HTTP: /api/downloads -> 404 ; /downloads/knightfm-sincronizacion-completa.zip
+  -> 404 ; /knight-fm-project.zip -> 404 ; / -> 200.
+- E2E navegador (escritorio + movil 390x844): 0 enlaces de descarga en el
+  DOM, sin seccion #downloads, footer integro, 0 errores de consola.
+- Lint: 0 errores (8 warnings pre-existentes ajenos).
+- Commit: 082519c.
+
+NOTA DE DESPLIEGUE
+------------------
+Para que knightfm.vercel.app deje de servir los artefactos hay que
+DESPLEGAR esta version a produccion (el borrado git ya esta commiteado).
