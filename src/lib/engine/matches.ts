@@ -538,15 +538,20 @@ export async function simulateFixture(fixtureId: string): Promise<SimOutcome> {
     { maxWait: 15_000, timeout: 30_000 },
   );
 
-  // Revenues outside the state tx (idempotent via ledger keys)
-  try {
-    const gross = 60 + Math.floor(Math.random() * 40);
-    await db.$transaction(async (tx) => {
-      await creditClub(tx, fixture.homeId, Math.floor(gross * 0.7), "MATCH_REVENUE", `REVENUE:${fixture.id}`, "Matchday revenue (home)"); // Task 25-b: taxable club income (was TRANSFER_IN)
-      await allocateRevenue(tx, { regionId: fixture.home.regionId, gross: Math.floor(gross * 0.3), idemBase: `REVENUE-ALLOC:${fixture.id}`, memo: "Matchday allocation" });
-    });
-  } catch {
-    // revenue is best-effort; ledger idempotency protects duplicates
+  // Revenues outside the state tx (idempotent via ledger keys).
+  // USER MANDATE: FRIENDLIES generate NO income at all — no gate receipts, no
+  // home matchday revenue, no regional/system allocation. They exist purely to
+  // test tactics and cost the scheduling fee + real player energy.
+  if (fixture.competition !== "FRIENDLY") {
+    try {
+      const gross = 60 + Math.floor(Math.random() * 40);
+      await db.$transaction(async (tx) => {
+        await creditClub(tx, fixture.homeId, Math.floor(gross * 0.7), "MATCH_REVENUE", `REVENUE:${fixture.id}`, "Matchday revenue (home)"); // Task 25-b: taxable club income (was TRANSFER_IN)
+        await allocateRevenue(tx, { regionId: fixture.home.regionId, gross: Math.floor(gross * 0.3), idemBase: `REVENUE-ALLOC:${fixture.id}`, memo: "Matchday allocation" });
+      });
+    } catch {
+      // revenue is best-effort; ledger idempotency protects duplicates
+    }
   }
 
   // Task 27: per-match WIN PRIZES — league winnings scale with the DIVISION

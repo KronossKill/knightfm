@@ -36,6 +36,7 @@ import { BrandBadge, EmptyState, ErrorState, TableSkeleton } from "@/components/
 import { MatchDetailDialog } from "@/components/game/competitions/match-dialog";
 import { ClubSquadDialog } from "@/components/game/competitions/club-squad-dialog";
 import { CalendarTab } from "@/components/game/competitions/season-calendar";
+import { FriendliesTab } from "@/components/game/competitions/friendlies-tab";
 
 // ── Region / division selectors ─────────────────────────────────
 
@@ -716,6 +717,7 @@ export default function CompetitionsView() {
         <TabsList className="h-auto min-h-9 flex-wrap">
           <TabsTrigger value="standings" className="min-h-9">{t("game.comp.tab.standings")}</TabsTrigger>
           <TabsTrigger value="fixtures" className="min-h-9">{t("game.comp.tab.fixtures")}</TabsTrigger>
+          <TabsTrigger value="friendlies" className="min-h-9">{t("game.comp.tab.friendlies")}</TabsTrigger>
           <TabsTrigger value="calendar" className="min-h-9">{t("game.comp.tab.calendar")}</TabsTrigger>
           <TabsTrigger value="cups" className="min-h-9">{t("game.comp.tab.cups")}</TabsTrigger>
           <TabsTrigger value="worldcup" className="min-h-9">{t("game.comp.tab.worldcup")}</TabsTrigger>
@@ -725,6 +727,9 @@ export default function CompetitionsView() {
         </TabsContent>
         <TabsContent value="fixtures" className="mt-4">
           <FixturesTab />
+        </TabsContent>
+        <TabsContent value="friendlies" className="mt-4">
+          <FriendliesTab />
         </TabsContent>
         <TabsContent value="calendar" className="mt-4">
           <CalendarTab />

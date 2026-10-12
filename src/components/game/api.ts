@@ -351,6 +351,28 @@ export interface MatchDetail {
   };
 }
 
+// ── /api/competitions/friendly (planner + scheduling) ───────────
+
+/** GET response: scheduling parameters + eligible opponents (server-authoritative). */
+export interface FriendlyPlannerInfo {
+  fee: number;
+  /** Minimum minutes the kickoff must sit before/after any fixture of BOTH clubs. */
+  bufferMin: number;
+  opponents: ClubRef[];
+  serverTimeUtc: string;
+}
+
+export interface FriendlyScheduled {
+  scheduled: boolean;
+  competition: "FRIENDLY";
+  homeId: string;
+  awayId: string;
+  opponentName: string;
+  kickoffUtc: string;
+  fee: number;
+  matchDay: number;
+}
+
 export interface CupBracketMatch {
   id: string;
   home: ClubRef;
@@ -678,6 +700,7 @@ export const qk = {
   fixtures: (filters: Record<string, string | number | undefined>) =>
     ["fixtures", filters] as const,
   match: (id: string) => ["match", id] as const,
+  friendly: (clubId: string) => ["friendly", clubId] as const,
   cups: (regionId: string | undefined) => ["cups", regionId ?? "all"] as const,
   worldcup: ["worldcup"] as const,
   onboardingClubs: (path: string, regionIndex: number | undefined, q: string, page: number) =>
@@ -722,6 +745,10 @@ export const fetchFixtures = (params: Record<string, string | number | undefined
 };
 export const fetchMatch = (id: string) =>
   apiFetch<MatchDetail>(`/api/competitions/match/${encodeURIComponent(id)}`);
+export const fetchFriendlyInfo = (clubId: string) =>
+  apiFetch<FriendlyPlannerInfo>(`/api/competitions/friendly?clubId=${encodeURIComponent(clubId)}`);
+export const scheduleFriendly = (input: { clubId: string; opponentClubId: string; kickoffUtc: string }) =>
+  apiFetch<FriendlyScheduled>("/api/competitions/friendly", { method: "POST", body: input });
 export const fetchCups = (regionId?: string) =>
   apiFetch<{ season: { id: string; number: number } | null; regions: CupRegion[] }>(
     `/api/competitions/cups${regionId ? `?regionId=${encodeURIComponent(regionId)}` : ""}`

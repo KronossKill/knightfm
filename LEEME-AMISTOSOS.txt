@@ -1,0 +1,81 @@
+================================================================
+ KNIGHT FM v9.4.0 - AMISTOSOS: UI + REGLA DE 30 MIN + CERO INGRESOS
+ Task 104 - Archivos modificados (12)
+================================================================
+
+QUE HACE ESTA ACTUALIZACION
+---------------------------
+1. NUEVA PESTANA "AMISTOSOS" en Competiciones: programa amistosos desde
+   la plataforma (rival, fecha y hora UTC, coste visible) con validacion
+   EN VIVO que te avisa de conflictos ANTES de pagar.
+2. REGLA DE LOS 30 MINUTOS: la hora del amistoso debe quedar al menos
+   30 minutos ANTES o DESPUES de cualquier partido (oficial o amistoso)
+   de LOS DOS clubes participantes. Ahora si se puede jugar un amistoso
+   el mismo dia de un partido oficial respetando ese margen.
+3. CERO INGRESOS POR AMISTOSO: el motor ya no paga taquilla ni reparto
+   regional/sistema en amistosos (el premio por victoria ya estaba
+   excluido). Sirven para probar tacticas y SI cansan a los jugadores
+   (energia, forma y moral).
+4. Dos claves nuevas de administrador (Control Center > Config):
+   - competition.friendlyFee (tasa por amistoso; 20 $Knight por defecto)
+   - competition.friendlyBufferMin (margen en minutos; 30 por defecto)
+   Se aplican sin migraciones: si no las tocas, se usan esos valores.
+
+COMO INSTALAR EN WINDOWS (CLIC POR CLIC)
+----------------------------------------
+1) Cierra el servidor si esta abierto (cierra la ventana negra del
+   servidor o pulsa Ctrl+C en ella).
+2) Copia el contenido del zip sobre la carpeta del proyecto:
+   C:\Programacion\knightfm
+   - Abre el zip con doble clic, selecciona TODAS las carpetas y
+     archivos de dentro (Ctrl+E), copia (Ctrl+C), abre
+     C:\Programacion\knightfm y pega (Ctrl+V).
+   - Si Windows pregunta "Reemplazar o omitir archivos": elige
+     "Reemplazar los archivos de destino".
+3) Abre la carpeta del proyecto, haz clic en la barra de direcciones,
+   escribe: cmd   y pulsa Enter (se abre la ventana negra en esa ruta).
+4) En la ventana negra escribe estas 3 lineas (Enter despues de cada una):
+   npx prisma generate
+   npm run build
+   npm run start
+   (si usas el script de un clic DEPLOY_WINDOWS.bat, tambien vale:
+   simplemente ejecutalo despues de pegar los archivos)
+5) Abre http://localhost:3000 y entra con tu cuenta.
+6) DEBES VER: en el menu lateral izquierdo, entra a "Competiciones" y
+   arriba veras la pestana nueva "Amistosos" junto a "Partidos".
+7) DEBES VER al abrirla: un aviso "Laboratorio de tacticas", el
+   formulario "Programar amistoso" (Rival, Fecha (UTC), Hora (UTC)),
+   el texto "Coste: 20 $Knight (tesoreria del club)" y a la derecha
+   "Proximos partidos de tu club".
+8) PRUEBA RAPIDA: elige un rival, pon la misma fecha y hora de uno de
+   tus partidos de liga + 20 minutos -> DEBES VER el aviso rojo
+   "Demasiado cerca de otros partidos (minimo 30 min)" con el partido
+   en conflicto y el margen (Delta en minutos). Cambia a una hora libre
+   -> DEBES VER el aviso verde "Horario valido". Pulsa "Programar
+   amistoso" -> DEBES VER el aviso "Amistoso programado contra ..." y
+   el nuevo amistoso aparece arriba en "Proximos partidos de tu club".
+
+ARCHIVOS INCLUIDOS (12)
+-----------------------
+M  CHANGELOG.md
+M  docs/03-api.md
+M  src/app/api/competitions/friendly/route.ts
+M  src/components/game/api.ts
+M  src/components/game/competitions/competitions-view.tsx
+A  src/components/game/competitions/friendlies-tab.tsx
+M  src/lib/config.ts
+M  src/lib/engine/matches.ts
+M  src/lib/i18n/dict/game/en.ts
+M  src/lib/i18n/dict/game/es.ts
+M  src/lib/i18n/dict/game/fr.ts
+M  src/lib/i18n/dict/game/pt.ts
+
+(M = modificado, A = nuevo)
+
+NOTAS
+-----
+- No se toca la base de datos: no hay que ejecutar migraciones.
+- Los amistosos ya programados siguen funcionando igual.
+- El calendario de temporada y el acta del partido muestran los
+  amistosos con el punto gris de siempre.
+================================================================

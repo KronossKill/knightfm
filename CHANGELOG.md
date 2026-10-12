@@ -176,3 +176,35 @@ false conserva el camino Poisson legado):
 - Sidebar alineado al spec §2: 240 px expandida / 80 px compacta, barra superior
   de 64 px, y sección activa con fondo azul pizarra + línea de acento lima +
   icono destacado (antes: tinte lima plano, sin línea).
+
+## [v9.4.0] — 2026-10-11 — AMISTOSOS: UI COMPLETA + REGLA DE 30 MIN + CERO INGRESOS (Task 104)
+
+### Added
+- **Pestaña «Amistosos» en Competiciones** (UI nueva): programar amistosos desde
+  la plataforma, sin llamar a la API a mano. Selector de rival (todos los clubes
+  con escudo), fecha y hora UTC, coste visible (competition.friendlyFee, 20
+  $Knight por defecto) y validación EN VIVO que replica la regla del servidor
+  ANTES de pagar: conflicts marcados con partido, hora y margen Δ en minutos.
+- **Regla de los 30 minutos (mandato del usuario)**: la hora del amistoso debe
+  quedar al menos competition.friendlyBufferMin (30 min por defecto) ANTES o
+  DESPUÉS de cualquier partido —oficial o amistoso— de LOS DOS clubes
+  participantes. Ahora SÍ se puede agendar el mismo día de un partido oficial
+  respetando el margen (antes el día entero estaba bloqueado). Clave nueva de
+  admin: competition.friendlyBufferMin (0-720 min; 0 = solo solapamiento exacto).
+- **GET /api/competitions/friendly?clubId=…**: planificador — devuelve fee,
+  margen, rivales disponibles y la hora del servidor (reloj a prueba de PC
+  desajustado). La UI lo consume con TanStack Query.
+- Errores localizados en 4 idiomas (es/en/fr/pt): TOO_CLOSE_TO_MATCH,
+  FRIENDLY_LIMIT, ALREADY_SCHEDULED, INSUFFICIENT_CLUB_FUNDS, INVALID_OPPONENT,
+  KICKOFF_IN_PAST, NO_ACTIVE_SEASON.
+
+### Changed
+- **CERO INGRESOS POR AMISTOSO (mandato del usuario)**: el motor ya NO paga
+  taquilla a los amistosos — sin MATCH_REVENUE para el local y sin reparto
+  regional/sistema (el premio por victoria ya estaba excluido desde Task 27).
+  Un amistoso es un laboratorio de tácticas: cuesta la tasa, consume energía
+  real (fatiga, forma, moral vía TRAMA con exigencia 0.15) y no reparte ni un
+  $Knight.
+- 2 claves nuevas de admin: competition.friendlyFee (el fallback ya existía;
+  ahora es visible y editable en el Control Center) y
+  competition.friendlyBufferMin (125 claves totales).

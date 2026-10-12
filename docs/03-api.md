@@ -44,7 +44,8 @@ Todas las rutas son `/api/*`, JSON, con envelope uniforme:
 | `/staff` · `/staff/candidates` · `/staff/hire` · `/staff/release` | GET/POST | Cuerpo técnico por estrellas (1★→3$…5★→40$/día) |
 | `/facilities` · `/facilities/upgrade` | GET/POST | Instalaciones nivel 1–10 |
 | `/treasury` · `/treasury/invest` · `/treasury/withdraw` | GET/POST | Tesorería del club; invertir sin gravamen; retirar con 10% |
-| `/competitions/fixtures` · `/standings` · `/cups` · `/worldcup` · `/match/[id]` · `/friendly` | GET/POST | Competiciones, bracket visual, detalle de partido, amistosos |
+| `/competitions/fixtures` · `/standings` · `/cups` · `/worldcup` · `/match/[id]` | GET | Competiciones, bracket visual, detalle de partido |
+| `/competitions/friendly` | GET · POST | Planificador de amistosos (fee, margen, rivales) · agendar: la hora debe quedar ≥ `competition.friendlyBufferMin` (30 min) antes/después de CUALQUIER partido de ambos clubes; sin premio ni taquilla; sí consume energía; tasa `competition.friendlyFee` al local |
 
 ## Mercados (`/api/markets`)
 
