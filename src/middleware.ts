@@ -30,8 +30,17 @@ const KEY_CAP = 10_000; // hard cap on tracked keys (resists XFF-spoof floods)
 // turns any future injection sink into full account compromise. 'unsafe-inline'
 // stays (Next injects inline bootstrap scripts; nonce-based CSP is a larger
 // migration) — documented residual risk.
+//
+// Task 103 (USER REPORT, PROD knightfm.vercel.app): the Cloudflare Turnstile
+// login captcha was blocked by this CSP — every login died with "El captcha no
+// se pudo cargar". Turnstile needs four host-scoped grants for
+// challenges.cloudflare.com: script-src (api.js bootstrap), frame-src (the
+// widget solves inside a cross-origin iframe), connect-src (widget telemetry)
+// and img-src (challenge visuals). The grant is limited to that exact host —
+// no wildcard origins were opened.
+const CF_TURNSTILE = "https://challenges.cloudflare.com";
 const isDev = process.env.NODE_ENV !== "production";
-const CSP = `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
+const CSP = `default-src 'self'; script-src 'self' 'unsafe-inline' ${CF_TURNSTILE}${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: ${CF_TURNSTILE}; font-src 'self' data:; connect-src 'self' ws: wss: ${CF_TURNSTILE}; frame-src ${CF_TURNSTILE}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'`;
 
 const PERMISSIONS_POLICY =
   "camera=(), microphone=(), geolocation=(), payment=(), usb=()";

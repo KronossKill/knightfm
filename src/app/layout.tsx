@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+// Task 103 (spec "diseño definitivo" §1): Inter is the platform typeface —
+// semibold titles, normal UI text, tabular figures for stats/budgets/scores.
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // Task 67 (USER MANDATE): SVG country flags for the presence gadget + IP audit
 // (flag emoji is NOT rendered on Windows, so we ship real flags instead).
@@ -8,9 +10,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/lib/i18n";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -77,7 +80,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b1220",
+  themeColor: "#0A0F18",
   width: "device-width",
   initialScale: 1,
 };
@@ -175,7 +178,8 @@ const jsonLd = {
 };
 
 // Applies stored theme before hydration to avoid FOUC (theme switch never changes game state).
-const themeBoot = `(function(){try{var t=localStorage.getItem("knightfm.theme")||"knight-emerald";document.documentElement.dataset.theme=t;document.documentElement.classList.add("dark");}catch(e){document.documentElement.dataset.theme="knight-emerald";document.documentElement.classList.add("dark");}})();`;
+// Task 103: default is now "nexus" (the definitive-design theme).
+const themeBoot = `(function(){try{var t=localStorage.getItem("knightfm.theme");if(t!=="nexus"&&(t==null||!t||["knight-emerald","obsidian","royal","aurora","classic","nexus"].indexOf(t)===-1)){t="nexus";}document.documentElement.dataset.theme=t;document.documentElement.classList.add("dark");}catch(e){document.documentElement.dataset.theme="nexus";document.documentElement.classList.add("dark");}})();`;
 
 export default function RootLayout({
   children,
@@ -183,8 +187,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" suppressHydrationWarning data-theme="knight-emerald" className="dark">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen flex flex-col`}>
+    <html lang="es" suppressHydrationWarning data-theme="nexus" className="dark">
+      <body className={`${inter.variable} ${geistMono.variable} antialiased bg-background text-foreground min-h-screen flex flex-col`}>
         <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
         <ThemeProvider>

@@ -334,7 +334,7 @@ export const dict: Dict = {
   // ── Paramètres ────────────────────────────────────────────────
   "game.settings.title": "Paramètres",
   "game.settings.theme": "Thème visuel",
-  "game.settings.themeDesc": "Cinq thèmes, tous au contraste WCAG AA. Le changement ne modifie jamais l'état du jeu.",
+  "game.settings.themeDesc": "Six thèmes, tous au contraste WCAG AA. Le changement ne modifie jamais l'état du jeu.",
   "game.settings.language": "Langue",
   "game.settings.languageDesc": "Quatre langues avec parité complète. Changer de langue ne change pas l'état du jeu.",
   "game.settings.account": "Compte",

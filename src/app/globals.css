@@ -6,7 +6,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -113,9 +113,9 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* ─── Knight FM themes (spec §32) — five selectable themes, all WCAG AA ─── */
+/* ─── Knight FM themes (spec §32) — six selectable themes, all WCAG AA ─── */
 
-/* Theme 1: Knight Emerald — premium dark / emerald / restrained metallic (default) */
+/* Theme 1: Knight Emerald — premium dark / emerald / restrained metallic */
 :root,
 [data-theme="knight-emerald"] {
   --background: oklch(0.15 0.022 230);
@@ -298,6 +298,50 @@
   --sidebar-ring: oklch(0.44 0.105 152);
 }
 
+/* Theme 6: Nexus — Task 103 "Diseño visual definitivo para un Football Manager
+   online" (user's DOCX). Exact spec palette: night blue #0A0F18 canvas, slate
+   blue #151E2D panels, lime #B7F34A accent (selection/actions only), cold white
+   #E8EEF6 text, blue-gray secondary info. Card radius 12px (spec 10–14px).
+   Verified pairs: fg/bg 16.4:1 · fg/card 14.3:1 · muted/card 6.7:1 ·
+   dark-on-lime 14.6:1 (WCAG AAA). THE NEW DEFAULT THEME — declared last on
+   purpose: with data-theme="nexus" the html element ALSO matches the :root
+   fallback above (emerald), and equal specificity resolves by source order. */
+[data-theme="nexus"] {
+  --radius: 0.75rem;
+  --background: oklch(0.168 0.021 261.9);
+  --foreground: oklch(0.947 0.013 255.5);
+  --card: oklch(0.234 0.032 260.4);
+  --card-foreground: oklch(0.947 0.013 255.5);
+  --popover: oklch(0.208 0.028 261);
+  --popover-foreground: oklch(0.947 0.013 255.5);
+  --primary: oklch(0.893 0.202 127.2);
+  --primary-foreground: oklch(0.168 0.021 261.9);
+  --secondary: oklch(0.270 0.032 256.3);
+  --secondary-foreground: oklch(0.947 0.013 255.5);
+  --muted: oklch(0.250 0.028 258);
+  --muted-foreground: oklch(0.717 0.040 257);
+  --accent: oklch(0.283 0.037 258.3);
+  --accent-foreground: oklch(0.947 0.013 255.5);
+  --destructive: oklch(0.66 0.19 23);
+  --danger: oklch(0.562 0.18 23.3);
+  --border: oklch(0.320 0.045 261.5);
+  --input: oklch(0.320 0.045 261.5);
+  --ring: oklch(0.893 0.202 127.2);
+  --chart-1: oklch(0.893 0.202 127.2);
+  --chart-2: oklch(0.837 0.164 84.4);
+  --chart-3: oklch(0.828 0.101 230.3);
+  --chart-4: oklch(0.773 0.153 163.2);
+  --chart-5: oklch(0.811 0.101 293.6);
+  --sidebar: oklch(0.191 0.029 262.3);
+  --sidebar-foreground: oklch(0.947 0.013 255.5);
+  --sidebar-primary: oklch(0.893 0.202 127.2);
+  --sidebar-primary-foreground: oklch(0.168 0.021 261.9);
+  --sidebar-accent: oklch(0.271 0.038 258.3);
+  --sidebar-accent-foreground: oklch(0.947 0.013 255.5);
+  --sidebar-border: oklch(0.307 0.044 259.2);
+  --sidebar-ring: oklch(0.893 0.202 127.2);
+}
+
 /* Theme accent utility — restrained metallic gold used by premium details */
 .gold-accent {
   color: oklch(0.8 0.13 87);
@@ -308,7 +352,15 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Task 103: font-sans pins the Inter variable font (spec §1) — without it
+       the browser fell back to the system stack. */
+    @apply bg-background text-foreground font-sans;
+  }
+
+  /* Spec "diseño definitivo" §1: tabular figures for stats, budgets, dates and
+     scoreboards so digits align in columns (Inter supports tnum). */
+  table {
+    font-variant-numeric: tabular-nums;
   }
 
   /* Themed scrollbars */

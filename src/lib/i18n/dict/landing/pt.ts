@@ -84,7 +84,7 @@ export const dict: Dict = {
   "landing.compare.row.pay.knight": "Zero: nenhuma compra muda resultados",
   "landing.compare.row.pay.trad": "Vantagens e loot pagos são comuns",
   "landing.compare.row.themes.label": "Temas visuais",
-  "landing.compare.row.themes.knight": "5 temas com pré-visualização ao vivo",
+  "landing.compare.row.themes.knight": "6 temas com pré-visualização ao vivo",
   "landing.compare.row.themes.trad": "Um tema fixo, ou quase",
   "landing.compare.row.assistant.label": "Assistente de IA",
   "landing.compare.row.assistant.knight": "Contextual e apenas explicativo",
@@ -127,16 +127,17 @@ export const dict: Dict = {
 
   // Temas
   "landing.themes.kicker": "Personalização",
-  "landing.themes.title": "Cinco temas, seu uniforme visual",
+  "landing.themes.title": "Seis temas, seu uniforme visual",
   "landing.themes.subtitle": "Toque neles: são aplicados na hora. Sua escolha nunca altera o estado do jogo.",
   "landing.themes.cta": "Experimentar tema",
   "landing.themes.active": "Ativo",
-  "landing.themes.hint": "Os cinco temas atendem WCAG AA.",
+  "landing.themes.hint": "Os seis temas atendem WCAG AA.",
   "themes.knightEmerald": "Esmeralda Knight",
   "themes.obsidian": "Obsidiana",
   "themes.royal": "Real",
   "themes.aurora": "Aurora",
   "themes.classic": "Clássico",
+  "themes.nexus": "Nexus — Azul-noite e lima",
 
   // Assistente
   "landing.assistant.kicker": "Knight Assistant",

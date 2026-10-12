@@ -444,7 +444,7 @@ function NavButton({
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           collapsed && "justify-center px-0",
           active
-            ? "bg-primary/15 font-medium text-primary"
+            ? "bg-sidebar-accent font-medium text-foreground shadow-[inset_2px_0_0_0_var(--primary)]"
             : "text-muted-foreground hover:bg-accent hover:text-foreground"
         )}
       >
@@ -603,8 +603,10 @@ function Sidebar({ ccOnly = false, walletOnly = false }: { ccOnly?: boolean; wal
   return (
     <aside
       className={cn(
-        "sticky top-14 hidden h-[calc(100vh-3.5rem)] shrink-0 overflow-y-auto border-r bg-card/30 p-3 transition-[width] duration-200 lg:block",
-        collapsed ? "w-16" : "w-56"
+        // Task 103 (spec "diseño definitivo" §2): sidebar 240–256 px expanded,
+        // 72–80 px compact, topbar 64 px → sticky offset 4rem.
+        "sticky top-16 hidden h-[calc(100vh-4rem)] shrink-0 overflow-y-auto border-r bg-card/30 p-3 transition-[width] duration-200 lg:block",
+        collapsed ? "w-20" : "w-60"
       )}
     >
       <div className="mb-3 flex justify-end">
@@ -908,7 +910,7 @@ export default function GameShell() {
 
       {/* ── Top bar ── */}
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/70">
-        <div className="mx-auto flex h-14 w-full max-w-[1920px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
+        <div className="mx-auto flex h-16 w-full max-w-[1920px] items-center gap-2 px-3 sm:gap-3 sm:px-4">
           <Button
             variant="ghost"
             size="icon"

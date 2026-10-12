@@ -1,0 +1,139 @@
+================================================================
+ KNIGHT FM - ACTUALIZACION v9.3.0
+ ARREGLO DEL LOGIN (TURNSTILE) + DISENO VISUAL "NEXUS"
+ Paquete parcial - unicamente los archivos modificados
+================================================================
+
+QUE ES ESTE PAQUETE
+- 42 archivos + este LEEME + el LEEME-SINCRONIZACION-COMPLETA.txt
+  general (v9.2).
+- Es ACUMULATIVO: sirve si tu proyecto es v9.0.0 + uiux-v2, o si
+  ya aplicaste el paquete del motor TRAMA v9.2.0 (en ese caso
+  sobreescribe con el mismo contenido: no rompe nada).
+- NO toca la base de datos: cero cambios de esquema, cero
+  dependencias nuevas. NO necesitas npm install, ni db:push,
+  ni seed, ni borrar nada.
+
+================================================================
+1) EL ARREGLO IMPORTANTE: EL LOGIN VOLVIO A FUNCIONAR
+================================================================
+
+QUE PASABA (lo que viste en tu captura)
+- En knightfm.vercel.app el captcha de Cloudflare (Turnstile) no
+  cargaba: "El captcha no se pudo cargar. Comprueba tu conexion,
+  desactiva bloqueadores de anuncios..." y no dejaba entrar.
+- La causa NO era tu conexion ni un bloqueador: era una regla de
+  seguridad del propio proyecto (la CSP del middleware) que
+  bloqueaba el script de challenges.cloudflare.com y el iframe
+  del widget. Por eso fallaba SIEMPRE, en cualquier navegador.
+
+QUE SE ARREGLO (3 cambios)
+1. src/middleware.ts: la CSP ahora permite SOLO el host
+   https://challenges.cloudflare.com en script-src, frame-src,
+   connect-src e img-src. Ningun permiso extra, sin comodines.
+2. src/components/auth/captcha.ts: ahora reintenta la carga del
+   script (2 intentos), tiene timeout de 25 segundos y ya no
+   guarda para siempre el modo sandbox cuando la red falla.
+3. src/components/auth/AuthFlow.tsx: si el captcha falla, aparece
+   el boton "Reintentar verificacion" bajo el error. Recupera el
+   flujo sin recargar la pagina y sin perder lo que escribiste.
+
+IMPORTANTE PARA VERCEL
+- El arreglo viaja en el codigo: para que knightfm.vercel.app
+  deje de fallar, DESPLIEGA esta actualizacion (deploy) despues
+  de copiar los archivos y subirlos a GitHub. No hay que tocar
+  ninguna variable de entorno de Cloudflare.
+- Nota sobre el error "TypeError: urlSearchParams.entries() is
+  not iterable" de tu consola: ocurre DENTRO de functions.js del
+  runtime de Vercel (y suele repetirse con extensiones del
+  navegador tipo adblock). No aparece ni una sola vez en el
+  codigo del proyecto (verificado con busqueda mecanica). Con el
+  arreglo del captcha deja de bloquear el login; si lo vuelves a
+  ver aislado, prueba en ventana incognito para descartar la
+  extension.
+
+================================================================
+2) EL NUEVO DISENO: TEMA "NEXUS" (tu documento Word)
+================================================================
+
+Implementa tu documento "Diseno visual definitivo para un
+Football Manager online" y es el NUEVO TEMA POR DEFECTO:
+
+- AZUL NOCHE #0A0F18: fondo general de toda la plataforma.
+- AZUL PIZARRA #151E2D: paneles y tarjetas.
+- VERDE LIMA #B7F34A: solo seleccion y acciones importantes
+  (boton principal lima con texto oscuro, como pide el spec).
+- BLANCO FRIO #E8EEF6: texto y cifras.
+- GRIS AZULADO: informacion secundaria.
+- Tipografia Inter (spec seccion 1) con numeros tabulares en
+  tablas: estadisticas, presupuestos, fechas y marcadores
+  alineados en columna.
+- Tarjetas con esquinas de 12 px (spec: 10-14 px) y bordes finos.
+- Sidebar de 240 px expandida / 80 px compacta y barra superior
+  de 64 px (spec seccion 2). La seccion activa lleva fondo azul
+  pizarra claro + linea de acento lima + icono destacado (spec
+  seccion 3).
+- Accesibilidad verificada: el verificador del proyecto mide
+  22 pares de colores por tema x 6 temas = TODOS PASS WCAG AA
+  (texto 16.4:1, boton lima 14.6:1, secundario 6.7:1).
+- Tus 5 temas anteriores (Knight Esmeralda, Obsidiana, Real,
+  Aurora y Clasico) SIGUEN disponibles: Cambiarlos en Ajustes >
+  Apariencia, o en la paleta Ctrl+K, o en el candado de tema de
+  la pantalla de acceso. Quien ya eligio un tema, lo conserva.
+
+TAMBIEN INCLUIDO (del paquete anterior del motor, por ser
+acumulativo): clima, terreno, arbitro variable, dia de forma,
+animo, motor TRAMA con causas por gol, estilos tacticos y
+ciencia deportiva. Detalles en LEEME-SINCRONIZACION-COMPLETA.txt.
+
+================================================================
+3) COMO INSTALAR (Windows, paso a paso)
+================================================================
+
+1. Cierra el servidor si esta abierto: en la ventana negra de
+   Node pulsa Ctrl+C y espera a que vuelva el cursor.
+2. Abre la carpeta del zip y copia TODO lo de dentro.
+3. Pegalo sobre tu proyecto D:\Programacion\knightfm. Windows
+   preguntara que hacer: elige "Reemplazar los archivos en
+   destino". Son 42 archivos de codigo + 2 LEEME; no borra nada.
+4. Arranca de nuevo: doble clic en tu acceso de siempre o
+   "npm run dev" en la carpeta del proyecto.
+5. DEBES VER: "Ready" en la terminal y, al abrir
+   http://localhost:3000, la plataforma en azul noche con
+   acentos verde lima (tema Nexus).
+6. DEBES VER en el login: el boton "Entrar" lima y, al pulsarlo
+   con tus datos, entrada normal SIN el mensaje del captcha.
+
+NOTAS
+- El verificador VERIFICAR-INSTALACION.bat puede listar estos
+  archivos como EXTRA o con diferencias: es lo esperado tras un
+  paquete parcial.
+- Si prefieres los colores de antes: Ajustes > Apariencia >
+  tema "Knight Esmeralda". Tu eleccion se guarda.
+- Este paquete tambien sirve para el despliegue de Vercel:
+  sube los mismos archivos a tu repositorio y haz Redeploy.
+
+CONTENIDO (42 archivos + este LEEME + LEEME-SINCRONIZACION)
+- Raiz: CHANGELOG.md
+- docs/01-arquitectura.md, docs/04-configuracion.md,
+  docs/09-changelog.md, docs/ui/themes/wcag-contrast.md
+- public/downloads/LEEME-SINCRONIZACION-COMPLETA.txt
+- scripts/build-full-delivery.sh, scripts/calibrate-trama.ts
+- src/middleware.ts, src/app/globals.css, src/app/layout.tsx
+- src/app/api/tactics/route.ts
+- src/components/auth/AuthFlow.tsx
+- src/components/auth/captcha.ts
+- src/components/game/competitions/match-dialog.tsx
+- src/components/game/shell.tsx
+- src/components/game/tactics/tactics-view.tsx
+- src/components/game/tactics/use-tactics.ts
+- src/components/theme-provider.tsx
+- src/lib/config.ts, src/lib/themes.ts, src/lib/theme-tokens.ts
+- src/lib/engine/conditions.ts, kmie.ts, matches.ts, trama.ts
+- src/lib/i18n/dict/auth/{en,es,fr,pt}.ts
+- src/lib/i18n/dict/game/{en,es,fr,pt}.ts
+- src/lib/i18n/dict/landing/{en,es,fr,pt}.ts
+- src/lib/i18n/dict/tactics/{en,es,fr,pt}.ts
+
+Version del paquete: v9.3.0 (Task 103)
+================================================================

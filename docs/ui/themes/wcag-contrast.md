@@ -3,6 +3,33 @@
 
 Umbral texto: **4.5:1** · Umbral UI/gráficos: **3:1** · INFO = par mitigado por otro mecanismo (etiqueta, fondo o anillo de foco).
 
+## Nexus (Azul Noche) — `nexus` (oscuro)
+
+| Par (frente / fondo) | Uso | Tipo | Ratio | sRGB frente | sRGB fondo | Estado |
+|---|---|---|---|---|---|---|
+| `foreground` / `background` | Cuerpo de texto base | TEXT | **16.44:1** | `#E8EEF6` | `#0A0F18` | PASS |
+| `foreground` / `card` | Texto sobre tarjetas | TEXT | **14.34:1** | `#E8EEF6` | `#151E2D` | PASS |
+| `card-foreground` / `card` | Texto de tarjeta | TEXT | **14.34:1** | `#E8EEF6` | `#151E2D` | PASS |
+| `foreground` / `popover` | Texto en menús/popovers | TEXT | **15.26:1** | `#E8EEF6` | `#101825` | PASS |
+| `muted-foreground` / `background` | Texto secundario (base) | TEXT | **7.66:1** | `#94A5BD` | `#0A0F18` | PASS |
+| `muted-foreground` / `card` | Texto secundario (tarjeta) | TEXT | **6.68:1** | `#94A5BD` | `#151E2D` | PASS |
+| `secondary-foreground` / `secondary` | Texto botón secundario | TEXT | **12.91:1** | `#E8EEF6` | `#1C2736` | PASS |
+| `accent-foreground` / `accent` | Texto sobre hover/accent | TEXT | **12.39:1** | `#E8EEF6` | `#1E2A3C` | PASS |
+| `sidebar-foreground` / `sidebar` | Texto sidebar | TEXT | **15.81:1** | `#E8EEF6` | `#0D1421` | PASS |
+| `primary-foreground` / `primary` | Texto botón primario | TEXT | **14.57:1** | `#0A0F18` | `#B7F34A` | PASS |
+| `WHITE` / `danger` | Texto botón peligro (blanco) | TEXT | **5.06:1** | `#FFFFFF` | `#C93A3F` | PASS |
+| `primary` / `background` | Botón primario vs fondo | UI | **14.57:1** | `#B7F34A` | `#0A0F18` | PASS |
+| `danger` / `card` | Botón peligro vs tarjeta | UI | **3.31:1** | `#C93A3F` | `#151E2D` | PASS |
+| `ring` / `background` | Anillo de foco vs fondo | UI | **14.57:1** | `#B7F34A` | `#0A0F18` | PASS |
+| `ring` / `card` | Anillo de foco vs tarjeta | UI | **12.70:1** | `#B7F34A` | `#151E2D` | PASS |
+| `destructive` / `card` | Rojo de texto (alertas, importes negativos) vs tarjeta | TEXT | **4.92:1** | `#F05658` | `#151E2D` | PASS |
+| `input` / `card` | Borde de input (mitigado: fondo + etiqueta + foco) | INFO | **1.32:1** | `#26334A` | `#151E2D` | PASS |
+| `chart-1` / `card` | Gráfico 1 vs tarjeta | UI | **12.70:1** | `#B7F34A` | `#151E2D` | PASS |
+| `chart-2` / `card` | Gráfico 2 vs tarjeta | UI | **10.03:1** | `#FBBF25` | `#151E2D` | PASS |
+| `chart-3` / `card` | Gráfico 3 vs tarjeta | UI | **10.05:1** | `#7DD3FC` | `#151E2D` | PASS |
+| `chart-4` / `card` | Gráfico 4 vs tarjeta | UI | **8.70:1** | `#35D399` | `#151E2D` | PASS |
+| `chart-5` / `card` | Gráfico 5 vs tarjeta | UI | **9.06:1** | `#C4B5FD` | `#151E2D` | PASS |
+
 ## Esmeralda Caballero — `knight-emerald` (oscuro)
 
 | Par (frente / fondo) | Uso | Tipo | Ratio | sRGB frente | sRGB fondo | Estado |

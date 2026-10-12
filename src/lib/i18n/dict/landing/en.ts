@@ -83,7 +83,7 @@ export const dict: Dict = {
   "landing.compare.row.pay.knight": "Zero: no purchase changes results",
   "landing.compare.row.pay.trad": "Paid boosts and loot are common",
   "landing.compare.row.themes.label": "Visual themes",
-  "landing.compare.row.themes.knight": "5 themes with live preview",
+  "landing.compare.row.themes.knight": "6 themes with live preview",
   "landing.compare.row.themes.trad": "One fixed theme, or close",
   "landing.compare.row.assistant.label": "AI assistant",
   "landing.compare.row.assistant.knight": "Contextual and explain-only",
@@ -126,16 +126,17 @@ export const dict: Dict = {
 
   // Themes
   "landing.themes.kicker": "Personalization",
-  "landing.themes.title": "Five themes, your visual kit",
+  "landing.themes.title": "Six themes, your visual kit",
   "landing.themes.subtitle": "Tap them: they apply instantly. Your choice never alters game state.",
   "landing.themes.cta": "Try theme",
   "landing.themes.active": "Active",
-  "landing.themes.hint": "All five themes meet WCAG AA.",
+  "landing.themes.hint": "All six themes meet WCAG AA.",
   "themes.knightEmerald": "Knight Emerald",
   "themes.obsidian": "Obsidian",
   "themes.royal": "Royal",
   "themes.aurora": "Aurora",
   "themes.classic": "Classic",
+  "themes.nexus": "Nexus — Night blue & lime",
 
   // Assistant
   "landing.assistant.kicker": "Knight Assistant",

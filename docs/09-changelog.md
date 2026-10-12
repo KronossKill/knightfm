@@ -66,3 +66,14 @@ Historial completo de tareas. El detalle técnico de cada una está en `worklog.
 - **96** Guía completa GitHub + Supabase + Vercel sin perder datos (`docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md`)
 - **100** **Auditoría forense del motor** (evidencia: el clima/terreno/felicidad nunca existieron en ninguna entrega) + **KMIE 2.0**: clima por banda climática de región, estado del terreno según estadio + clima, volatilidad oculta "día de forma", árbitro de humor variable, felicidad de suplentes, estilos tácticos Con/Sin balón aplicados de verdad (antes eran columnas muertas), encaje posicional real en la fuerza del XI, lesiones según Centro Médico + Ciencia Deportiva, franja de condiciones en el informe (4 idiomas) y 4 claves de admin
 - **101** **Motor TRAMA** (spec "Parte 3" subida por el usuario): nudos de 5 pasos con temperatura de azar variable, 5 hilos (Mundo/Cuerpo/Mente/Juego/Azar), bandas graduadas con colas pesadas, marea, lectura adaptativa, gestión del marcador, cisnes negros con presupuesto de caos, experiencia (madurez/bagaje/Fexp), equidad con ventaja local acotada y calibración 12k partidos (13 métricas vs tabla 3.13, dominancia <58%, simetría <3%)
+
+## Fase 8 — Diseño definitivo "Nexus" y corrección del login (Task 103)
+- **103** Captura del usuario: Turnstile bloqueado por la CSP en producción
+  (knightfm.vercel.app) → «El captcha no se pudo cargar» en cada login. CSP con
+  host acotado challenges.cloudflare.com (script/frame/connect/img-src),
+  captcha.ts con reintento+timeout, botón «Reintentar verificación» (4 idiomas).
+  Además se implementa el DOCX del usuario «Diseño visual definitivo»: tema 6
+  **Nexus** (azul noche #0A0F18 / pizarra #151E2D / lima #B7F34A / blanco frío
+  #E8EEF6) como NUEVO DEFAULT, tipografía Inter con números tabulares, radios
+  12 px, sidebar 240/80 px + topbar 64 px y sección activa con línea de acento
+  lima (spec §1–§3). WCAG 6 temas × 22 pares: ALL PASS.

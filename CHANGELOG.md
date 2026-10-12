@@ -143,3 +143,36 @@ false conserva el camino Poisson legado):
   (pulsos→cadenas, 3 zonas, PE proxy) y el roadmap a fase completa.
 - 4 claves nuevas de admin: trama.enabled / chaosBudget / blackSwanPerMil /
   homeAdvCapPct (123 claves totales).
+
+## [v9.3.0] — 2026-10-11 — TEMA "NEXUS" (DISEÑO VISUAL DEFINITIVO) + FIX TURNSTILE LOGIN (Task 103)
+
+### Fixed
+- **LOGIN BLOQUEADO EN PRODUCCIÓN (knightfm.vercel.app)**: la Content-Security-Policy
+  del middleware impedía cargar Cloudflare Turnstile (`script-src` sin
+  `challenges.cloudflare.com`, sin `frame-src` para el iframe del widget) →
+  "El captcha no se pudo cargar" en cada intento de entrada. La CSP ahora concede
+  SOLO el host `https://challenges.cloudflare.com` en script-src, frame-src,
+  connect-src e img-src (sin comodines). Evidencia: captura del usuario con el
+  error de CSP en la consola de Edge.
+- `captcha.ts` endurecido: reintento automático de carga del script (2 intentos),
+  timeout de 25 s (el token ya no puede quedarse colgado para siempre), y la
+  config ya no cachea para siempre el fallback "sandbox" tras un fallo de red
+  (antes eso producía CAPTCHA_INVALID misteriosos).
+- `AuthFlow`: nuevo botón «Reintentar verificación» en los formularios de entrar
+  y registrarse cuando el captcha falla — recupera el flujo sin recargar la
+  página ni perder lo escrito. 4 idiomas.
+- Advertencias de preload de fuentes (`*.woff2 … not used`) mitigadas: Inter
+  carga un único subset latino con display swap (sustituye a Geist Sans).
+
+### Added
+- **Tema 6 «Nexus» — el diseño visual definitivo del usuario (DOCX)**: azul noche
+  #0A0F18 de fondo, azul pizarra #151E2D en paneles, verde lima #B7F34A solo para
+  selección/acciones, blanco frío #E8EEF6 de texto y gris azulado para secundarios.
+  Radios de tarjeta 12 px (spec 10–14 px). NUEVO TEMA POR DEFECTO (los 5 anteriores
+  siguen disponibles). WCAG AA verificado: 22/22 pares (cuerpo 16.4:1, botón lima
+  14.6:1, secundario 6.7:1) con el verificador del proyecto (6 temas × 22 pares).
+- Tipografía Inter (spec §1) con números tabulares en tablas (estadísticas,
+  presupuestos, fechas y marcadores alineados en columna).
+- Sidebar alineado al spec §2: 240 px expandida / 80 px compacta, barra superior
+  de 64 px, y sección activa con fondo azul pizarra + línea de acento lima +
+  icono destacado (antes: tinte lima plano, sin línea).

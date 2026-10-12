@@ -1,5 +1,5 @@
 "use client";
-// Knight FM — theme provider (spec §32). Five themes, WCAG AA, theme switch never changes game state.
+// Knight FM — theme provider (spec §32). Six themes, WCAG AA, theme switch never changes game state.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { DEFAULT_THEME, isValidTheme, ThemeId, THEMES } from "@/lib/themes";

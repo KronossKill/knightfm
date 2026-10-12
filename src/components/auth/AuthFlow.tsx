@@ -19,6 +19,7 @@ import {
   Loader2,
   MailCheck,
   Palette,
+  RefreshCw,
   ShieldCheck,
   X,
 } from "lucide-react";
@@ -42,7 +43,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 
 import { useAuth, apiFetch, ApiError } from "./store";
-import { getCaptchaToken } from "./captcha";
+import { getCaptchaToken, resetCaptcha } from "./captcha";
 
 // Convenience re-exports for sibling modules.
 export { useAuth, apiFetch };
@@ -254,9 +255,19 @@ export default function AuthFlow() {
   const mismatchText = t("auth.err.passwordMismatch");
   const toggleShowPassword = useCallback(() => setShowPassword((s) => !s), []);
 
+  // Task 103 (USER REPORT, PROD): when the captcha widget itself fails (CSP,
+  // ad-blocker, transient network), the user previously had NO in-place way to
+  // recover — they had to reload the page. We now track that state and render
+  // an explicit "retry verification" action that resets the cached captcha
+  // config/script and re-runs the flow without losing the typed form data.
+  const [captchaStale, setCaptchaStale] = useState(false);
+
   const reportError = useCallback(
     (err: unknown) => {
       const msg = describeError(err, t);
+      if (err instanceof Error && err.message.startsWith("TURNSTILE_")) {
+        setCaptchaStale(true);
+      }
       setFormError(msg);
       toast({ title: msg, variant: "destructive" });
     },
@@ -277,8 +288,8 @@ export default function AuthFlow() {
 
   // ── Handlers ────────────────────────────────────────────────────
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const runLogin = async () => {
+    setCaptchaStale(false);
     setBusy(true);
     setFormError("");
     try {
@@ -297,8 +308,18 @@ export default function AuthFlow() {
     }
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    await runLogin();
+  };
+
+  const retryLoginAfterCaptcha = () => {
+    resetCaptcha();
+    void runLogin();
+  };
+
+  const runRegister = async () => {
+    setCaptchaStale(false);
     // Task 89 (USER MANDATE): client-side confirmation gate — the two typed
     // passwords must match BEFORE anything is sent (no captcha burn, no API call).
     if (password !== confirmPassword) {
@@ -336,6 +357,16 @@ export default function AuthFlow() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await runRegister();
+  };
+
+  const retryRegisterAfterCaptcha = () => {
+    resetCaptcha();
+    void runRegister();
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -594,6 +625,18 @@ export default function AuthFlow() {
           {formError}
         </p>
       )}
+      {captchaStale && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full min-h-11"
+          onClick={retryLoginAfterCaptcha}
+          disabled={busy}
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
+          {t("auth.err.retryCaptcha")}
+        </Button>
+      )}
       <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy}>
         <SubmitLabel busy={busy} label={t("auth.action.login")} />
       </Button>
@@ -686,6 +729,18 @@ export default function AuthFlow() {
         <p className="text-sm text-destructive" role="alert">
           {formError}
         </p>
+      )}
+      {captchaStale && (
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full min-h-11"
+          onClick={retryRegisterAfterCaptcha}
+          disabled={busy}
+        >
+          <RefreshCw className="size-4" aria-hidden="true" />
+          {t("auth.err.retryCaptcha")}
+        </Button>
       )}
       <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={busy}>
         <SubmitLabel busy={busy} label={t("auth.action.register")} />

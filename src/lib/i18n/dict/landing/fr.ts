@@ -85,7 +85,7 @@ export const dict: Dict = {
   "landing.compare.row.pay.knight": "Zéro : aucun achat ne change les résultats",
   "landing.compare.row.pay.trad": "Bonus et loots payants fréquents",
   "landing.compare.row.themes.label": "Thèmes visuels",
-  "landing.compare.row.themes.knight": "5 thèmes avec aperçu en direct",
+  "landing.compare.row.themes.knight": "6 thèmes avec aperçu en direct",
   "landing.compare.row.themes.trad": "Un thème fixe, ou presque",
   "landing.compare.row.assistant.label": "Assistant IA",
   "landing.compare.row.assistant.knight": "Contextuel, en mode explicatif uniquement",
@@ -128,16 +128,17 @@ export const dict: Dict = {
 
   // Thèmes
   "landing.themes.kicker": "Personnalisation",
-  "landing.themes.title": "Cinq thèmes, votre maillot visuel",
+  "landing.themes.title": "Six thèmes, votre maillot visuel",
   "landing.themes.subtitle": "Essayez-les : ils s’appliquent instantanément. Votre choix ne modifie jamais l’état du jeu.",
   "landing.themes.cta": "Essayer le thème",
   "landing.themes.active": "Actif",
-  "landing.themes.hint": "Les cinq thèmes respectent WCAG AA.",
+  "landing.themes.hint": "Les six thèmes respectent WCAG AA.",
   "themes.knightEmerald": "Émeraude Knight",
   "themes.obsidian": "Obsidienne",
   "themes.royal": "Royal",
   "themes.aurora": "Aurore",
   "themes.classic": "Classique",
+  "themes.nexus": "Nexus — Bleu nuit & citron vert",
 
   // Assistant
   "landing.assistant.kicker": "Knight Assistant",
