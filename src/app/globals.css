@@ -298,48 +298,48 @@
   --sidebar-ring: oklch(0.44 0.105 152);
 }
 
-/* Theme 6: Nexus — Task 103 "Diseño visual definitivo para un Football Manager
-   online" (user's DOCX). Exact spec palette: night blue #0A0F18 canvas, slate
-   blue #151E2D panels, lime #B7F34A accent (selection/actions only), cold white
-   #E8EEF6 text, blue-gray secondary info. Card radius 12px (spec 10–14px).
-   Verified pairs: fg/bg 16.4:1 · fg/card 14.3:1 · muted/card 6.7:1 ·
-   dark-on-lime 14.6:1 (WCAG AAA). THE NEW DEFAULT THEME — declared last on
-   purpose: with data-theme="nexus" the html element ALSO matches the :root
-   fallback above (emerald), and equal specificity resolves by source order. */
+/* Theme 6: Nexus — Task 103 DOCX + Task 106 EXACT palette mandate:
+   canvas #080D15, panels #101927, elevated #192638, discreet blue-gray
+   borders #233044, lime #B7FF38 (selection/primary actions/positive only),
+   secondary blue #55A7FF = chart-3, amber #F5B93E = chart-2, primary text
+   #F1F5FB, secondary text #A2B1C5. Card radius 12px. THE NEW DEFAULT THEME —
+   declared last on purpose: with data-theme="nexus" the html element ALSO
+   matches the :root fallback above (emerald), and equal specificity resolves
+   by source order. */
 [data-theme="nexus"] {
   --radius: 0.75rem;
-  --background: oklch(0.168 0.021 261.9);
-  --foreground: oklch(0.947 0.013 255.5);
-  --card: oklch(0.234 0.032 260.4);
-  --card-foreground: oklch(0.947 0.013 255.5);
-  --popover: oklch(0.208 0.028 261);
-  --popover-foreground: oklch(0.947 0.013 255.5);
-  --primary: oklch(0.893 0.202 127.2);
-  --primary-foreground: oklch(0.168 0.021 261.9);
-  --secondary: oklch(0.270 0.032 256.3);
-  --secondary-foreground: oklch(0.947 0.013 255.5);
-  --muted: oklch(0.250 0.028 258);
-  --muted-foreground: oklch(0.717 0.040 257);
-  --accent: oklch(0.283 0.037 258.3);
-  --accent-foreground: oklch(0.947 0.013 255.5);
-  --destructive: oklch(0.66 0.19 23);
+  --background: oklch(0.158 0.019 259.1);
+  --foreground: oklch(0.969 0.009 258.3);
+  --card: oklch(0.212 0.031 259);
+  --card-foreground: oklch(0.969 0.009 258.3);
+  --popover: oklch(0.233 0.035 257.7);
+  --popover-foreground: oklch(0.969 0.009 258.3);
+  --primary: oklch(0.919 0.225 128.3);
+  --primary-foreground: oklch(0.158 0.019 259.1);
+  --secondary: oklch(0.266 0.038 256.7);
+  --secondary-foreground: oklch(0.969 0.009 258.3);
+  --muted: oklch(0.238 0.037 258.9);
+  --muted-foreground: oklch(0.755 0.033 255.6);
+  --accent: oklch(0.266 0.038 256.7);
+  --accent-foreground: oklch(0.969 0.009 258.3);
+  --destructive: oklch(0.696 0.164 22.3);
   --danger: oklch(0.562 0.18 23.3);
-  --border: oklch(0.320 0.045 261.5);
-  --input: oklch(0.320 0.045 261.5);
-  --ring: oklch(0.893 0.202 127.2);
-  --chart-1: oklch(0.893 0.202 127.2);
-  --chart-2: oklch(0.837 0.164 84.4);
-  --chart-3: oklch(0.828 0.101 230.3);
+  --border: oklch(0.307 0.04 258.8);
+  --input: oklch(0.307 0.04 258.8);
+  --ring: oklch(0.919 0.225 128.3);
+  --chart-1: oklch(0.919 0.225 128.3);
+  --chart-2: oklch(0.821 0.149 81.2);
+  --chart-3: oklch(0.716 0.152 252.1);
   --chart-4: oklch(0.773 0.153 163.2);
   --chart-5: oklch(0.811 0.101 293.6);
-  --sidebar: oklch(0.191 0.029 262.3);
-  --sidebar-foreground: oklch(0.947 0.013 255.5);
-  --sidebar-primary: oklch(0.893 0.202 127.2);
-  --sidebar-primary-foreground: oklch(0.168 0.021 261.9);
-  --sidebar-accent: oklch(0.271 0.038 258.3);
-  --sidebar-accent-foreground: oklch(0.947 0.013 255.5);
-  --sidebar-border: oklch(0.307 0.044 259.2);
-  --sidebar-ring: oklch(0.893 0.202 127.2);
+  --sidebar: oklch(0.177 0.025 262.1);
+  --sidebar-foreground: oklch(0.969 0.009 258.3);
+  --sidebar-primary: oklch(0.919 0.225 128.3);
+  --sidebar-primary-foreground: oklch(0.158 0.019 259.1);
+  --sidebar-accent: oklch(0.266 0.038 256.7);
+  --sidebar-accent-foreground: oklch(0.969 0.009 258.3);
+  --sidebar-border: oklch(0.307 0.04 258.8);
+  --sidebar-ring: oklch(0.919 0.225 128.3);
 }
 
 /* Theme accent utility — restrained metallic gold used by premium details */

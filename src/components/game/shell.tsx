@@ -57,6 +57,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, THEMES } from "@/components/theme-provider";
@@ -432,25 +433,60 @@ function NavButton({
     el.addEventListener("click", handler);
     return () => el.removeEventListener("click", handler);
   }, [onTogglePin]);
+
+  // Task 106 (mandate §4): premium nav item — rounded lime side indicator on
+  // the active entry, subtle hover lift, uniform iconography and 44px touch
+  // targets. Collapsed mode gets a proper Radix tooltip (not just title=).
+  const button = (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={active ? "page" : undefined}
+      // Task 106: accessible name survives the collapsed rail (icon is
+      // aria-hidden and the label span is unmounted when collapsed).
+      aria-label={label}
+      className={cn(
+        "group relative flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-sm",
+        "transition-[background-color,color] duration-200 ease-out",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+        collapsed && "justify-center px-0",
+        active
+          ? "bg-sidebar-accent font-medium text-foreground"
+          : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
+      )}
+    >
+      {active && (
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute left-0 rounded-r-full bg-primary transition-all",
+            collapsed ? "top-1/2 h-7 w-1 -translate-y-1/2 rounded-full" : "top-1/2 h-5 w-1 -translate-y-1/2"
+          )}
+        />
+      )}
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          "size-4 shrink-0 transition-colors duration-200",
+          active ? "text-primary" : "text-muted-foreground/80 group-hover:text-foreground"
+        )}
+      />
+      {!collapsed && <span className="truncate">{label}</span>}
+    </button>
+  );
+
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={onClick}
-        aria-current={active ? "page" : undefined}
-        title={collapsed ? label : undefined}
-        className={cn(
-          "flex min-h-11 w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          collapsed && "justify-center px-0",
-          active
-            ? "bg-sidebar-accent font-medium text-foreground shadow-[inset_2px_0_0_0_var(--primary)]"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
-        )}
-      >
-        <Icon aria-hidden="true" className={cn("size-4 shrink-0", active && "text-primary")} />
-        {!collapsed && <span className="truncate">{label}</span>}
-      </button>
+      {collapsed ? (
+        <Tooltip delayDuration={200}>
+          <TooltipTrigger asChild>{button}</TooltipTrigger>
+          <TooltipContent side="right" sideOffset={8}>
+            {label}
+          </TooltipContent>
+        </Tooltip>
+      ) : (
+        button
+      )}
       {onTogglePin && !collapsed && (
         <button
           ref={pinRef}
@@ -520,7 +556,7 @@ function NavList({
       : [
           { labelKey: "game.nav.main", items: NAV_MAIN },
           { labelKey: "game.nav.system", items: NAV_SYSTEM },
-          ...(user?.role === "ADMIN" ? [{ labelKey: "game.nav.system", items: NAV_ADMIN }] : []),
+          ...(user?.role === "ADMIN" ? [{ labelKey: "game.nav.admin", items: NAV_ADMIN }] : []),
         ];
 
   // Task 91: pinned favorites render as their own group at the top.
@@ -541,12 +577,21 @@ function NavList({
         </div>
       )}
       {groups.map((g, gi) => (
-        <div key={gi} className="flex flex-col gap-1">
+        <div
+          key={gi}
+          className={cn(
+            "flex flex-col gap-1",
+            // Task 106: crisp category separation — hairline rule above every
+            // group except the first.
+            gi > 0 && "border-t border-sidebar-border/50 pt-3"
+          )}
+        >
           {!collapsed && (
             <span className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
               {t(g.labelKey)}
             </span>
           )}
+          {collapsed && gi > 0 && <span aria-hidden="true" className="mx-auto h-px w-6 bg-sidebar-border/50" />}
           {g.items.map(renderItem)}
         </div>
       ))}

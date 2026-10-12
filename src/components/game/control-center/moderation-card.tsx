@@ -124,7 +124,7 @@ function ModerationCardInner({ className }: { className?: string }) {
             {query.data.blocked.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t("admin.mod.empty")}</p>
             ) : (
-              <div className="max-h-96 overflow-y-auto rounded-md border">
+              <div className="overflow-x-auto max-h-96 overflow-y-auto rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>

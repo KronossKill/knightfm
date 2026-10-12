@@ -33,7 +33,7 @@ cd "$(dirname "$0")/.."
 
 ZIP_NAME="knightfm-sincronizacion-completa.zip"
 ZIP_PATH="public/downloads/$ZIP_NAME"
-DELIVERY_VERSION="v9.3.0"
+DELIVERY_VERSION="v9.5.0"
 UPDATED_TS="${KFM_UPDATED_TS:-$(date -u +%Y%m%d_%H%M%S)}"
 UPDATED_NAME="knightfm_updated_${UPDATED_TS}_UTC_${DELIVERY_VERSION}.zip"
 STAGE="$(mktemp -d /tmp/kfm-stage-XXXXXX)"

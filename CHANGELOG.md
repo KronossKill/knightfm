@@ -208,3 +208,91 @@ false conserva el camino Poisson legado):
 - 2 claves nuevas de admin: competition.friendlyFee (el fallback ya existía;
   ahora es visible y editable en el Control Center) y
   competition.friendlyBufferMin (125 claves totales).
+
+## [v9.4.1] — 2026-10-11 — HOTFIX LOGIN: TURNSTILE VISIBLE Y SIN CUELGE ETERNO (Task 105)
+
+### Fixed
+- **«El sitio se queda cargando y no deja iniciar sesión» (captura del usuario,
+  knightfm.vercel.app)**: la causa raíz estaba en el cliente — el widget de
+  Turnstile se renderizaba FUERA DE PANTALLA (1×1 px, left:-9999px). Cuando
+  Cloudflare escala el desafío a uno INTERACTIVO (entornos que considera
+  sospechosos: extensiones/visores de intercambio de tráfico tipo surfs.*,
+  automatizaciones, VPN), nadie podía verlo ni pulsarlo → el callback nunca
+  llegaba → el botón «Entrar» giraba para siempre. Ahora el widget se monta
+  DENTRO del formulario activo (login, registro, verificar correo y recuperar
+  contraseña) con `appearance: interaction-only`: invisible para el tráfico
+  limpio y visible exactamente cuando hay que interactuar.
+- **Cero colgues por construcción**: el token ahora tiene un watchdog duro
+  (180 s con widget visible / 60 s en el modo legado) y TODOS los caminos
+  resuelven — callback, error-callback, expired-callback, timeout-callback de
+  Turnstile, watchdog propio, global ausente (`window.turnstile` antes se
+  tragaba el render con optional chaining) y excepción de render. El error
+  aparece con su botón «Reintentar verificación» y un mensaje nuevo claro:
+  «La verificación de seguridad no terminó a tiempo…» (4 idiomas).
+- **CSP endurecida sin romper nada**: `worker-src 'self' blob:` (algunas
+  builds de Turnstile arrancan un worker blob:; sin esa directiva el navegador
+  caía a script-src y el widget podía quedar mudo). Los píxeles
+  surfs.pro/track que se ven en rojo en la consola son rastreadores de una
+  extensión de intercambio de tráfico: siguen BLOQUEADOS a propósito — no
+  afectan al login.
+- **siteverify sin URLSearchParams**: la verificación servidor construye el
+  cuerpo urlencoded a mano — elimina del camino crítico del login el crash
+  `urlSearchParams.entries() is not a function` que sale en el runtime de
+  Vercel (functions.js) y que podía tumbar el POST /api/auth/login con 500.
+- Verificado E2E en navegador con las claves de PRUEBA oficiales de Cloudflare
+  (1x…AA always-pass): login real completado con el widget cargando desde
+  challenges.cloudflare.com (0 errores de consola, 0 bloqueos CSP), fallo del
+  widget → «Reintentar verificación» en vez de spinner eterno, token resuelto
+  tarde → el flujo continúa hasta el error de negocio correcto, y móvil
+  390×844 sin regresiones visuales.
+
+### Changed
+- `getCaptchaToken()` acepta `{ mount }` (elemento del formulario); las 4
+  pantallas que piden token pasan su contenedor visible. Sin mount se conserva
+  el comportamiento legado fuera de pantalla (con watchdog corto).
+
+## [v9.5.0] — 2026-10-12 — REDISEÑO INTEGRAL: SISTEMA VISUAL, MENÚ, PROGRESO CONTEXTUAL Y BIBLIOTECA DE IMÁGENES (Task 106)
+
+### Added
+- **Paleta exacta del mandato** como tema Nexus (el default): lienzo #080D15,
+  paneles #101927, superficies elevadas #192638, bordes azul grisáceo #233044,
+  lima #B7FF38 (solo selección/acciones/positivo), azul secundario #55A7FF
+  (chart-3), ámbar #F5B93E (chart-2), texto #F1F5FB / #A2B1C5. WCAG AA
+  verificado por el script del proyecto: ALL PASS 6 temas × 22 pares.
+- **Menú lateral premium (mandato §4)**: indicador lateral lima redondeado en
+  el ítem activo (expandido y colapsado), hover/focus diferenciados,
+  separadores de categoría, tooltips Radix laterales en modo colapsado y
+  aria-label permanente (el nombre accesible sobrevive al raíl de 80 px).
+  Rutas, atajos y favoritos intactos.
+- **Sistema de progreso contextual (mandato §6)** — un visual por pregunta:
+  · `RingProgress` (anillo SVG): obra de instalación (ámbar) y preparación de
+    plantilla (panel). El % SIEMPRE es dato del servidor.
+  · `MilestoneTimeline`: fases de obra Preparación → Obra → Técnicas →
+    Equipamiento → Inspección, con fase activa pulsante e hitos completados;
+    la fase se deriva del % real, nada inventado.
+  · `FormDots`: forma reciente (últimos 5) por club en la clasificación,
+    calculada SOLO de partidos jugados reales (nuevo filtro status=PLAYED en
+    la consulta de división; la API ya lo soportaba).
+  · `Sparkline`: tendencia del saldo en Tesorería con los últimos 24 apuntes
+    reales del libro mayor (balanceAfter); con <2 apuntes no dibuja nada.
+  · `DeltaPill`: deltas firmados +lima/−rojo para evoluciones.
+  · `EmptyState` ahora acepta una acción útil.
+- **Biblioteca de imágenes nueva (mandato §7)**: 30 renders fotorrealistas
+  16:9 (1344×768) = 6 tipos reales × 5 estados (Muy deteriorado → Estado
+  excelente). Cada tipo se generó UNA vez (nivel base "aceptable") y los
+  otros 4 niveles se DERIVARON por edición IA de esa base conservando lugar,
+  arquitectura, cámara y encuadre — se reconoce LA MISMA instalación
+  evolucionando. Sin texto, logos, marcas de agua ni interfaces incrustadas.
+- **next/image en instalaciones**: las tarjetas usan next/image (sharp) con
+  caja 16:9 reservada (aspect-video) — WebP/AVIF automático y cero saltos de
+  layout. La respuesta del optimizador viaja con must-revalidate.
+
+### Changed
+- Clasificación: columna FORMA nueva (min-w 640→720) + leyenda intacta.
+- Tesorería: cabecera del libro mayor con la tendencia del saldo.
+- Panel: widget Preparación como anillo + ratio en leyenda.
+- Centro de control y diálogo de plantilla rival: guard `overflow-x-auto`
+  añadido a las tablas que podían desbordar (moderación, auditoría IP ×2,
+  plantilla del rival).
+- i18n: 12 claves nuevas en es/en/fr/pt (nav.admin, fases de obra, forma,
+  tendencia del saldo, etc.).

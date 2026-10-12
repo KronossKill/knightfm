@@ -32,7 +32,7 @@ import {
   type Region,
 } from "@/components/game/api";
 import { useActiveClub } from "@/components/game/hooks/use-active-club";
-import { BrandBadge, EmptyState, ErrorState, TableSkeleton } from "@/components/game/ui/bits";
+import { BrandBadge, EmptyState, ErrorState, FormDots, TableSkeleton } from "@/components/game/ui/bits";
 import { MatchDetailDialog } from "@/components/game/competitions/match-dialog";
 import { ClubSquadDialog } from "@/components/game/competitions/club-squad-dialog";
 import { CalendarTab } from "@/components/game/competitions/season-calendar";
@@ -147,6 +147,41 @@ function StandingsTab() {
 
   const rows = query.data?.standings ?? [];
   const total = rows.length;
+
+  // Task 106 (mandate §6 Competiciones): recent form per club, computed ONLY
+  // from real played division fixtures (same API the fixtures tab uses — no
+  // invented data). Oldest → newest, last 5 results per club.
+  const formQuery = useQuery({
+    queryKey: ["fixtures", "form", cascade.divisionId ?? "none"],
+    // status=PLAYED server-side: the route caps limit at 200 and sorts by
+    // kickoff desc — without the status filter the window only ever contains
+    // future fixtures at season start.
+    queryFn: () => fetchFixtures({ divisionId: cascade.divisionId!, status: "PLAYED", limit: 200 }),
+    enabled: !!cascade.divisionId,
+  });
+  const formByClub = React.useMemo(() => {
+    const map = new Map<string, Array<"W" | "D" | "L">>();
+    const played = (formQuery.data?.fixtures ?? [])
+      .filter((f) => f.status === "PLAYED" && f.score)
+      .sort(
+        (a, b) =>
+          a.matchDay - b.matchDay ||
+          new Date(a.kickoffUtc).getTime() - new Date(b.kickoffUtc).getTime()
+      );
+    for (const f of played) {
+      const res = f.score!.home === f.score!.away ? "D" : f.score!.home > f.score!.away ? "W" : "L";
+      const push = (id: string, r: "W" | "D" | "L") => {
+        const arr = map.get(id) ?? [];
+        arr.push(r);
+        if (arr.length > 5) arr.shift();
+        map.set(id, arr);
+      };
+      push(f.home.id, res);
+      push(f.away.id, res === "W" ? "L" : res === "L" ? "W" : "D");
+    }
+    return map;
+  }, [formQuery.data]);
+
   // Zones are SERVER-DRIVEN (Task 22): GET /api/competitions/standings returns
   // the same slot values the season-transition engine uses, so the badges can
   // never disagree with the actual promotion/relegation logic.
@@ -192,7 +227,7 @@ function StandingsTab() {
           <Card>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[640px] border-collapse text-sm">
+                <table className="w-full min-w-[720px] border-collapse text-sm">
                   <caption className="sr-only">{t("standings.title")}</caption>
                   <thead>
                     <tr className="border-b bg-muted/30">
@@ -205,6 +240,7 @@ function StandingsTab() {
                       <th scope="col" className="px-2 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">{t("standings.gf")}</th>
                       <th scope="col" className="px-2 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">{t("standings.ga")}</th>
                       <th scope="col" className="px-2 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">{t("standings.points")}</th>
+                      <th scope="col" className="px-2 py-2 text-center text-xs font-semibold uppercase text-muted-foreground">{t("game.standings.form")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -266,6 +302,9 @@ function StandingsTab() {
                           <td className="px-2 py-2 text-center font-mono tabular-nums">{row.gf}</td>
                           <td className="px-2 py-2 text-center font-mono tabular-nums">{row.ga}</td>
                           <td className="px-2 py-2 text-center font-mono font-bold tabular-nums">{row.points}</td>
+                          <td className="px-2 py-2 text-center">
+                            <FormDots results={formByClub.get(row.club.id) ?? []} className="justify-center" />
+                          </td>
                         </tr>
                       );
                     })}

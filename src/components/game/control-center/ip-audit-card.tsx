@@ -169,7 +169,7 @@ function IpAuditCardInner({ className }: { className?: string }) {
               {query.data.sharedLoginIps.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("admin.ipAudit.sharedEmpty")}</p>
               ) : (
-                <div className="max-h-64 overflow-y-auto rounded-md border">
+                <div className="overflow-x-auto max-h-64 overflow-y-auto rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -225,7 +225,7 @@ function IpAuditCardInner({ className }: { className?: string }) {
               {lookup.accounts.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("admin.ipAudit.noAccounts")}</p>
               ) : (
-                <div className="max-h-80 overflow-y-auto rounded-md border">
+                <div className="overflow-x-auto max-h-80 overflow-y-auto rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>

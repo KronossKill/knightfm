@@ -28,6 +28,7 @@ import { AlertTriangle, ArrowDownLeft, ArrowUpRight, Landmark, Loader2, Scale, W
 import { apiFetch, ApiError } from "@/components/auth/store";
 import { getCaptchaToken } from "@/components/auth/captcha";
 import { useViewStore } from "@/components/game/view-store";
+import { Sparkline } from "@/components/game/ui/bits";
 import { useI18n } from "@/lib/i18n/index";
 import { useToast } from "@/hooks/use-toast";
 import { useMarketError } from "@/components/game/markets/club-context";
@@ -189,7 +190,28 @@ function TreasuryInner({ club }: { club: ClubLite }) {
           {/* Ledger */}
           <Card>
             <CardContent className="p-4">
-              <p className="mb-3 text-sm font-semibold">{t("markets.treasury.ledger")}</p>
+              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                <p className="text-sm font-semibold">{t("markets.treasury.ledger")}</p>
+                {(() => {
+                  // Task 106 (mandate §6 Finanzas): balance trend from the REAL
+                  // ledger — chronological balanceAfter, last 24 entries. Renders
+                  // nothing with fewer than 2 entries (no invented trend).
+                  const series = [...data.ledger]
+                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                    .slice(-24)
+                    .map((r) => r.balanceAfter);
+                  if (series.length < 2) return null;
+                  return (
+                    <div className="flex items-end gap-3">
+                      <div className="text-right">
+                        <p className="text-[11px] text-muted-foreground">{t("game.treasury.sparkTitle")}</p>
+                        <p className="text-[10px] text-muted-foreground/70">{t("game.treasury.sparkHint", { n: series.length })}</p>
+                      </div>
+                      <Sparkline data={series} width={160} height={40} ariaLabel={t("game.treasury.sparkTitle")} />
+                    </div>
+                  );
+                })()}
+              </div>
               {data.ledger.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">{t("markets.treasury.ledgerEmpty")}</p>
               ) : (

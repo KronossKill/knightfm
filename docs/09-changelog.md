@@ -77,3 +77,33 @@ Historial completo de tareas. El detalle técnico de cada una está en `worklog.
   #E8EEF6) como NUEVO DEFAULT, tipografía Inter con números tabulares, radios
   12 px, sidebar 240/80 px + topbar 64 px y sección activa con línea de acento
   lima (spec §1–§3). WCAG 6 temas × 22 pares: ALL PASS.
+
+## Fase 9 — Hotfix login: Turnstile visible y sin cuelge eterno (Task 105)
+- **105** Segunda captura del usuario: el login sigue colgado («el sitio se
+  queda cargando») con la CSP ya corregida. Causa raíz real en el cliente: el
+  widget se renderizaba fuera de pantalla 1×1 px → toda escalada interactiva
+  de Cloudflare (p. ej. bajo extensiones/visores tipo surfs.*) quedaba sin
+  resolver y el spinner era eterno. captcha.ts: mount visible en el
+  formulario (interaction-only), watchdog 180 s/60 s, todos los caminos
+  resuelven (error/expired/timeout/global ausente/excepción). AuthFlow: mount
+  en login/registro/verificar/recuperar + mensaje nuevo «La verificación no
+  terminó a tiempo» (4 idiomas). CSP: worker-src 'self' blob:. siteverify sin
+  URLSearchParams (crash urlSearchParams.entries() del runtime Vercel fuera
+  del camino del login). E2E con claves test 1x…AA de Cloudflare: login real
+  OK, fallo → Reintentar, recuperación OK, móvil OK.
+
+## Fase 10 — Rediseño integral: sistema visual, menú, progreso e imágenes (Task 106)
+- **106** Mandato "rediseño integral nivel sénior" con orden explícito
+  (sistema visual+menú → pantallas → imágenes). Paleta EXACTA del usuario en
+  Nexus (#080D15/#101927/#192638/#B7FF38/#55A7FF/#F1F5FB/#A2B1C5), WCAG 6×22
+  ALL PASS. Menú lateral premium (indicador lima redondeado, tooltips Radix
+  colapsado, aria-label, separadores). Progreso contextual: RingProgress
+  (obra/plantilla), MilestoneTimeline (5 fases derivadas del % real),
+  FormDots (forma real por club en clasificación vía status=PLAYED),
+  Sparkline (saldo real del libro mayor), DeltaPill, EmptyState+acción.
+  Biblioteca 30 imágenes 16:9 (1344×768) 6 tipos × 5 estados con base única
+  por tipo y derivación por IA (misma instalación evoluciona); next/image +
+  aspect-video. Guards overflow en tablas de Control Center y diálogo rival.
+  E2E navegador: login→shell, clasificación con forma (W/L reales), obras con
+  anillo+timeline, tesorería con sparkline real, tooltips colapsado OK,
+  móvil 390 OK, 0 errores de consola.

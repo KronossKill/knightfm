@@ -59,6 +59,7 @@ import {
   ErrorState,
   formatCountdown,
   formatUtcClock,
+  RingProgress,
   useNow,
 } from "@/components/game/ui/bits";
 import { MatchDetailDialog } from "@/components/game/competitions/match-dialog";
@@ -246,11 +247,17 @@ function ReadinessWidget({ club }: { club: ClubMine | null }) {
         <ErrorState message={t("err.generic")} onRetry={() => void q.refetch()} className="py-4" />
       ) : (
         <>
-          <div className="flex items-baseline justify-between">
-            <span className="text-2xl font-bold tabular-nums text-primary">{readyPct}%</span>
-            <span className="text-[11px] text-muted-foreground">{available}/{total}</span>
+          {/* Task 106: readiness as an annular gauge — the % IS the gauge, the
+              ratio moves to the caption. Same data, better hierarchy. */}
+          <div className="flex items-center gap-3">
+            <RingProgress value={readyPct} size={56} thickness={6} label={t("game.dash.readiness")}>
+              <span className="text-sm font-bold tabular-nums text-foreground">{readyPct}%</span>
+            </RingProgress>
+            <div className="flex flex-col">
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">{available}/{total}</span>
+              <span className="text-[11px] text-muted-foreground">{t("game.dash.readiness")}</span>
+            </div>
           </div>
-          <Progress value={readyPct} aria-label={t("game.dash.readiness")} />
           <ul className="space-y-0.5 text-xs text-muted-foreground">
             {injured > 0 && <li>⚠ {t("game.dash.injuredWarning", { n: injured })}</li>}
             {suspended > 0 && <li>🚫 {t("game.dash.suspendedWarning", { n: suspended })}</li>}

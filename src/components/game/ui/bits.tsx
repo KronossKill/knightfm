@@ -4,7 +4,7 @@
 // every icon-only element carries aria-labels, trends are icon + text + tooltip.
 
 import * as React from "react";
-import { ArrowDownRight, ArrowUpRight, Minus, Star, AlertTriangle, Inbox } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Check, Minus, Star, AlertTriangle, Inbox } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -417,11 +417,14 @@ export function EmptyState({
   hint,
   icon: Icon = Inbox,
   className,
+  action,
 }: {
   title: string;
   hint?: string;
   icon?: React.ComponentType<{ className?: string }>;
   className?: string;
+  /** Task 106: deliberate empty states carry a useful next action. */
+  action?: React.ReactNode;
 }) {
   return (
     <div
@@ -434,6 +437,7 @@ export function EmptyState({
       <Icon aria-hidden="true" className="size-8 text-muted-foreground/50" />
       <p className="text-sm font-medium text-foreground/90">{title}</p>
       {hint ? <p className="max-w-sm text-xs text-muted-foreground">{hint}</p> : null}
+      {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 }
@@ -502,5 +506,269 @@ export function KV({ label, children, className }: { label: string; children: Re
       <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</span>
       <span className="text-sm font-medium text-foreground">{children}</span>
     </div>
+  );
+}
+
+// ── Task 106 design system: contextual progress visualizations ──
+// One visual per question: rings for construction/completion ratios,
+// timelines for phased projects, pills for attribute deltas, sparklines
+// for balance trends, dots for recent match form. No data is invented:
+// every component renders only what the caller passes.
+
+/** Annular progress for project/completion ratios (construction, readiness).
+ *  Centered content (usually the % or a countdown) is passed as children. */
+export function RingProgress({
+  value,
+  size = 64,
+  thickness = 6,
+  tone = "primary",
+  label,
+  className,
+  children,
+}: {
+  value: number;
+  size?: number;
+  thickness?: number;
+  tone?: "primary" | "amber" | "destructive";
+  label: string;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  const pct = Math.max(0, Math.min(100, value));
+  const r = (size - thickness) / 2;
+  const c = 2 * Math.PI * r;
+  const strokeColor =
+    tone === "amber" ? "var(--chart-2)" : tone === "destructive" ? "var(--destructive)" : "var(--primary)";
+  return (
+    <div
+      className={cn("relative inline-flex shrink-0 items-center justify-center", className)}
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={`${label}: ${Math.round(pct)}%`}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true" focusable="false">
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--muted)" strokeWidth={thickness} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={thickness}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - pct / 100)}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          style={{ transition: "stroke-dashoffset 600ms ease" }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center px-1 text-center leading-none">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Horizontal milestone timeline for phased projects (construction phases).
+ *  `currentIndex` is the ACTIVE phase; phases before it render as done.
+ *  Pass `completed` to mark the whole project finished. */
+export function MilestoneTimeline({
+  phases,
+  currentIndex,
+  completed = false,
+  label,
+  className,
+}: {
+  phases: string[];
+  currentIndex: number;
+  completed?: boolean;
+  label: string;
+  className?: string;
+}) {
+  const n = phases.length;
+  if (n === 0) return null;
+  const clamped = Math.max(0, Math.min(n - 1, currentIndex));
+  return (
+    <ol
+      className={cn("flex w-full items-start", className)}
+      aria-label={`${label}: ${completed ? phases[clamped] : phases[clamped]} (${clamped + 1}/${n})`}
+    >
+      {phases.map((p, i) => {
+        const done = completed || i < clamped;
+        const current = !completed && i === clamped;
+        return (
+          <li key={i} className="relative flex min-w-0 flex-1 flex-col items-center gap-1.5">
+            {i > 0 && (
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "absolute right-1/2 top-[7px] -z-0 h-0.5 w-full -translate-x-1/2",
+                  done || current ? "bg-primary/60" : "bg-muted"
+                )}
+              />
+            )}
+            <span
+              aria-hidden="true"
+              className={cn(
+                "relative z-10 flex size-4 items-center justify-center rounded-full border-2",
+                done
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : current
+                    ? "border-primary bg-background"
+                    : "border-muted-foreground/40 bg-muted"
+              )}
+            >
+              {done ? (
+                <Check className="size-2.5" strokeWidth={4} />
+              ) : current ? (
+                <span className="size-1.5 animate-pulse rounded-full bg-primary" />
+              ) : null}
+            </span>
+            <span
+              className={cn(
+                "max-w-full truncate text-center text-[10px] leading-tight",
+                done || current ? "text-foreground" : "text-muted-foreground/70"
+              )}
+            >
+              {p}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Signed delta pill for attribute/value changes (+lime / −red / flat muted).
+ *  `invert` flips semantics for metrics where lower is better (e.g. fatigue). */
+export function DeltaPill({
+  value,
+  format,
+  invert = false,
+  className,
+  label,
+}: {
+  value: number;
+  /** Formats the absolute value (e.g. n => n.toFixed(2)); defaults to integer. */
+  format?: (abs: number) => string;
+  invert?: boolean;
+  className?: string;
+  label?: string;
+}) {
+  const positive = invert ? value < 0 : value > 0;
+  const negative = invert ? value > 0 : value < 0;
+  const flat = value === 0;
+  const Icon = flat ? Minus : positive ? ArrowUpRight : ArrowDownRight;
+  const abs = Math.abs(value);
+  const text = `${value > 0 ? "+" : value < 0 ? "−" : ""}${format ? format(abs) : String(abs)}`;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums",
+        flat
+          ? "bg-muted text-muted-foreground"
+          : positive
+            ? "bg-primary/12 text-primary"
+            : "bg-destructive/12 text-destructive",
+        className
+      )}
+      aria-label={label ? `${label}: ${text}` : text}
+    >
+      <Icon aria-hidden="true" className="size-3" />
+      {text}
+    </span>
+  );
+}
+
+/** Minimal SVG line for balance/series trends. Renders NOTHING with fewer
+ *  than 2 points — a one-point "trend" would be invented data. */
+export function Sparkline({
+  data,
+  width = 128,
+  height = 36,
+  tone,
+  area = true,
+  className,
+  ariaLabel,
+}: {
+  data: number[];
+  width?: number;
+  height?: number;
+  /** CSS color; defaults to lime when rising and red when falling. */
+  tone?: string;
+  area?: boolean;
+  className?: string;
+  ariaLabel?: string;
+}) {
+  const gid = React.useId().replace(/[^a-zA-Z0-9]/g, "");
+  if (!Array.isArray(data) || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const span = max - min || 1;
+  const pad = 2;
+  const pts = data.map((v, i) => {
+    const x = pad + (i / (data.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((v - min) / span) * (height - pad * 2);
+    return [x, y] as const;
+  });
+  const line = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const areaPath = `${line} L${pts[pts.length - 1][0].toFixed(1)} ${height - 1} L${pts[0][0].toFixed(1)} ${height - 1} Z`;
+  const rising = data[data.length - 1] >= data[0];
+  const stroke = tone ?? (rising ? "var(--primary)" : "var(--destructive)");
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className={className}
+      role="img"
+      aria-label={ariaLabel}
+      focusable="false"
+      aria-hidden={ariaLabel ? undefined : true}
+    >
+      {area && (
+        <>
+          <defs>
+            <linearGradient id={`spark-${gid}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={stroke} stopOpacity="0.28" />
+              <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <path d={areaPath} fill={`url(#spark-${gid})`} />
+        </>
+      )}
+      <path d={line} fill="none" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="2.2" fill={stroke} />
+    </svg>
+  );
+}
+
+/** Recent-match form dots for standings (W/D/L), computed by the caller from
+ *  real played fixtures — oldest first, at most 5-6 shown. */
+export function FormDots({ results, className }: { results: Array<"W" | "D" | "L">; className?: string }) {
+  const { t } = useI18n();
+  if (!results || results.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+  const tone: Record<string, string> = {
+    W: "bg-primary text-primary-foreground",
+    D: "bg-muted-foreground/50 text-background",
+    L: "bg-destructive/85 text-white",
+  };
+  const word: Record<string, string> = {
+    W: t("standings.won"),
+    D: t("standings.drawn"),
+    L: t("standings.lost"),
+  };
+  return (
+    <span className={cn("inline-flex items-center gap-1", className)} aria-label={results.map((r) => word[r]).join(" · ")}>
+      {results.map((r, i) => (
+        <span
+          key={i}
+          aria-hidden="true"
+          className={cn("inline-flex size-4 items-center justify-center rounded-full text-[9px] font-bold", tone[r])}
+        >
+          {r}
+        </span>
+      ))}
+    </span>
   );
 }

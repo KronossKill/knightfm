@@ -1,0 +1,120 @@
+================================================================
+ KNIGHT FM -- REDISENO INTEGRAL v9.5.0 (Task 106)
+ Sistema visual global + menu + progreso contextual + biblioteca
+ de imagenes -- 50 archivos + este LEEME (51 en el zip)
+================================================================
+
+QUE ES ESTO
+-----------
+Redisenyo completo de la interfaz siguiendo el mandato "Rediseño integral
+de un Football Manager -- nivel senior", en el orden pedido:
+  1o) sistema visual global + menu lateral
+  2o) pantallas funcionales
+  3o) biblioteca de imagenes (30 renders nuevos)
+
+1) SISTEMA VISUAL (paleta EXACTA del mandato)
+---------------------------------------------
+El tema por defecto "Nexus" ahora usa literalmente:
+  - Fondo principal ....... #080D15
+  - Paneles ............... #101927
+  - Superficies elevadas .. #192638
+  - Bordes ................ #233044 (azul grisaceo discreto)
+  - Verde lima ............ #B7FF38 (solo seleccion/acciones/positivo)
+  - Azul secundario ....... #55A7FF
+  - Texto principal ....... #F1F5FB
+  - Texto secundario ...... #A2B1C5
+Contraste WCAG AA verificado con el verificador del proyecto: ALL PASS
+(6 temas x 22 pares). Los otros 5 temas siguen disponibles en Ajustes.
+
+2) MENU LATERAL (mandato seccion 4)
+-----------------------------------
+- Item activo con indicador lateral lima redondeado (expandido y colapsado),
+  icono destacado y fondo sutil.
+- Separadores finos entre categorias (Principal / Sistema / Administracion).
+- Hover, foco por teclado y seleccion claramente diferenciados.
+- Al colapsar (80 px): TOOLTIPS correctos al pasar el raton.
+- Accesibilidad: los botones conservan aria-label incluso colapsados.
+- Rutas, atajos Ctrl+1..9, Ctrl+K y favoritos fijados: INTACTOS.
+
+3) PROGRESO CONTEXTUAL (mandato seccion 6) -- un visual por pregunta
+--------------------------------------------------------------------
+* Obras de instalaciones: ANILLO de progreso ambar + LINEA TEMPORAL con las
+  5 fases (Preparacion del terreno -> Obra estructural -> Instalaciones
+  tecnicas -> Equipamiento -> Inspeccion final). El % y la fase vienen del
+  servidor; la fase activa pulsa y los hitos completados llevan marca.
+* Panel: preparacion de plantilla como ANILLO (el % es el medidor).
+* Clasificacion: columna FORMA nueva con los ultimos 5 resultados por club
+  (verde=gana, gris=empata, rojo=pierde) calculada SOLO con partidos jugados
+  reales de la division (nada inventado).
+* Tesoreria: TENDENCIA DEL SALDO (minigrafo) con los ultimos 24 apuntes
+  reales del libro mayor. Con menos de 2 apuntes no se dibuja nada.
+* Estados vacios: aceptan una accion util (nuevo prop del componente).
+
+4) PANTALLAS
+------------
+- Instalaciones: tarjetas con imagen 16:9, next/image (WebP/AVIF automatico
+  y cero saltos de maquetacion), obra con anillo + fases + cuenta atras.
+- Clasificacion: tabla 720 px min con Forma; leyenda intacta.
+- Tesoreria: cabecera del libro mayor con la tendencia del saldo.
+- Centro de control: tablas de moderacion y auditoria IP con scroll
+  horizontal seguro (antes podian desbordar).
+- Dialogo de plantilla del rival: scroll horizontal anadido.
+- i18n: 12 claves nuevas en espanol/ingles/frances/portugues.
+
+5) BIBLIOTECA DE IMAGENES (mandato seccion 7) -- 30 renders nuevos
+------------------------------------------------------------------
+6 tipos reales del juego x 5 estados (Muy deteriorado -> Estado excelente),
+16:9 en 1344x768 (maximo que soporta el generador; el mandato pedia
+1536x864 si era posible -- no lo es con este motor, se documenta honesto).
+METODO: cada tipo se genero UNA VEZ (nivel base "aceptable") y los otros 4
+niveles se DERIVARON editando esa misma base con IA, conservando el mismo
+lugar, arquitectura, camara y encuadre: se reconoce LA MISMA instalacion
+evolucionando de nivel. Sin texto, logotipos, marcas de agua, porcentajes
+ni interfaces incrustadas. "Gimnasio" y "Vestuarios" del listado de
+categorias no existen como tipos de instalacion en el juego (los datos
+reales tienen 6 tipos; Habitaciones de descanso cubre vestuario/descanso),
+asi que no se generaron para no introducir contenido sin uso.
+
+COMO APLICARLO EN WINDOWS, PASO A PASO
+--------------------------------------
+1) Descarga el zip -> clic derecho -> "Extraer todo..." en una carpeta
+   temporal (ej. Escritorio\redisenyo106).
+2) Copia LAS CARPETAS COMPLETAS (src, public, docs, scripts) y los archivos
+   CHANGELOG.md y docs sobre D:\Programacion\knightfm y acepta REEMPLAZAR.
+   - Se actualizan unicamente los 50 archivos de la lista del zip.
+   - Tu .env, base de datos y descargas NO se tocan.
+3) PowerShell en D:\Programacion\knightfm:
+      npm install
+      npm run dev
+   DEBES VER: "Ready" sin errores.
+4) Si en tu navegador las imagenes de instalaciones se ven "viejas", pulsa
+   Ctrl+F5 (la cache local guarda la respuesta anterior; el servidor ya
+   sirve las nuevas y en produccion se refrescan solas).
+5) Sube a tu repositorio y despliega a Vercel:
+      git add -A
+      git commit -m "Redisenyo visual v9.5.0"
+      git push
+   DEBES VER en Vercel: deployment "Ready".
+6) Verifica en produccion (escritorio 1440x900 y movil 390 px):
+   - Menu: item activo con barra lima; colapsalo y pasa el raton -> tooltip.
+   - Clasificacion: columna FORMA con puntos verdes/grises/rojos.
+   - Instalaciones: fotos 16:9 nuevas; si inicias una obra (propietario):
+     anillo ambar + 5 fases + cuenta atras.
+   - Tesoreria: minigrafo de tendencia del saldo junto al libro mayor.
+
+QUE NO SE TOCO (garantias)
+--------------------------
+- Motor del juego, reglas, formulas, API y persistencia: INTACTOS.
+- Los 6 temas existentes siguen funcionando; Nexus sigue siendo el default.
+- No se invento ningun dato: todo porcentaje, fase, forma o tendencia viene
+  de datos reales del servidor.
+
+VERIFICACION HECHA EN EL TALLER (resumen)
+-----------------------------------------
+- Lint: 0 errores.
+- E2E real en navegador: login completo, panel con anillo 100%, clasificacion
+  con forma real (W/L correctos del 0-2), obras con anillo+fases, tesoreria
+  con tendencia real (1040 -> 1020), tooltips del menu colapsado, movil
+  390x844 correcto, 0 errores de consola.
+- Las 30 imagenes verificadas a 1344x768 exactos.
+- Build aislada del paquete (protocolo de entrega): EXIT=0.

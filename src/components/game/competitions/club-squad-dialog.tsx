@@ -132,7 +132,7 @@ export function ClubSquadDialog({
               )}
 
               {/* Squad table */}
-              <div className="max-h-96 overflow-y-auto rounded-md border border-border" tabIndex={0} aria-label={t("game.comp.squad.title")}>
+              <div className="overflow-x-auto max-h-96 overflow-y-auto rounded-md border border-border" tabIndex={0} aria-label={t("game.comp.squad.title")}>
                 <table className="w-full min-w-[560px] border-collapse text-sm">
                   <thead className="sticky top-0 bg-muted/95 backdrop-blur">
                     <tr className="border-b">
