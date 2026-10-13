@@ -1,0 +1,133 @@
+════════════════════════════════════════════════════════════════════
+ KNIGHT FM — PAQUETE COMBINADO DE HOY (v9.6.3 + v9.6.4)
+ Todo lo trabajado hoy, en un solo ZIP
+════════════════════════════════════════════════════════════════════
+
+QUÉ CONTIENE
+────────────
+PARTE A — v9.6.3 · Asistente IA en producción (Vercel) + Cartera
+  1) FIX 503 del Asistente Knight en producción.
+     El SDK de IA solo lee el FICHERO .z-ai-config (que no puede subirse
+     a Vercel) → en producción toda petición del asistente moría con 503.
+     Ahora src/app/api/assistant/route.ts usa getZAI() ENV-FIRST: si
+     existen las variables ZAI_BASE_URL + ZAI_API_KEY construye el
+     cliente desde el entorno de Vercel; en local sigue funcionando el
+     fichero de configuración (sin cambios para tu sandbox).
+  2) FIX textos en bruto en CARTERA: aparecían claves sin traducir
+     (markets.wallet.depositDest*). Añadidas las 4 claves en los 4
+     idiomas (Español / English / Français / Português):
+     depositDestTitle · depositDestCopy · depositDestMint · depositDestRules
+
+PARTE B — v9.6.4 · Arte Ultra-HD de Instalaciones + contraste de temas
+  1) 60 ilustraciones NUEVAS en SVG (vectorial = resolución infinita:
+     perfecta en cualquier tamaño, zoom 800%, retina, 4K/8K — jamás se
+     pixelan). Una imagen ÚNICA por NIVEL y por TIPO:
+     6 instalaciones × 10 niveles = 60 ficheros /facilities/<tipo>-l<1..10>.svg
+     (stadium, training-center, youth-academy, medical-center,
+      sports-science, rest-rooms). Cada nivel se distingue visualmente;
+     el nivel 10 lleva detalles dorados de élite.
+  2) FIX imágenes duplicadas al subir de nivel: antes la tarjeta
+     mostraba DOS imágenes (estado actual + previsión) y en 5 de los 9
+     saltos ambas eran LA MISMA (solo había 5 fotos para 10 niveles).
+     Ahora: UNA sola imagen por tarjeta. Durante una obra se muestra el
+     render del NIVEL DESTINO con overlay de obra (franjas de peligro +
+     insignia "Ampliando a nivel X") y cuenta atrás.
+  3) FIX texto invisible en el tema CLÁSICO (y auditoría de los 5):
+     el tema Clásico usaba un verde MEDIO con texto casi blanco
+     (contraste 3.12:1 — suspende WCAG AA). Unificado con el patrón del
+     resto de temas: acento verde claro + texto oscuro → 8.26:1 (AAA).
+     destructive unificado en los 5 temas a ≥4.8:1. Badge de estado
+     sobre la imagen ahora legible en todos los temas.
+  4) docs/09-changelog.md actualizado con las releases v9.6.3 y v9.6.4.
+
+FICHEROS DEL PAQUETE (expandir sobre la raíz del repo)
+────────────────────────────────────────────────────────────────────
+  LEEME-COMBINADO.txt                               (este fichero)
+  .env.example                                      (documentación de variables)
+  docs/09-changelog.md                              (changelog del proyecto)
+  src/app/api/assistant/route.ts                    (getZAI env-first)
+  src/lib/i18n/dict/markets/es.ts                   (+4 claves)
+  src/lib/i18n/dict/markets/en.ts                   (+4 claves)
+  src/lib/i18n/dict/markets/fr.ts                   (+4 claves)
+  src/lib/i18n/dict/markets/pt.ts                   (+4 claves)
+  public/facilities/medical-center-l1..l10.svg      (10 ficheros)
+  public/facilities/rest-rooms-l1..l10.svg          (10 ficheros)
+  public/facilities/sports-science-l1..l10.svg      (10 ficheros)
+  public/facilities/stadium-l1..l10.svg             (10 ficheros)
+  public/facilities/training-center-l1..l10.svg     (10 ficheros)
+  public/facilities/youth-academy-l1..l10.svg       (10 ficheros)
+  scripts/generate-facility-art.ts                  (generador del arte)
+  src/app/globals.css                               (temas WCAG)
+  src/components/game/facilities/facilities-view.tsx
+  src/lib/themes.ts                                 (swatch Clásico)
+  src/lib/i18n/dict/game/es.ts                      (+1 clave)
+  src/lib/i18n/dict/game/en.ts                      (+1 clave)
+  src/lib/i18n/dict/game/fr.ts                      (+1 clave)
+  src/lib/i18n/dict/game/pt.ts                      (+1 clave)
+
+INSTALACIÓN (4 pasos)
+────────────────────────────────────────────────────────────────────
+1) Expande el ZIP sobre la raíz del repositorio
+   (D:\Programacion\knightfm), sobrescribiendo.
+
+2) BORRA las imágenes antiguas obsoletas (PowerShell, en la raíz):
+
+     Remove-Item public\facilities\*-t1.jpg,public\facilities\*-t2.jpg,public\facilities\*-t3.jpg,public\facilities\*-t4.jpg,public\facilities\*-t5.jpg
+
+   (30 ficheros stadium-t1.jpg … rest-rooms-t5.jpg que quedan sin uso)
+
+3) VARIABLES DE ENTORNO EN VERCEL (para que el Asistente funcione allí):
+   Project → Settings → Environment Variables (marcadas Production) →
+   añade/verifica estas 5 y luego haz Redeploy:
+
+     ZAI_BASE_URL = https://internal-api.z.ai/v1
+     ZAI_API_KEY  = Z.ai
+     ZAI_CHAT_ID  = chat-3894a65d-0cee-4d2e-a308-f462923de701
+     ZAI_USER_ID  = 4b036c9d-7053-4460-a659-9ef5722a59f0
+     ZAI_TOKEN    = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNGIwMzZjOWQtNzA1My00NDYwLWE2NTktOWVmNTcyMmE1OWYwIiwiY2hhdF9pZCI6ImNoYXQtMzg5NGE2NWQtMGNlZS00ZDJlLWEzMDgtZjQ2MjkyM2RlNzAxIiwicGxhdGZvcm0iOiJ6YWkifQ.qGcbLA24D3pwtN1BWxHs69FLMUQKYBBcKhK6lwsImi0
+
+   (Estas son las credenciales reales de tu configuración .z-ai-config.
+    Si este paquete v9.6.3 ya lo aplicaste antes, simplemente verifica
+    que siguen presentes; no hay que cambiar nada más.)
+
+4) Commit + push:
+
+     git add .
+     git commit -m "v9.6.3+v9.6.4: assistant env-first AI client + wallet i18n keys + ultra-HD SVG facility art + WCAG theme contrast"
+     git push
+
+   → Vercel despliega solo. IMPORTANTE: después de tocar variables de
+   entorno hay que pulsar Redeploy para que se apliquen.
+
+VERIFICACIÓN (2 minutos)
+────────────────────────────────────────────────────────────────────
+A) ASISTENTE: abre el Asistente Knight y pregúntale algo
+   ("¿cómo subo de nivel el estadio?") → debe responder con texto real
+   (antes: 503 en producción).
+B) CARTERA: la tarjeta de destino de depósito muestra textos
+   traducidos (título, copiar dirección, mint, reglas) en los 4 idiomas.
+C) INSTALACIONES: cada tarjeta muestra UNA ilustración; cambia de
+   imagen exactamente al subir de nivel (1→10). Con una obra en curso:
+   nivel destino + franjas de obra + "Ampliando a nivel X" + cuenta
+   atrás, y solo UNA imagen.
+D) TEMAS: Ajustes → tema CLÁSICO → todos los botones verdes se leen
+   perfectamente. Repite en los otros 4 temas: todo legible.
+E) ULTRA-HD: zoom del navegador al 400% sobre una instalación → la
+   ilustración sigue perfectamente nítida (vectorial).
+
+NOTAS TÉCNICAS
+────────────────────────────────────────────────────────────────────
+• Sin cambios de base de datos, sin dependencias nuevas. Los dos
+  paquetes originales (v9.6.3 y v9.6.4) no compartían ficheros, así
+  que este ZIP combinado es idempotente: puedes aplicarlo aunque ya
+  hayas instalado cualquiera de los dos por separado.
+• Los SVG pesan ~13 KB de media (las 60 ilustraciones juntas pesan
+  menos que UNA de las fotos antiguas) → la pantalla carga más rápido.
+• Para regenerar o retocar el arte: bun scripts/generate-facility-art.ts
+  (salida determinista, misma semilla = mismos ficheros).
+• El escudo del club (knight-logo.png) se mantiene como PNG porque es
+  el activo de marca original; siempre se muestra por debajo de su
+  tamaño nativo (719×698). Todo lo demás del sitio es vectorial/CSS.
+• El asistente es y sigue siendo SOLO LECTURA (nunca ejecuta acciones
+  del juego): esta entrega solo cambia cómo obtiene su modelo de IA.
+════════════════════════════════════════════════════════════════════

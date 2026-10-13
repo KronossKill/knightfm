@@ -59,51 +59,14 @@ Historial completo de tareas. El detalle técnico de cada una está en `worklog.
 - **44** **libreventas581@gmail.com (Kronoss) promovida a ADMIN** (registrationIp liberado, audit ADMIN_GRANTED)
 - **45** **Documentación completa** (esta carpeta) + ZIP descargable desde la propia app
 
-## Fase 7 — Entrega, UI/UX v2.0 y motor KMIE 2.0 (Tasks 90–100)
-- **90/94** Entrega sellada con builder autoauditado (KFM-OPS-015/020/023) + wallet QR + registro reforzado + panel de descargas
-- **91/99** Sistema de diseño v6 → v2.0: 5 temas WCAG AA (115 pares verificados), widgets drag&drop con presets server-side, paleta Ctrl+K (favoritos + pila), deep-linking, World Pulse y 4 widgets nuevos
-- **95** Descarga de zips desde la raíz del sitio (redirección 307)
-- **96** Guía completa GitHub + Supabase + Vercel sin perder datos (`docs/GUIA-DESPLIEGUE-GITHUB-SUPABASE.md`)
-- **100** **Auditoría forense del motor** (evidencia: el clima/terreno/felicidad nunca existieron en ninguna entrega) + **KMIE 2.0**: clima por banda climática de región, estado del terreno según estadio + clima, volatilidad oculta "día de forma", árbitro de humor variable, felicidad de suplentes, estilos tácticos Con/Sin balón aplicados de verdad (antes eran columnas muertas), encaje posicional real en la fuerza del XI, lesiones según Centro Médico + Ciencia Deportiva, franja de condiciones en el informe (4 idiomas) y 4 claves de admin
-- **101** **Motor TRAMA** (spec "Parte 3" subida por el usuario): nudos de 5 pasos con temperatura de azar variable, 5 hilos (Mundo/Cuerpo/Mente/Juego/Azar), bandas graduadas con colas pesadas, marea, lectura adaptativa, gestión del marcador, cisnes negros con presupuesto de caos, experiencia (madurez/bagaje/Fexp), equidad con ventaja local acotada y calibración 12k partidos (13 métricas vs tabla 3.13, dominancia <58%, simetría <3%)
+## Release v9.6.3 — Asistente IA en producción (Vercel) + claves de Cartera
+- **Fix 503 del Asistente Knight en Vercel**: el SDK `z-ai-web-dev-sdk` solo lee el FICHERO `.z-ai-config` (cwd/home//etc) que no puede subirse a Vercel → todas las peticiones degradaban a 503. `src/app/api/assistant/route.ts` ahora usa `getZAI()` **env-first**: si existen `ZAI_BASE_URL` + `ZAI_API_KEY` (más `ZAI_CHAT_ID`/`ZAI_USER_ID`/`ZAI_TOKEN` opcionales) construye el cliente desde variables de entorno; en local sigue funcionando el fallback por fichero. Variables documentadas en `.env.example`
+- **Fix claves i18n visibles en bruto en Cartera**: la vista de cartera mostraba claves sin traducir (`markets.wallet.depositDest*`) → añadidas 4 claves × 4 idiomas (es/en/fr/pt): `depositDestTitle`, `depositDestCopy`, `depositDestMint`, `depositDestRules`
 
-## Fase 8 — Diseño definitivo "Nexus" y corrección del login (Task 103)
-- **103** Captura del usuario: Turnstile bloqueado por la CSP en producción
-  (knightfm.vercel.app) → «El captcha no se pudo cargar» en cada login. CSP con
-  host acotado challenges.cloudflare.com (script/frame/connect/img-src),
-  captcha.ts con reintento+timeout, botón «Reintentar verificación» (4 idiomas).
-  Además se implementa el DOCX del usuario «Diseño visual definitivo»: tema 6
-  **Nexus** (azul noche #0A0F18 / pizarra #151E2D / lima #B7F34A / blanco frío
-  #E8EEF6) como NUEVO DEFAULT, tipografía Inter con números tabulares, radios
-  12 px, sidebar 240/80 px + topbar 64 px y sección activa con línea de acento
-  lima (spec §1–§3). WCAG 6 temas × 22 pares: ALL PASS.
-
-## Fase 9 — Hotfix login: Turnstile visible y sin cuelge eterno (Task 105)
-- **105** Segunda captura del usuario: el login sigue colgado («el sitio se
-  queda cargando») con la CSP ya corregida. Causa raíz real en el cliente: el
-  widget se renderizaba fuera de pantalla 1×1 px → toda escalada interactiva
-  de Cloudflare (p. ej. bajo extensiones/visores tipo surfs.*) quedaba sin
-  resolver y el spinner era eterno. captcha.ts: mount visible en el
-  formulario (interaction-only), watchdog 180 s/60 s, todos los caminos
-  resuelven (error/expired/timeout/global ausente/excepción). AuthFlow: mount
-  en login/registro/verificar/recuperar + mensaje nuevo «La verificación no
-  terminó a tiempo» (4 idiomas). CSP: worker-src 'self' blob:. siteverify sin
-  URLSearchParams (crash urlSearchParams.entries() del runtime Vercel fuera
-  del camino del login). E2E con claves test 1x…AA de Cloudflare: login real
-  OK, fallo → Reintentar, recuperación OK, móvil OK.
-
-## Fase 10 — Rediseño integral: sistema visual, menú, progreso e imágenes (Task 106)
-- **106** Mandato "rediseño integral nivel sénior" con orden explícito
-  (sistema visual+menú → pantallas → imágenes). Paleta EXACTA del usuario en
-  Nexus (#080D15/#101927/#192638/#B7FF38/#55A7FF/#F1F5FB/#A2B1C5), WCAG 6×22
-  ALL PASS. Menú lateral premium (indicador lima redondeado, tooltips Radix
-  colapsado, aria-label, separadores). Progreso contextual: RingProgress
-  (obra/plantilla), MilestoneTimeline (5 fases derivadas del % real),
-  FormDots (forma real por club en clasificación vía status=PLAYED),
-  Sparkline (saldo real del libro mayor), DeltaPill, EmptyState+acción.
-  Biblioteca 30 imágenes 16:9 (1344×768) 6 tipos × 5 estados con base única
-  por tipo y derivación por IA (misma instalación evoluciona); next/image +
-  aspect-video. Guards overflow en tablas de Control Center y diálogo rival.
-  E2E navegador: login→shell, clasificación con forma (W/L reales), obras con
-  anillo+timeline, tesorería con sparkline real, tooltips colapsado OK,
-  móvil 390 OK, 0 errores de consola.
+## Release v9.6.4 — Arte Ultra-HD de Instalaciones + contraste de temas
+- **60 ilustraciones SVG** (6 instalaciones × 10 niveles, una única imagen por nivel y por tipo) generadas por `scripts/generate-facility-art.ts` — vectorial puro: resolución infinita, nunca pierde calidad al redimensionar; ~13 KB de media por fichero (antes: 30 JPG raster 1152×864)
+- **Fix imágenes duplicadas** al subir nivel: la tarjeta mostraba 2 `<img>` (actual + previsión) idénticas en 5 de 9 saltos (solo había 5 tiers para 10 niveles) → ahora UNA imagen por tarjeta; durante la obra se muestra el render del nivel destino con overlay de obra (franjas de peligro + insignia "Ampliando a nivel X") + progreso/cuenta atrás
+- **Fix contraste tema Clásico**: `--primary` verde medio con `--primary-foreground` blanco = 3.12:1 (suspende WCAG AA) en todos los botones/badges primarios → patrón unificado con los otros 4 temas (acento claro + texto oscuro) = 8.26:1 AAA; `destructive` unificado en los 5 temas a ≥4.8:1 sobre tarjeta; swatch del tema Clásico actualizado
+- **Fix badge de estado** sobre la imagen de instalaciones (texto oscuro heredado sobre `bg-background/85` oscuro = invisible) → `text-foreground` explícito
+- i18n: nueva clave `game.fac.upgradingTo` en es/en/fr/pt; `game.fac.preview` queda sin uso (se conserva la clave)
+- E2E verificado en navegador: progresión visual por nivel, estado "en obras" sin duplicados, 5 temas legibles (Panel/Mercados/Plantilla/Tesorería/Ajustes/Instalaciones), lint limpio, sin errores de consola

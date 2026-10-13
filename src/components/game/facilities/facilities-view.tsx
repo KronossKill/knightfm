@@ -5,7 +5,6 @@
 // cost preview + confirmation (server debits atomically; scheduler completes).
 
 import * as React from "react";
-import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BedDouble, Building2, FlaskConical, HardHat, HeartPulse, Landmark, Microscope } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +32,7 @@ import {
   type FacilityView,
 } from "@/components/game/api";
 import { useActiveClub } from "@/components/game/hooks/use-active-club";
-import { ErrorState, MilestoneTimeline, RingProgress, SegmentedBar, formatCountdown, useNow } from "@/components/game/ui/bits";
+import { ErrorState, SegmentedBar, formatCountdown, useNow } from "@/components/game/ui/bits";
 
 const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   STADIUM: Landmark,
@@ -44,8 +43,10 @@ const FACILITY_ICONS: Record<string, React.ComponentType<{ className?: string }>
   REST_ROOMS: BedDouble,
 };
 
-// AI-generated condition renders: /facilities/<slug>-t<1..5>.jpg (Task 2-img).
-// Tier formula: Math.min(5, Math.ceil(level / 2)) → L1-2=t1 … L9-10=t5.
+// Ultra-HD vector art (Task: instalaciones v9.6.4): /facilities/<slug>-l<1..10>.svg.
+// One unique SVG per facility TYPE per LEVEL (60 files) — resolution-independent,
+// never loses quality at any size. During works the card shows the TARGET level
+// render under a construction overlay (single image per card, no duplicates).
 const FACILITY_IMAGES: Record<string, string> = {
   STADIUM: "/facilities/stadium",
   TRAINING_CENTER: "/facilities/training-center",
@@ -74,9 +75,14 @@ function FacilityCard({
   const atMax = facility.level >= maxLevel;
   const upgrading = !!facility.upgrade;
   const imgBase = FACILITY_IMAGES[facility.type];
+  // Condition wording still maps to 5 tiers (semantics, not imagery).
   const tier = Math.min(5, Math.ceil(facility.level / 2));
-  const targetTier = facility.upgrade ? Math.min(5, Math.ceil(facility.upgrade.toLevel / 2)) : tier;
   const currentCondition = t(`facility.condition.t${tier}`);
+  // Ultra-HD art: EXACTLY one image per card — the render of the level being
+  // shown (target level while a work is in progress, current level otherwise).
+  const displayLevel = facility.upgrade ? facility.upgrade.toLevel : facility.level;
+  const imgSrc = imgBase ? `${imgBase}-l${displayLevel}.svg` : null;
+  const imgAlt = `${t(`facility.${facility.type}`)} · ${t("facility.level", { level: displayLevel })}`;
 
   return (
     <Card className={cn(upgrading && "border-amber-500/40")}>
@@ -100,92 +106,52 @@ function FacilityCard({
           </p>
         )}
 
-        {imgBase ? (
-          <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-            {/* Task 106: next/image (sharp) serves WebP/AVIF automatically and
-                reserves the 16:9 box so cards never shift while loading. */}
-            <Image
-              src={`${imgBase}-t${tier}.jpg`}
-              alt={currentCondition}
-              fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover"
+        {imgSrc ? (
+          <div className="relative overflow-hidden rounded-lg border">
+            <img
+              src={imgSrc}
+              alt={imgAlt}
+              className="h-40 w-full object-cover"
+              loading="lazy"
             />
-            <Badge className="absolute bottom-2 left-2 bg-background/85 text-xs backdrop-blur">
-              {currentCondition}
-            </Badge>
+            {upgrading && facility.upgrade ? (
+              <>
+                {/* construction overlay: dimmed target render + hazard stripes */}
+                <div className="absolute inset-0 bg-background/45" aria-hidden="true" />
+                <div
+                  className="absolute inset-0 opacity-30"
+                  aria-hidden="true"
+                  style={{ background: "repeating-linear-gradient(45deg, transparent 0px, transparent 10px, rgba(245,158,11,0.55) 10px, rgba(245,158,11,0.55) 16px)" }}
+                />
+                <Badge className="absolute left-2 bottom-2 bg-background/90 text-foreground text-xs backdrop-blur">
+                  {currentCondition}
+                </Badge>
+                <Badge className="absolute right-2 bottom-2 border-amber-500/50 bg-amber-500/20 text-xs text-amber-200 backdrop-blur">
+                  <HardHat aria-hidden="true" className="size-3" />
+                  {t("game.fac.upgradingTo", { level: facility.upgrade.toLevel })}
+                </Badge>
+              </>
+            ) : (
+              <Badge className="absolute bottom-2 left-2 bg-background/85 text-foreground text-xs backdrop-blur">
+                {currentCondition}
+              </Badge>
+            )}
           </div>
         ) : null}
 
         <SegmentedBar level={facility.level} max={maxLevel} />
 
-        {upgrading && facility.upgrade && imgBase ? (
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium text-amber-200">
-              → {t("game.fac.preview")}: {t(`facility.condition.t${targetTier}`)}
-            </p>
-            <div className="relative aspect-video w-full overflow-hidden rounded-lg border">
-              <Image
-                src={`${imgBase}-t${targetTier}.jpg`}
-                alt={t(`facility.condition.t${targetTier}`)}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="object-cover"
-              />
-            </div>
-          </div>
-        ) : null}
-
         {upgrading && facility.upgrade ? (
-          (() => {
-            // Task 106 (mandate §6): construction as RING + milestone timeline.
-            // The % and the deadline come from the server (upgrade.progressPct /
-            // completesAt); the phase is derived from that same progress —
-            // nothing here invents data.
-            const pct = Math.max(0, Math.min(100, facility.upgrade.progressPct ?? 0));
-            const phases = [
-              t("game.fac.phase.prep"),
-              t("game.fac.phase.structure"),
-              t("game.fac.phase.technical"),
-              t("game.fac.phase.equipment"),
-              t("game.fac.phase.inspection"),
-            ];
-            const phaseIndex = pct >= 100 ? phases.length - 1 : Math.min(phases.length - 1, Math.floor((pct / 100) * phases.length));
-            const completed = pct >= 100;
-            return (
-              <div className="space-y-2.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                <div className="flex items-center gap-3">
-                  <RingProgress
-                    value={pct}
-                    size={64}
-                    thickness={6}
-                    tone="amber"
-                    label={t("game.fac.ring")}
-                  >
-                    <span className="text-[13px] font-bold tabular-nums text-foreground">{Math.round(pct)}%</span>
-                  </RingProgress>
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
-                      <HardHat aria-hidden="true" className="size-3.5 shrink-0" />
-                      {t("game.fac.inProgress", { date: formatDate(facility.upgrade.completesAt) })}
-                    </p>
-                    <p className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {nowMs > 0 ? formatCountdown(new Date(facility.upgrade.completesAt).getTime(), nowMs) : "--:--:--"}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t("game.fac.phases")}: {phases[phaseIndex]}
-                    </p>
-                  </div>
-                </div>
-                <MilestoneTimeline
-                  phases={phases}
-                  currentIndex={phaseIndex}
-                  completed={completed}
-                  label={t("game.fac.phases")}
-                />
-              </div>
-            );
-          })()
+          <div className="space-y-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+            <p className="flex items-center gap-1.5 text-xs font-medium text-amber-200">
+              <HardHat aria-hidden="true" className="size-3.5" />
+              {t("game.fac.inProgress", { date: formatDate(facility.upgrade.completesAt) })}
+            </p>
+            <Progress value={facility.upgrade.progressPct} aria-label={`${t("game.fac.progress")}: ${facility.upgrade.progressPct}%`} />
+            <p className="text-right font-mono text-xs tabular-nums text-amber-200/90">
+              {nowMs > 0 ? formatCountdown(new Date(facility.upgrade.completesAt).getTime(), nowMs) : "--:--:--"}
+            </p>
+          </div>
         ) : (
           <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
             <span>
